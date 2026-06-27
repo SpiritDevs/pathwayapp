@@ -1,7 +1,7 @@
 import { SymbolView } from "expo-symbols";
-import { connectionStatusText } from "@t3tools/client-runtime/connection";
-import type { AtomCommandResult } from "@t3tools/client-runtime/state/runtime";
-import type { EnvironmentId } from "@t3tools/contracts";
+import { connectionStatusText } from "@pathwayos/client-runtime/connection";
+import type { AtomCommandResult } from "@pathwayos/client-runtime/state/runtime";
+import type { EnvironmentId } from "@pathwayos/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 import { useCallback, useState } from "react";
@@ -76,7 +76,10 @@ export function ConnectionEnvironmentRow(props: {
         />
 
         <View className="flex-1 gap-0.5">
-          <Text className="text-base font-t3-bold leading-[21px] text-foreground" numberOfLines={1}>
+          <Text
+            className="text-base font-pathwayos-bold leading-[21px] text-foreground"
+            numberOfLines={1}
+          >
             {props.environment.environmentLabel}
           </Text>
           <Text className="text-xs leading-[16px] text-foreground-muted" numberOfLines={1}>
@@ -135,13 +138,13 @@ export function ConnectionEnvironmentRow(props: {
         >
           {props.environment.isRelayManaged ? (
             <Text className="text-sm leading-[18px] text-foreground-muted">
-              Managed by T3 Cloud. Tunnel details update automatically.
+              Managed by PathwayOS Cloud. Tunnel details update automatically.
             </Text>
           ) : (
             <>
               <View className="gap-1.5">
                 <Text
-                  className="text-2xs font-t3-bold uppercase text-foreground-muted"
+                  className="text-2xs font-pathwayos-bold uppercase text-foreground-muted"
                   style={{ letterSpacing: 0.8 }}
                 >
                   Label
@@ -159,7 +162,7 @@ export function ConnectionEnvironmentRow(props: {
 
               <View className="gap-1.5">
                 <Text
-                  className="text-2xs font-t3-bold uppercase text-foreground-muted"
+                  className="text-2xs font-pathwayos-bold uppercase text-foreground-muted"
                   style={{ letterSpacing: 0.8 }}
                 >
                   URL
@@ -186,7 +189,7 @@ export function ConnectionEnvironmentRow(props: {
               >
                 <SymbolView name="checkmark" size={13} tintColor={primaryFg} type="monochrome" />
                 <Text
-                  className="text-xs font-t3-bold uppercase text-primary-foreground"
+                  className="text-xs font-pathwayos-bold uppercase text-primary-foreground"
                   style={{ letterSpacing: 0.8 }}
                 >
                   Save

@@ -1,7 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import type { AtomCommandResult } from "@t3tools/client-runtime/state/runtime";
-import { CommandId, type MessageId } from "@t3tools/contracts";
+import type { EnvironmentThreadShell } from "@pathwayos/client-runtime/state/shell";
+import type { AtomCommandResult } from "@pathwayos/client-runtime/state/runtime";
+import { CommandId, type MessageId } from "@pathwayos/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import { useCallback, useEffect, useRef, useState } from "react";

@@ -102,7 +102,7 @@ export class DesktopBackendOutputLog extends Context.Service<
       chunk: Uint8Array,
     ) => Effect.Effect<void>;
   }
->()("@t3tools/desktop/app/DesktopBackendOutputLog") {}
+>()("@pathwayos/desktop/app/DesktopBackendOutputLog") {}
 
 type DesktopLogFileWriterError =
   | DesktopLogFileWriterConfigurationError

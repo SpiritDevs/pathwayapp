@@ -1,5 +1,5 @@
 {
-  "name": "@t3tools/client-runtime",
+  "name": "@pathwayos/client-runtime",
   "private": true,
   "type": "module",
   "exports": {
@@ -137,8 +137,8 @@
     "test": "vp test run"
   },
   "dependencies": {
-    "@t3tools/contracts": "workspace:*",
-    "@t3tools/shared": "workspace:*",
+    "@pathwayos/contracts": "workspace:*",
+    "@pathwayos/shared": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

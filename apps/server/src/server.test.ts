@@ -2,7 +2,7 @@ import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import * as NodeSocket from "@effect/platform-node/NodeSocket";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NodeCrypto from "node:crypto";
-import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { HostProcessPlatform } from "@pathwayos/shared/hostProcess";
 
 import {
   AuthAccessTokenType,
@@ -30,14 +30,14 @@ import {
   WS_METHODS,
   WsRpcGroup,
   EditorId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   computeDpopAccessTokenHash,
   computeDpopJwkThumbprint,
   type DpopPublicJwk,
-} from "@t3tools/shared/dpop";
-import { RELAY_HEALTH_REQUEST_TYP, RELAY_MINT_REQUEST_TYP } from "@t3tools/shared/relayJwt";
-import * as RelayClient from "@t3tools/shared/relayClient";
+} from "@pathwayos/shared/dpop";
+import { RELAY_HEALTH_REQUEST_TYP, RELAY_MINT_REQUEST_TYP } from "@pathwayos/shared/relayJwt";
+import * as RelayClient from "@pathwayos/shared/relayClient";
 import { assert, it } from "@effect/vitest";
 import { assertFailure, assertInclude, assertTrue } from "@effect/vitest/utils";
 import * as Clock from "effect/Clock";
@@ -286,9 +286,9 @@ const makeBrowserOtlpPayload = (spanName: string) =>
         url: collector.url,
         exportInterval: "10 millis",
         resource: {
-          serviceName: "t3-web",
+          serviceName: "pathwayos-web",
           attributes: {
-            "service.runtime": "t3-web",
+            "service.runtime": "pathwayos-web",
             "service.mode": "browser",
             "service.version": "test",
           },
@@ -351,7 +351,9 @@ const buildAppUnderTest = (options?: {
 }) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
-    const tempBaseDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-router-test-" });
+    const tempBaseDir = yield* fileSystem.makeTempDirectoryScoped({
+      prefix: "pathwayos-router-test-",
+    });
     const baseDir = options?.config?.baseDir ?? tempBaseDir;
     const devUrl = options?.config?.devUrl;
     const derivedPaths = yield* ServerConfig.deriveServerPaths(baseDir, devUrl);
@@ -365,7 +367,7 @@ const buildAppUnderTest = (options?: {
       otlpTracesUrl: undefined,
       otlpMetricsUrl: undefined,
       otlpExportIntervalMs: 10_000,
-      otlpServiceName: "t3-server",
+      otlpServiceName: "pathwayos-server",
       mode: "desktop",
       port: 0,
       host: "127.0.0.1",
@@ -791,7 +793,7 @@ const buildAppUnderTest = (options?: {
       ),
       Layer.provide(
         Layer.mock(CloudCliTokenManager.CloudCliTokenManager)({
-          get: Effect.die(new Error("Unexpected T3 Connect CLI authorization request.")),
+          get: Effect.die(new Error("Unexpected pathwayOS Connect CLI authorization request.")),
           getExisting: Effect.succeed(Option.none()),
           hasCredential: Effect.succeed(false),
           clear: Effect.void,
@@ -1007,7 +1009,7 @@ const makeCloudMintCredentialRequest = (input: {
 }) => {
   const payload = {
     iss: input.issuer ?? "https://relay.example.test",
-    aud: input.audience ?? `t3-env:${input.environmentId}`,
+    aud: input.audience ?? `pathwayos-env:${input.environmentId}`,
     sub: input.subject ?? "user_123",
     jti: input.jti ?? "cloud-mint-jti-1",
     environmentId: input.environmentId,
@@ -1044,7 +1046,7 @@ const makeCloudEnvironmentHealthRequest = (input: {
 }) => {
   const payload = {
     iss: input.issuer ?? "https://relay.example.test",
-    aud: input.audience ?? `t3-env:${input.environmentId}`,
+    aud: input.audience ?? `pathwayos-env:${input.environmentId}`,
     sub: input.subject ?? "user_123",
     jti: input.jti ?? "cloud-health-jti-1",
     environmentId: input.environmentId,
@@ -1235,7 +1237,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const staticDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-router-static-" });
+      const staticDir = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "pathwayos-router-static-",
+      });
       const indexPath = path.join(staticDir, "index.html");
       yield* fileSystem.writeFileString(indexPath, "<html>router-static-ok</html>");
 
@@ -1265,7 +1269,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       yield* buildAppUnderTest();
 
-      const url = yield* getHttpServerUrl("/.well-known/t3/environment");
+      const url = yield* getHttpServerUrl("/.well-known/pathwayos/environment");
       const response = yield* fetchEffect(url);
       const body = yield* responseJsonEffect<typeof testEnvironmentDescriptor>(response);
 
@@ -1278,7 +1282,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       yield* buildAppUnderTest();
 
-      const url = yield* getHttpServerUrl("/.well-known/t3/environment");
+      const url = yield* getHttpServerUrl("/.well-known/pathwayos/environment");
       const response = yield* fetchEffect(url, {
         headers: {
           origin: crossOriginClientOrigin,
@@ -1317,7 +1321,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         "bearer-access-token",
         "dpop-access-token",
       ]);
-      assert.isTrue(body.auth.sessionCookieName.startsWith("t3_session_"));
+      assert.isTrue(body.auth.sessionCookieName.startsWith("pathwayos_session_"));
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
@@ -1422,7 +1426,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         },
         scope: "orchestration:read orchestration:operate terminal:operate review:write",
         clientMetadata: {
-          label: "T3 Code Mobile",
+          label: "pathwayOS Mobile",
           deviceType: "mobile",
           os: "iOS",
         },
@@ -1449,7 +1453,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(response.status, 200);
       assert.equal(clientsResponse.status, 200);
       assert.deepInclude(mobileClient?.client, {
-        label: "T3 Code Mobile",
+        label: "pathwayOS Mobile",
         deviceType: "mobile",
         os: "iOS",
         ipAddress: "127.0.0.1",
@@ -1487,7 +1491,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           body: new URLSearchParams({
             grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
             subject_token: credential.credential,
-            subject_token_type: "urn:t3:params:oauth:token-type:environment-bootstrap",
+            subject_token_type: "urn:pathwayos:params:oauth:token-type:environment-bootstrap",
             requested_token_type: "urn:ietf:params:oauth:token-type:access_token",
             scope: "orchestration:read orchestration:operate terminal:operate review:write",
           }).toString(),
@@ -1937,7 +1941,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       Effect.gen(function* () {
         const installedRelayClient = {
           status: "available" as const,
-          executablePath: "/tmp/t3/tools/cloudflared",
+          executablePath: "/tmp/pathwayos/tools/cloudflared",
           source: "managed" as const,
           version: RelayClient.CLOUDFLARED_VERSION,
         };
@@ -2036,7 +2040,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: "not-a-public-key",
           endpointRuntime: null,
         }),
@@ -2084,18 +2088,18 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const insecureRelayUrl = yield* postRelayConfig({
         relayUrl: "http://relay.example.test",
         cloudUserId: "user_123",
-        environmentCredential: "t3env_test_credential",
+        environmentCredential: "pathwayosenv_test_credential",
       });
       const insecureRelayIssuer = yield* postRelayConfig({
         relayUrl: "https://relay.example.test",
         cloudUserId: "user_123",
         relayIssuer: "http://relay.example.test",
-        environmentCredential: "t3env_test_credential",
+        environmentCredential: "pathwayosenv_test_credential",
       });
       const nonOriginRelayUrl = yield* postRelayConfig({
         relayUrl: "https://relay.example.test/path",
         cloudUserId: "user_123",
-        environmentCredential: "t3env_test_credential",
+        environmentCredential: "pathwayosenv_test_credential",
       });
       const emptyCredential = yield* postRelayConfig({
         relayUrl: "https://relay.example.test",
@@ -2155,8 +2159,11 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           }),
         });
 
-      const firstResponse = yield* postRelayConfig("user_123", "t3env_first_credential");
-      const replacementResponse = yield* postRelayConfig("user_456", "t3env_second_credential");
+      const firstResponse = yield* postRelayConfig("user_123", "pathwayosenv_first_credential");
+      const replacementResponse = yield* postRelayConfig(
+        "user_456",
+        "pathwayosenv_second_credential",
+      );
       const replacementBody = yield* responseJsonEffect<{
         readonly _tag?: string;
         readonly message?: string;
@@ -2207,7 +2214,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           relayUrl: "https://transport.example.test",
           relayIssuer: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2289,7 +2296,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           relayUrl: "https://transport.example.test",
           relayIssuer: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: {
             providerKind: "cloudflare_tunnel",
@@ -2362,7 +2369,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2402,7 +2409,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
-  it.effect("serves the documented T3 Connect mint credential endpoint", () =>
+  it.effect("serves the documented pathwayOS Connect mint credential endpoint", () =>
     Effect.gen(function* () {
       yield* buildAppUnderTest();
 
@@ -2421,7 +2428,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2438,7 +2445,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const mintUrl = yield* getHttpServerUrl("/api/t3-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl("/api/pathwayos-connect/mint-credential");
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2461,7 +2468,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
-  it.effect("serves signed T3 Connect environment health checks", () =>
+  it.effect("serves signed pathwayOS Connect environment health checks", () =>
     Effect.gen(function* () {
       yield* buildAppUnderTest();
 
@@ -2480,7 +2487,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2496,7 +2503,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/t3-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/pathwayos-connect/health");
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -2540,7 +2547,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2556,7 +2563,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/t3-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/pathwayos-connect/health");
       const postHealth = () =>
         fetchEffect(healthUrl, {
           method: "POST",
@@ -2602,7 +2609,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
             relayUrl: "https://transport.example.test",
             cloudUserId: "user_123",
             relayIssuer: "https://relay.example.test",
-            environmentCredential: "t3env_test_credential",
+            environmentCredential: "pathwayosenv_test_credential",
             cloudMintPublicKey: cloudKeyPair.publicKey,
             endpointRuntime: null,
           }),
@@ -2610,7 +2617,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.equal(relayConfigResponse.status, 200);
 
         const now = yield* DateTime.now;
-        const mintUrl = yield* getHttpServerUrl("/api/t3-connect/mint-credential");
+        const mintUrl = yield* getHttpServerUrl("/api/pathwayos-connect/mint-credential");
         const postMint = (request: ReturnType<typeof makeCloudMintCredentialRequest>) =>
           fetchEffect(mintUrl, {
             method: "POST",
@@ -2681,7 +2688,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: {
             providerKind: "cloudflare_tunnel",
@@ -2710,7 +2717,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/t3-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/pathwayos-connect/health");
       const healthResponse = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -2750,7 +2757,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test/",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2785,7 +2792,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           privateKey: cloudKeyPair.privateKey,
           environmentId: testEnvironmentDescriptor.environmentId,
           clientProofKeyThumbprint: "client-proof-key-thumbprint",
-          audience: "t3-env:other-environment",
+          audience: "pathwayos-env:other-environment",
           jti: "cloud-mint-jti-wrong-audience",
           nonce: "cloud-mint-nonce-wrong-audience",
           issuedAt: DateTime.formatIso(now),
@@ -2817,7 +2824,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test/",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2825,7 +2832,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const mintUrl = yield* getHttpServerUrl("/api/t3-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl("/api/pathwayos-connect/mint-credential");
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2868,7 +2875,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test/",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2876,7 +2883,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const mintUrl = yield* getHttpServerUrl("/api/t3-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl("/api/pathwayos-connect/mint-credential");
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2919,7 +2926,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test/",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2927,7 +2934,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/t3-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/pathwayos-connect/health");
       const postHealth = (request: ReturnType<typeof makeCloudEnvironmentHealthRequest>) =>
         fetchEffect(healthUrl, {
           method: "POST",
@@ -2952,7 +2959,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         makeCloudEnvironmentHealthRequest({
           privateKey: cloudKeyPair.privateKey,
           environmentId: testEnvironmentDescriptor.environmentId,
-          audience: "t3-env:other-environment",
+          audience: "pathwayos-env:other-environment",
           jti: "cloud-health-jti-wrong-audience",
           nonce: "cloud-health-nonce-wrong-audience",
           issuedAt: DateTime.formatIso(now),
@@ -2984,7 +2991,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test/",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -2992,7 +2999,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/t3-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/pathwayos-connect/health");
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -3034,7 +3041,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: jsonRequestBody({
           relayUrl: "https://relay.example.test/",
           cloudUserId: "user_123",
-          environmentCredential: "t3env_test_credential",
+          environmentCredential: "pathwayosenv_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: null,
         }),
@@ -3042,7 +3049,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/t3-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/pathwayos-connect/health");
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -3234,7 +3241,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
-  for (const desktopOrigin of ["t3code://app", "t3code-dev://app"]) {
+  for (const desktopOrigin of ["pathwayos://app", "pathwayos-dev://app"]) {
     it.effect(`allows credentialed preflights from ${desktopOrigin} in development`, () =>
       Effect.gen(function* () {
         yield* buildAppUnderTest({
@@ -3779,7 +3786,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               attributes: [
                 {
                   key: "service.name",
-                  value: { stringValue: "t3-web" },
+                  value: { stringValue: "pathwayos-web" },
                 },
               ],
             },
@@ -3921,7 +3928,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
             "rpc.method": "server.getSettings",
           },
           resourceAttributes: {
-            "service.name": "t3-web",
+            "service.name": "pathwayos-web",
           },
           scope: {
             name: "effect",
@@ -4049,7 +4056,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.deepEqual(record.links, []);
         assert.equal(record.scope.name, scopeSpan.scope.name);
         assert.deepEqual(record.scope.attributes, {});
-        assert.equal(record.resourceAttributes["service.name"], "t3-web");
+        assert.equal(record.resourceAttributes["service.name"], "pathwayos-web");
         assert.equal(record.status?.code, String(span.status.code));
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
@@ -4170,7 +4177,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const workspaceDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ws-auth-required-" });
+      const workspaceDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "pathwayos-ws-auth-required-",
+      });
       yield* fs.writeFileString(
         path.join(workspaceDir, "needle-file.ts"),
         "export const needle = 1;",
@@ -4380,7 +4389,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const workspaceDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ws-project-search-" });
+      const workspaceDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "pathwayos-ws-project-search-",
+      });
       yield* fs.writeFileString(
         path.join(workspaceDir, "needle-file.ts"),
         "export const needle = 1;",
@@ -4409,7 +4420,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const workspaceDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ws-project-files-" });
+      const workspaceDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "pathwayos-ws-project-files-",
+      });
       yield* fs.makeDirectory(path.join(workspaceDir, "src"), { recursive: true });
       yield* fs.writeFileString(
         path.join(workspaceDir, "src", "index.ts"),
@@ -4446,7 +4459,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const workspaceDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "t3-ws-project-search-gitignored-",
+        prefix: "pathwayos-ws-project-search-gitignored-",
       });
       yield* fs.writeFileString(path.join(workspaceDir, ".gitignore"), ".venv/\n");
       yield* fs.makeDirectory(path.join(workspaceDir, ".venv", "lib"), { recursive: true });
@@ -4503,10 +4516,10 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const workspaceDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "t3-ws-workspace-errors-",
+        prefix: "pathwayos-ws-workspace-errors-",
       });
       const outsideDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "t3-ws-workspace-errors-outside-",
+        prefix: "pathwayos-ws-workspace-errors-outside-",
       });
       const outsideFile = path.join(outsideDir, "outside.txt");
       yield* fs.writeFileString(outsideFile, "outside\n");
@@ -4616,7 +4629,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const blockedRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "t3-ws-workspace-stat-error-",
+        prefix: "pathwayos-ws-workspace-stat-error-",
       });
       const workspaceRoot = path.join(blockedRoot, "workspace");
       yield* fs.makeDirectory(workspaceRoot);
@@ -4646,7 +4659,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const workspaceDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ws-project-write-" });
+      const workspaceDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "pathwayos-ws-project-write-",
+      });
 
       yield* buildAppUnderTest();
 
@@ -4671,7 +4686,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const parentDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ws-project-create-" });
+      const parentDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "pathwayos-ws-project-create-",
+      });
       const missingWorkspaceRoot = path.join(parentDir, "nested", "new-project");
 
       yield* buildAppUnderTest();
@@ -4704,7 +4721,9 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
   it.effect("routes websocket rpc projects.writeFile errors", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const workspaceDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-ws-project-write-" });
+      const workspaceDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "pathwayos-ws-project-write-",
+      });
 
       yield* buildAppUnderTest();
 
@@ -5607,16 +5626,16 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
   it.effect("enriches replayed project events with repository identity metadata", () =>
     Effect.gen(function* () {
       const repositoryIdentity = {
-        canonicalKey: "github.com/t3tools/t3code",
+        canonicalKey: "github.com/pathwayos/pathwayos",
         locator: {
           source: "git-remote" as const,
           remoteName: "origin",
-          remoteUrl: "git@github.com:T3Tools/t3code.git",
+          remoteUrl: "git@github.com:PathwayOS/pathwayos.git",
         },
-        displayName: "T3Tools/t3code",
+        displayName: "PathwayOS/pathwayos",
         provider: "github",
-        owner: "T3Tools",
-        name: "t3code",
+        owner: "PathwayOS",
+        name: "pathwayos",
       };
 
       yield* buildAppUnderTest({
@@ -6099,7 +6118,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
             isRepo: true,
             hasPrimaryRemote: true,
             isDefaultRef: false,
-            refName: "t3code/bootstrap-refName",
+            refName: "pathwayos/bootstrap-refName",
             hasWorkingTreeChanges: false,
             workingTree: {
               files: [],
@@ -6135,7 +6154,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               bootstrapGitOperations.push("create-worktree");
               return {
                 worktree: {
-                  refName: "t3code/bootstrap-refName",
+                  refName: "pathwayos/bootstrap-refName",
                   path: "/tmp/bootstrap-worktree",
                 },
               };
@@ -6211,7 +6230,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
                 prepareWorktree: {
                   projectCwd: "/tmp/project",
                   baseBranch: "main",
-                  branch: "t3code/bootstrap-refName",
+                  branch: "pathwayos/bootstrap-refName",
                   startFromOrigin: true,
                 },
                 runSetupScript: true,
@@ -6235,7 +6254,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.deepEqual(createWorktree.mock.calls[0]?.[0], {
           cwd: "/tmp/project",
           refName: fetchedOriginCommit,
-          newRefName: "t3code/bootstrap-refName",
+          newRefName: "pathwayos/bootstrap-refName",
           baseRefName: "main",
           path: null,
         });
@@ -6284,7 +6303,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         (_: Parameters<GitVcsDriver.GitVcsDriver["Service"]["createWorktree"]>[0]) =>
           Effect.succeed({
             worktree: {
-              refName: "t3code/bootstrap-refName",
+              refName: "pathwayos/bootstrap-refName",
               path: "/tmp/bootstrap-worktree",
             },
           }),
@@ -6355,7 +6374,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               prepareWorktree: {
                 projectCwd: "/tmp/project",
                 baseBranch: "main",
-                branch: "t3code/bootstrap-refName",
+                branch: "pathwayos/bootstrap-refName",
               },
               runSetupScript: true,
             },
@@ -6389,7 +6408,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         (_: Parameters<GitVcsDriver.GitVcsDriver["Service"]["createWorktree"]>[0]) =>
           Effect.succeed({
             worktree: {
-              refName: "t3code/bootstrap-refName",
+              refName: "pathwayos/bootstrap-refName",
               path: "/tmp/bootstrap-worktree",
             },
           }),
@@ -6476,7 +6495,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               prepareWorktree: {
                 projectCwd: "/tmp/project",
                 baseBranch: "main",
-                branch: "t3code/bootstrap-refName",
+                branch: "pathwayos/bootstrap-refName",
               },
               runSetupScript: true,
             },
@@ -6560,7 +6579,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               prepareWorktree: {
                 projectCwd: "/tmp/project",
                 baseBranch: "main",
-                branch: "t3code/bootstrap-refName",
+                branch: "pathwayos/bootstrap-refName",
               },
               runSetupScript: false,
             },

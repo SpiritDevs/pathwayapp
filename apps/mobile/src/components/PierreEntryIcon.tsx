@@ -1,8 +1,8 @@
 import { SymbolView } from "expo-symbols";
 import { Image, type ImageStyle, type StyleProp } from "react-native";
 
-import { markdownFileIconSource } from "@t3tools/mobile-markdown-text/file-icons";
-import { resolveMarkdownFileIcon } from "@t3tools/mobile-markdown-text/links";
+import { markdownFileIconSource } from "@pathwayos/mobile-markdown-text/file-icons";
+import { resolveMarkdownFileIcon } from "@pathwayos/mobile-markdown-text/links";
 
 export function PierreEntryIcon(props: {
   readonly path: string;

@@ -27,7 +27,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   DEFAULT_INTERACTION_MODE,
   DEFAULT_RUNTIME_MODE,
@@ -183,7 +183,7 @@ describe("createThreadJumpHintVisibilityController", () => {
 
 describe("getSidebarThreadIdsToPrewarm", () => {
   it("returns only the first visible thread ids up to the prewarm limit", () => {
-    expect(getSidebarThreadIdsToPrewarm(["t1", "t2", "t3"], 2)).toEqual(["t1", "t2"]);
+    expect(getSidebarThreadIdsToPrewarm(["t1", "t2", "pathwayos"], 2)).toEqual(["t1", "t2"]);
   });
 
   it("returns all visible thread ids when they fit within the limit", () => {
@@ -269,12 +269,12 @@ describe("resolveSidebarNewThreadSeedContext", () => {
         activeThread: {
           projectId: "project-1",
           branch: "feature/existing",
-          worktreePath: "/repo/.t3/worktrees/existing",
+          worktreePath: "/repo/.pathwayos/worktrees/existing",
         },
         activeDraftThread: {
           projectId: "project-1",
           branch: "feature/draft",
-          worktreePath: "/repo/.t3/worktrees/draft",
+          worktreePath: "/repo/.pathwayos/worktrees/draft",
           envMode: "worktree",
           startFromOrigin: true,
         },

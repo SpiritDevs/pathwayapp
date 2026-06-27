@@ -6,7 +6,7 @@ import * as PlatformError from "effect/PlatformError";
 import * as Tracer from "effect/Tracer";
 import { HttpClient, HttpServerRequest } from "effect/unstable/http";
 
-import { RelayClientTracer } from "@t3tools/shared/relayTracing";
+import { RelayClientTracer } from "@pathwayos/shared/relayTracing";
 import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
@@ -105,7 +105,7 @@ describe("relay request tracing", () => {
         },
       });
       const request = HttpServerRequest.fromWeb(
-        new Request("https://environment.example.test/api/t3-cloud/mint-credential", {
+        new Request("https://environment.example.test/api/pathwayos-cloud/mint-credential", {
           headers: {
             traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
           },
@@ -135,7 +135,7 @@ describe("relay request tracing", () => {
         },
       });
       const request = HttpServerRequest.fromWeb(
-        new Request("https://environment.example.test/api/t3-cloud/mint-credential", {
+        new Request("https://environment.example.test/api/pathwayos-cloud/mint-credential", {
           headers: {
             traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
           },
@@ -164,7 +164,7 @@ describe("reconcileDesiredCloudLink", () => {
 
       expect(error).toMatchObject({
         _tag: "EnvironmentHttpUnauthorizedError",
-        message: "Run `t3 connect link` to authorize this environment.",
+        message: "Run `pathwayos connect link` to authorize this environment.",
       });
     }).pipe(
       Effect.provideService(

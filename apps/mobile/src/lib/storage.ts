@@ -2,7 +2,7 @@ import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Schema from "effect/Schema";
 import * as SecureStore from "expo-secure-store";
-import { EnvironmentId } from "@t3tools/contracts";
+import { EnvironmentId } from "@pathwayos/contracts";
 
 import {
   isRelayManagedConnection,
@@ -10,9 +10,9 @@ import {
   toStableSavedRemoteConnection,
 } from "./connection";
 
-const CONNECTIONS_KEY = "t3code.connections";
-const PREFERENCES_KEY = "t3code.preferences";
-const AGENT_AWARENESS_DEVICE_ID_KEY = "t3code.agent-awareness.device-id";
+const CONNECTIONS_KEY = "pathwayos.connections";
+const PREFERENCES_KEY = "pathwayos.preferences";
+const AGENT_AWARENESS_DEVICE_ID_KEY = "pathwayos.agent-awareness.device-id";
 const MobileStorageKey = Schema.Literals([
   CONNECTIONS_KEY,
   PREFERENCES_KEY,

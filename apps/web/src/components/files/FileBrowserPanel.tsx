@@ -1,11 +1,11 @@
-import type { EnvironmentId, ProjectEntry } from "@t3tools/contracts";
+import type { EnvironmentId, ProjectEntry } from "@pathwayos/contracts";
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import { RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useTheme } from "~/hooks/useTheme";
 import { cn } from "~/lib/utils";
-import { T3_PIERRE_ICONS } from "~/pierre-icons";
+import { PathwayOS_PIERRE_ICONS } from "~/pierre-icons";
 
 import { useProjectEntriesQuery } from "./projectFilesQueryState";
 
@@ -54,7 +54,7 @@ export default function FileBrowserPanel({
     fileTreeSearchMode: "hide-non-matches",
     flattenEmptyDirectories: true,
     initialExpansion: 1,
-    icons: T3_PIERRE_ICONS,
+    icons: PathwayOS_PIERRE_ICONS,
     onSelectionChange: (selectedPaths) => {
       const selectedPath = selectedPaths.at(-1)?.replace(/\/$/, "");
       if (selectedPath && entryKindsRef.current.get(selectedPath) === "file") {

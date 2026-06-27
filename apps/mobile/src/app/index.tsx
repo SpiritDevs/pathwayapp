@@ -2,12 +2,12 @@ import type {
   EnvironmentId,
   SidebarProjectGroupingMode,
   SidebarThreadSortOrder,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   DEFAULT_SIDEBAR_PROJECT_GROUPING_MODE,
   DEFAULT_SIDEBAR_PROJECT_SORT_ORDER,
   DEFAULT_SIDEBAR_THREAD_SORT_ORDER,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 import { useRouter } from "expo-router";

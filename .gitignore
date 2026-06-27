@@ -14,7 +14,7 @@ build/
 .logs/
 release/
 release-mock/
-.t3
+.pathwayos
 .idea/
 apps/web/.playwright
 apps/web/playwright-report

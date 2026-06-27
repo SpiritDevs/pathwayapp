@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentShellStatus } from "@t3tools/client-runtime/state/shell";
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentShellStatus } from "@pathwayos/client-runtime/state/shell";
+import type { EnvironmentId } from "@pathwayos/contracts";
 import { Atom } from "effect/unstable/reactivity";
 
 import { environmentShell } from "./shell";

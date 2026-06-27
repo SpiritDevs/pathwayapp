@@ -1,12 +1,12 @@
 "use client";
 
-import { scopedThreadKey } from "@t3tools/client-runtime/environment";
-import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
+import { scopedThreadKey } from "@pathwayos/client-runtime/environment";
+import { squashAtomCommandFailure } from "@pathwayos/client-runtime/state/runtime";
 import {
   FILL_PREVIEW_VIEWPORT,
   type PreviewViewportSetting,
   type ScopedThreadRef,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "~/composerDraftStore";

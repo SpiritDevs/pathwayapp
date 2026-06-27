@@ -5,7 +5,7 @@ import {
   MessageId,
   ProviderInstanceId,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import { AtomRegistry } from "effect/unstable/reactivity";
 
 import {

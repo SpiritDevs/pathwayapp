@@ -1,18 +1,18 @@
 import {
   deriveLogicalProjectKey,
   deriveProjectGroupLabel,
-} from "@t3tools/client-runtime/state/project-grouping";
+} from "@pathwayos/client-runtime/state/project-grouping";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@t3tools/client-runtime/state/shell";
-import { getThreadSortTimestamp, sortThreads } from "@t3tools/client-runtime/state/thread-sort";
+} from "@pathwayos/client-runtime/state/shell";
+import { getThreadSortTimestamp, sortThreads } from "@pathwayos/client-runtime/state/thread-sort";
 import type {
   EnvironmentId,
   SidebarProjectGroupingMode,
   SidebarProjectSortOrder,
   SidebarThreadSortOrder,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 

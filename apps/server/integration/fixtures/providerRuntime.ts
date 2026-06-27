@@ -1,4 +1,4 @@
-import { EventId, ProviderDriverKind, RuntimeRequestId } from "@t3tools/contracts";
+import { EventId, ProviderDriverKind, RuntimeRequestId } from "@pathwayos/contracts";
 import type { LegacyProviderRuntimeEvent } from "../TestProviderAdapter.integration.ts";
 
 const PROVIDER = ProviderDriverKind.make("codex");

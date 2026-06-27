@@ -20,25 +20,25 @@ const VARIANT_CONFIG: Record<
   }
 > = {
   development: {
-    appName: "T3 Code Dev",
-    scheme: "t3code-dev",
+    appName: "pathwayOS Dev",
+    scheme: "pathwayos-dev",
     iosIcon: "./assets/icon-composer-dev.icon",
-    iosBundleIdentifier: "com.t3tools.t3code.dev",
-    androidPackage: "com.t3tools.t3code.dev",
+    iosBundleIdentifier: "com.pathwayos.pathwayos.dev",
+    androidPackage: "com.pathwayos.pathwayos.dev",
   },
   preview: {
-    appName: "T3 Code Preview",
-    scheme: "t3code-preview",
+    appName: "pathwayOS Preview",
+    scheme: "pathwayos-preview",
     iosIcon: "./assets/icon-composer-prod.icon",
-    iosBundleIdentifier: "com.t3tools.t3code.preview",
-    androidPackage: "com.t3tools.t3code.preview",
+    iosBundleIdentifier: "com.pathwayos.pathwayos.preview",
+    androidPackage: "com.pathwayos.pathwayos.preview",
   },
   production: {
-    appName: "T3 Code",
-    scheme: "t3code",
+    appName: "pathwayOS",
+    scheme: "pathwayos",
     iosIcon: "./assets/icon-composer-prod.icon",
-    iosBundleIdentifier: "com.t3tools.t3code",
-    androidPackage: "com.t3tools.t3code",
+    iosBundleIdentifier: "com.pathwayos.pathwayos",
+    androidPackage: "com.pathwayos.pathwayos",
   },
 };
 
@@ -57,7 +57,7 @@ const variant = VARIANT_CONFIG[APP_VARIANT];
 
 const config: ExpoConfig = {
   name: variant.appName,
-  slug: "t3-code",
+  slug: "pathwayos",
   platforms: ["ios", "android"],
   scheme: variant.scheme,
   version: "0.1.0",
@@ -82,7 +82,7 @@ const config: ExpoConfig = {
         NSAllowsArbitraryLoads: true,
       },
       NSLocalNetworkUsageDescription:
-        "Allow T3 Code to connect to T3 Code servers on your local network or tailnet.",
+        "Allow pathwayOS to connect to pathwayOS servers on your local network or tailnet.",
       ITSAppUsesNonExemptEncryption: false,
     },
   },
@@ -109,7 +109,7 @@ const config: ExpoConfig = {
     [
       "expo-camera",
       {
-        cameraPermission: "Allow T3 Code to access your camera so you can scan pairing QR codes.",
+        cameraPermission: "Allow pathwayOS to access your camera so you can scan pairing QR codes.",
         barcodeScannerEnabled: true,
       },
     ],
@@ -149,7 +149,7 @@ const config: ExpoConfig = {
           {
             name: "AgentActivity",
             displayName: "Agent Activity",
-            description: "Shows the current state of active T3 Code agents.",
+            description: "Shows the current state of active pathwayOS agents.",
             supportedFamilies: ["systemSmall", "systemMedium", "accessoryRectangular"],
           },
         ],
@@ -160,7 +160,7 @@ const config: ExpoConfig = {
   extra: {
     appVariant: APP_VARIANT,
     relay: {
-      url: repoEnv.T3CODE_RELAY_URL ?? null,
+      url: repoEnv.PATHWAYOS_RELAY_URL ?? null,
     },
     clerk: {
       publishableKey: repoEnv.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? null,

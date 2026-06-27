@@ -1,4 +1,4 @@
-import { sanitizeFeatureBranchName } from "@t3tools/shared/git";
+import { sanitizeFeatureBranchName } from "@pathwayos/shared/git";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -69,7 +69,7 @@ export function GitBranchesSheet() {
     >
       <View className="gap-2 rounded-[18px] border border-border bg-card px-4 py-4">
         <Text
-          className="text-foreground-secondary text-2xs font-t3-bold uppercase"
+          className="text-foreground-secondary text-2xs font-pathwayos-bold uppercase"
           style={{ letterSpacing: 1 }}
         >
           New branch
@@ -104,7 +104,7 @@ export function GitBranchesSheet() {
 
       <View className="gap-2 rounded-[18px] border border-border bg-card px-4 py-4">
         <Text
-          className="text-foreground-secondary text-2xs font-t3-bold uppercase"
+          className="text-foreground-secondary text-2xs font-pathwayos-bold uppercase"
           style={{ letterSpacing: 1 }}
         >
           New worktree
@@ -154,7 +154,7 @@ export function GitBranchesSheet() {
 
       <View className="gap-2">
         <Text
-          className="text-foreground-secondary text-2xs font-t3-bold uppercase"
+          className="text-foreground-secondary text-2xs font-pathwayos-bold uppercase"
           style={{ letterSpacing: 1 }}
         >
           Existing branches
@@ -193,7 +193,7 @@ export function GitBranchesSheet() {
               }}
             >
               <View className="absolute inset-0 rounded-[18px] bg-card" />
-              <Text className="text-foreground text-base font-t3-bold">{branch.name}</Text>
+              <Text className="text-foreground text-base font-pathwayos-bold">{branch.name}</Text>
               <Text className="text-foreground-secondary text-xs font-medium">{subtitle}</Text>
             </Pressable>
           );

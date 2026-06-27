@@ -6,7 +6,7 @@ import {
   PrimaryEnvironmentAuth,
   RelayDeviceIdentity,
   SshEnvironmentGateway,
-} from "@t3tools/client-runtime/platform";
+} from "@pathwayos/client-runtime/platform";
 import {
   ConnectionBlockedError,
   ConnectionTransientError,
@@ -15,15 +15,18 @@ import {
   PrimaryConnectionRegistration,
   PrimaryConnectionTarget,
   Wakeups,
-} from "@t3tools/client-runtime/connection";
-import { fetchRemoteEnvironmentDescriptor } from "@t3tools/client-runtime/environment";
-import { managedRelayAccountChanges, managedRelaySessionAtom } from "@t3tools/client-runtime/relay";
-import { EnvironmentRpcRequestObserver } from "@t3tools/client-runtime/rpc";
+} from "@pathwayos/client-runtime/connection";
+import { fetchRemoteEnvironmentDescriptor } from "@pathwayos/client-runtime/environment";
+import {
+  managedRelayAccountChanges,
+  managedRelaySessionAtom,
+} from "@pathwayos/client-runtime/relay";
+import { EnvironmentRpcRequestObserver } from "@pathwayos/client-runtime/rpc";
 import {
   AuthStandardClientScopes,
   type DesktopBridge,
   type DesktopSshEnvironmentTarget,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -99,7 +102,7 @@ function clientMetadata() {
   const desktop = window.desktopBridge !== undefined;
   const platform = navigator.platform.trim();
   return {
-    label: desktop ? "T3 Code Desktop" : "T3 Code Web",
+    label: desktop ? "pathwayOS Desktop" : "pathwayOS Web",
     deviceType: "desktop" as const,
     ...(platform === "" ? {} : { os: platform }),
   };
@@ -164,7 +167,7 @@ const capabilitiesLayer = Layer.effectContext(
         if (session === null) {
           return yield* new ConnectionBlockedError({
             reason: "authentication",
-            detail: "Sign in to T3 Cloud to connect this environment.",
+            detail: "Sign in to PathwayOS Cloud to connect this environment.",
           });
         }
         const token = yield* session.readClerkToken().pipe(
@@ -179,7 +182,7 @@ const capabilitiesLayer = Layer.effectContext(
         if (token === null) {
           return yield* new ConnectionBlockedError({
             reason: "authentication",
-            detail: "The T3 Cloud session is unavailable.",
+            detail: "The PathwayOS Cloud session is unavailable.",
           });
         }
         return token;

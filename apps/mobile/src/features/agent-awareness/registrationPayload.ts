@@ -1,4 +1,4 @@
-import type { RelayDeviceRegistrationRequest } from "@t3tools/contracts/relay";
+import type { RelayDeviceRegistrationRequest } from "@pathwayos/contracts/relay";
 
 import type { Preferences } from "../../lib/storage";
 

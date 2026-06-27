@@ -14,7 +14,7 @@ import {
   settleAsyncResult,
   settlePromise,
   squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
+} from "@pathwayos/client-runtime/state/runtime";
 import { AppText as Text } from "../../components/AppText";
 import { setLiveActivityUpdatesEnabled } from "../../features/agent-awareness/liveActivityPreferences";
 import { requestAgentNotificationPermission } from "../../features/agent-awareness/notificationPermissions";
@@ -182,8 +182,8 @@ function ConfiguredSettingsRouteScreen() {
 
   const promptSignIn = useCallback(() => {
     Alert.alert(
-      "Request T3 Cloud access",
-      "Live Activity updates require approved T3 Cloud access so relay can deliver updates to this device.",
+      "Request PathwayOS Cloud access",
+      "Live Activity updates require approved PathwayOS Cloud access so relay can deliver updates to this device.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Continue", onPress: () => push("/settings/waitlist") },
@@ -254,7 +254,7 @@ function ConfiguredSettingsRouteScreen() {
 
       Alert.alert(
         "Disable notifications",
-        "Notification permission is controlled by iOS. Open Settings to disable notifications for T3 Code.",
+        "Notification permission is controlled by iOS. Open Settings to disable notifications for pathwayOS.",
         [
           { text: "Cancel", style: "cancel" },
           { text: "Open Settings", onPress: () => void Linking.openSettings() },
@@ -341,13 +341,13 @@ function ConfiguredSettingsRouteScreen() {
           <SettingsSection title="Account">
             <SettingsRow
               icon="person.crop.circle"
-              label="T3 Account"
+              label="PathwayOS Account"
               value={accountLabel}
               onPress={openAccount}
             />
           </SettingsSection>
           <Text className="px-2 text-sm leading-[18px] text-foreground-muted">
-            T3 Code works locally without signing in. Cloud features are optional.
+            pathwayOS works locally without signing in. Cloud features are optional.
           </Text>
         </View>
 
@@ -389,7 +389,9 @@ type SymbolName = ComponentProps<typeof SymbolView>["name"];
 function SettingsSection(props: { readonly title: string; readonly children: ReactNode }) {
   return (
     <View className="gap-2">
-      <Text className="px-2 text-sm font-t3-medium text-foreground-muted">{props.title}</Text>
+      <Text className="px-2 text-sm font-pathwayos-medium text-foreground-muted">
+        {props.title}
+      </Text>
       <View
         className="overflow-hidden rounded-[28px] bg-card"
         style={{ borderCurve: "continuous" }}

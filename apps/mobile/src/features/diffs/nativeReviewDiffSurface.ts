@@ -4,7 +4,7 @@ import { requireNativeView } from "expo";
 
 import { NativeViewResolutionError } from "../../native/nativeViewResolutionError";
 
-const NATIVE_REVIEW_DIFF_MODULE_NAME = "T3ReviewDiffSurface";
+const NATIVE_REVIEW_DIFF_MODULE_NAME = "PathwayOSReviewDiffSurface";
 
 interface ExpoGlobalWithViewConfig {
   readonly expo?: {

@@ -14,7 +14,7 @@ import {
   PreviewAutomationStatus,
   PreviewAutomationTypeInput,
   PreviewAutomationWaitForInput,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import * as Schema from "effect/Schema";
 import { Tool, Toolkit } from "effect/unstable/ai";
 
@@ -63,7 +63,7 @@ export const PreviewOpenTool = browserTool(
 export const PreviewNavigateTool = safeBrowserTool(
   Tool.make("preview_navigate", {
     description:
-      "Navigate the active collaborative browser tab. Pass {url:'https://t3.chat'} for a website, or {target:{kind:'environment-port',port:5173}} for a dev server in the current environment. Exactly one of url or target is required. Defaults to waiting for page loading to stop.",
+      "Navigate the active collaborative browser tab. Pass {url:'https://pathwayos.chat'} for a website, or {target:{kind:'environment-port',port:5173}} for a dev server in the current environment. Exactly one of url or target is required. Defaults to waiting for page loading to stop.",
     parameters: PreviewAutomationNavigateInput,
     success: PreviewAutomationStatus,
     failure: PreviewAutomationError,

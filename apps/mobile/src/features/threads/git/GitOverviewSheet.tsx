@@ -3,8 +3,8 @@ import {
   buildMenuItems,
   getGitActionDisabledReason,
   requiresDefaultBranchConfirmation,
-} from "@t3tools/client-runtime/state/vcs";
-import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
+} from "@pathwayos/client-runtime/state/vcs";
+import type { EnvironmentId, ThreadId } from "@pathwayos/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo } from "react";
@@ -171,12 +171,12 @@ export function GitOverviewSheet() {
           />
         </Pressable>
         <Text
-          className="text-xs font-t3-bold uppercase text-foreground-muted"
+          className="text-xs font-pathwayos-bold uppercase text-foreground-muted"
           style={{ letterSpacing: 1 }}
         >
           Branch
         </Text>
-        <Text className="text-3xl font-t3-bold">{currentBranchLabel}</Text>
+        <Text className="text-3xl font-pathwayos-bold">{currentBranchLabel}</Text>
         <Text className="text-foreground-secondary text-sm font-medium leading-[19px]">
           {statusSummary(gitStatus.data)}
         </Text>

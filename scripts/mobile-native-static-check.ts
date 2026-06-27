@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
+import * as NodeFS from "node:fs";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { isCommandAvailable, resolveSpawnCommand } from "@t3tools/shared/shell";
+import { isCommandAvailable, resolveSpawnCommand } from "@pathwayos/shared/shell";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -108,6 +109,21 @@ const commandOutputOptions = {
   stderr: "inherit",
 } as const;
 
+const commandLineToolsRoot = "/Library/Developer/CommandLineTools/usr";
+const commandLineToolsSourceKitFramework = `${commandLineToolsRoot}/lib/sourcekitdInProc.framework`;
+const nativeToolEnvironment = {
+  ...process.env,
+  ...(NodeFS.existsSync(commandLineToolsSourceKitFramework)
+    ? {
+        DYLD_FRAMEWORK_PATH: [process.env.DYLD_FRAMEWORK_PATH, `${commandLineToolsRoot}/lib`]
+          .filter((value) => value && value.length > 0)
+          .join(":"),
+        SOURCEKIT_TOOLCHAIN_PATH: process.env.SOURCEKIT_TOOLCHAIN_PATH ?? commandLineToolsRoot,
+        TOOLCHAIN_DIR: process.env.TOOLCHAIN_DIR ?? commandLineToolsRoot,
+      }
+    : {}),
+};
+
 const commandExists = Effect.fn("commandExists")(function* (command: string) {
   return yield* isCommandAvailable(command);
 });
@@ -135,6 +151,7 @@ export const runCommand = Effect.fn("runCommand")(function* (
     .spawn(
       ChildProcess.make(spawnCommand.command, spawnCommand.args, {
         cwd,
+        env: nativeToolEnvironment,
         ...commandOutputOptions,
         shell: spawnCommand.shell,
       }),

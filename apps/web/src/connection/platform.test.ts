@@ -3,7 +3,7 @@ import {
   EnvironmentId,
   type DesktopBridge,
   type DesktopSshEnvironmentTarget,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 

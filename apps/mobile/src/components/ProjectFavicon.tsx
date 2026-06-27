@@ -1,7 +1,7 @@
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import { Image, View } from "react-native";
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentId } from "@pathwayos/contracts";
 import { useThemeColor } from "../lib/useThemeColor";
 import { useAssetUrl } from "../state/assets";
 

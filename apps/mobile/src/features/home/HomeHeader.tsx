@@ -2,12 +2,12 @@ import type {
   EnvironmentId,
   SidebarProjectGroupingMode,
   SidebarThreadSortOrder,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   DEFAULT_SIDEBAR_PROJECT_GROUPING_MODE,
   DEFAULT_SIDEBAR_PROJECT_SORT_ORDER,
   DEFAULT_SIDEBAR_THREAD_SORT_ORDER,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import { Stack } from "expo-router";
 import { Text as RNText, View } from "react-native";
 
@@ -124,7 +124,7 @@ export function HomeHeader(props: {
                 letterSpacing: -0.4,
               }}
             >
-              T3 Code
+              pathwayOS
             </RNText>
             <View
               style={{

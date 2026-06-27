@@ -1,5 +1,5 @@
 import type { StatusTone } from "../../components/StatusPill";
-import { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import { EnvironmentThreadShell } from "@pathwayos/client-runtime/state/shell";
 
 export function threadSortValue(thread: EnvironmentThreadShell): number {
   const candidate = Date.parse(thread.updatedAt ?? thread.createdAt);

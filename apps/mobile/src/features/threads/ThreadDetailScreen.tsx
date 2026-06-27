@@ -1,4 +1,4 @@
-import { type EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
+import { type EnvironmentConnectionPhase } from "@pathwayos/client-runtime/connection";
 import { useKeyboardChatComposerInset, useKeyboardScrollToEnd } from "@legendapp/list/keyboard";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import type {
@@ -10,10 +10,10 @@ import type {
   ProviderApprovalDecision,
   ProviderInteractionMode,
   RuntimeMode,
-  ServerConfig as T3ServerConfig,
+  ServerConfig as PathwayOSServerConfig,
   ThreadId,
-} from "@t3tools/contracts";
-import { formatElapsed } from "@t3tools/shared/orchestrationTiming";
+} from "@pathwayos/contracts";
+import { formatElapsed } from "@pathwayos/shared/orchestrationTiming";
 import * as Haptics from "expo-haptics";
 import { useHeaderHeight } from "expo-router/build/react-navigation/elements";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -67,7 +67,7 @@ export interface ThreadDetailScreenProps {
   readonly projectWorkspaceRoot: string | null;
   readonly threadCwd: string | null;
   readonly selectedThreadQueueCount: number;
-  readonly serverConfig: T3ServerConfig | null;
+  readonly serverConfig: PathwayOSServerConfig | null;
   readonly layoutVariant?: LayoutVariant;
   readonly onOpenDrawer: () => void;
   readonly onOpenConnectionEditor: () => void;
@@ -194,7 +194,7 @@ const WorkingDurationPill = memo(function WorkingDurationPill(props: {
             <View className="h-1.5 w-1.5 rounded-full bg-neutral-400/80 dark:bg-neutral-500/80" />
             <View className="h-1.5 w-1.5 rounded-full bg-neutral-400/60 dark:bg-neutral-500/60" />
           </View>
-          <Text className="font-t3-medium text-xs text-neutral-600 dark:text-neutral-400">
+          <Text className="font-pathwayos-medium text-xs text-neutral-600 dark:text-neutral-400">
             Working for {durationLabel}
           </Text>
         </View>

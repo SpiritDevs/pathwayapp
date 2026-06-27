@@ -1,5 +1,5 @@
-import type { RelayAgentActivityState } from "@t3tools/contracts/relay";
-import { RelayAgentActivityState as RelayAgentActivityStateSchema } from "@t3tools/contracts/relay";
+import type { RelayAgentActivityState } from "@pathwayos/contracts/relay";
+import { RelayAgentActivityState as RelayAgentActivityStateSchema } from "@pathwayos/contracts/relay";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -69,7 +69,7 @@ export class AgentActivityRows extends Context.Service<
       AgentActivityRowListPersistenceError
     >;
   }
->()("t3code-relay/agentActivity/AgentActivityRows") {}
+>()("pathwayos-relay/agentActivity/AgentActivityRows") {}
 
 const decodeJsonString = Schema.decodeEffect(Schema.UnknownFromJsonString);
 const encodeJsonValue = Schema.encodeEffect(Schema.UnknownFromJsonString);

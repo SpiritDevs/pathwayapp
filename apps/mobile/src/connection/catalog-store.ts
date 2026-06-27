@@ -2,8 +2,8 @@ import {
   ConnectionCatalogDocument,
   type ConnectionCatalogDocument as ConnectionCatalogDocumentType,
   EMPTY_CONNECTION_CATALOG_DOCUMENT,
-} from "@t3tools/client-runtime/platform";
-import { ConnectionTransientError } from "@t3tools/client-runtime/connection";
+} from "@pathwayos/client-runtime/platform";
+import { ConnectionTransientError } from "@pathwayos/client-runtime/connection";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
@@ -12,8 +12,8 @@ import * as Semaphore from "effect/Semaphore";
 
 import { migrateLegacyConnectionCatalog } from "./migration";
 
-export const CONNECTION_CATALOG_KEY = "t3code.connection-catalog.v1";
-export const LEGACY_CONNECTIONS_KEY = "t3code.connections";
+export const CONNECTION_CATALOG_KEY = "pathwayos.connection-catalog.v1";
+export const LEGACY_CONNECTIONS_KEY = "pathwayos.connections";
 
 function catalogError(operation: string, cause: unknown) {
   return new ConnectionTransientError({

@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 
-import { scopeThreadRef } from "@t3tools/client-runtime/environment";
-import { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
-import { mapAtomCommandResult } from "@t3tools/client-runtime/state/runtime";
+import { scopeThreadRef } from "@pathwayos/client-runtime/environment";
+import { EnvironmentProject } from "@pathwayos/client-runtime/state/shell";
+import { mapAtomCommandResult } from "@pathwayos/client-runtime/state/runtime";
 import {
   CommandId,
   MessageId,
@@ -10,8 +10,8 @@ import {
   type ModelSelection,
   type ProviderInteractionMode,
   type RuntimeMode,
-} from "@t3tools/contracts";
-import { buildTemporaryWorktreeBranchName } from "@t3tools/shared/git";
+} from "@pathwayos/contracts";
+import { buildTemporaryWorktreeBranchName } from "@pathwayos/shared/git";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 

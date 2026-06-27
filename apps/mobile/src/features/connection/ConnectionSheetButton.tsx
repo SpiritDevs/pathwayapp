@@ -104,7 +104,7 @@ export function ConnectionSheetButton(props: {
         type="monochrome"
       />
       <Text
-        className="text-xs font-t3-bold uppercase"
+        className="text-xs font-pathwayos-bold uppercase"
         style={{ color: colors.textColor, letterSpacing: 0.8 }}
       >
         {props.label}

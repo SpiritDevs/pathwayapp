@@ -220,15 +220,15 @@
 }
 
 /* ─── Custom utilities ──────────────────────────────────────────────── */
-@utility font-t3-medium {
+@utility font-pathwayos-medium {
   font-family: "DMSans_500Medium";
 }
 
-@utility font-t3-bold {
+@utility font-pathwayos-bold {
   font-family: "DMSans_700Bold";
 }
 
-@utility font-t3-extrabold {
+@utility font-pathwayos-extrabold {
   font-family: "DMSans_700Bold";
   font-weight: 800;
 }

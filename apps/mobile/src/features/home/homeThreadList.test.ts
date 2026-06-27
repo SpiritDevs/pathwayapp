@@ -1,8 +1,8 @@
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@t3tools/client-runtime/state/shell";
-import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@t3tools/contracts";
+} from "@pathwayos/client-runtime/state/shell";
+import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@pathwayos/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { buildHomeThreadGroups } from "./homeThreadList";
@@ -67,7 +67,7 @@ describe("buildHomeThreadGroups", () => {
     const project = makeProject({
       environmentId,
       id: ProjectId.make("project-1"),
-      title: "T3 Code",
+      title: "pathwayOS",
     });
     const threads = [
       makeThread({
@@ -177,31 +177,31 @@ describe("buildHomeThreadGroups", () => {
   it("matches web repository, repository-path, and separate grouping modes", () => {
     const environmentId = EnvironmentId.make("environment-1");
     const repositoryIdentity = {
-      canonicalKey: "github.com/t3tools/t3code",
+      canonicalKey: "github.com/pathwayos/pathwayos",
       locator: {
         source: "git-remote" as const,
         remoteName: "origin",
-        remoteUrl: "git@github.com:t3tools/t3code.git",
+        remoteUrl: "git@github.com:pathwayos/pathwayos.git",
       },
       provider: "github",
-      owner: "t3tools",
-      name: "t3code",
-      displayName: "T3 Code",
-      rootPath: "/workspaces/t3code",
+      owner: "pathwayos",
+      name: "pathwayos",
+      displayName: "pathwayOS",
+      rootPath: "/workspaces/pathwayos",
     };
     const projects = [
       makeProject({
         environmentId,
         id: ProjectId.make("project-web"),
         title: "Web",
-        workspaceRoot: "/workspaces/t3code/apps/web",
+        workspaceRoot: "/workspaces/pathwayos/apps/web",
         repositoryIdentity,
       }),
       makeProject({
         environmentId,
         id: ProjectId.make("project-mobile"),
         title: "Mobile",
-        workspaceRoot: "/workspaces/t3code/apps/mobile",
+        workspaceRoot: "/workspaces/pathwayos/apps/mobile",
         repositoryIdentity,
       }),
     ];

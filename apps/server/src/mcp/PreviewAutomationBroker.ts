@@ -20,7 +20,7 @@ import {
   type PreviewAutomationResponse,
   type PreviewAutomationStreamEvent,
   type PreviewTabId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import * as Context from "effect/Context";
 import * as Clock from "effect/Clock";
 import * as Crypto from "effect/Crypto";
@@ -56,7 +56,7 @@ export class PreviewAutomationBroker extends Context.Service<
       request: PreviewAutomationInvokeInput,
     ) => Effect.Effect<A, PreviewAutomationError>;
   }
->()("t3/mcp/PreviewAutomationBroker") {}
+>()("pathwayos/mcp/PreviewAutomationBroker") {}
 
 interface ClientConnection {
   readonly clientId: string;

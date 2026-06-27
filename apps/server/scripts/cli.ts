@@ -15,8 +15,8 @@ import {
   PUBLISH_ICON_OVERRIDES,
 } from "../../../scripts/lib/brand-assets.ts";
 import { resolveCatalogDependencies } from "../../../scripts/lib/resolve-catalog.ts";
-import { fromJsonStringPretty } from "@t3tools/shared/schemaJson";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
+import { fromJsonStringPretty } from "@pathwayos/shared/schemaJson";
+import { resolveSpawnCommand } from "@pathwayos/shared/shell";
 import rootPackageJson from "../../../package.json" with { type: "json" };
 import serverPackageJson from "../package.json" with { type: "json" };
 import {
@@ -206,7 +206,7 @@ const createVpPmPublishArgs = (config: PublishCommandConfig): ReadonlyArray<stri
   const args = [
     "publish",
     "--filter",
-    "t3",
+    "pathwayos",
     "--access",
     config.access,
     "--tag",
@@ -320,7 +320,7 @@ const publishCmd = Command.make(
 // ---------------------------------------------------------------------------
 
 const cli = Command.make("cli").pipe(
-  Command.withDescription("T3 server build & publish CLI."),
+  Command.withDescription("pathwayOS server build & publish CLI."),
   Command.withSubcommands([buildCmd, publishCmd]),
 );
 

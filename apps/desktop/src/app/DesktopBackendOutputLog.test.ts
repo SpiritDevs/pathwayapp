@@ -10,7 +10,7 @@ import * as DesktopBackendOutputLog from "./DesktopBackendOutputLog.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 
-const LOG_FILE_PATH = "/Users/alice/.t3/userdata/logs/server-child.log";
+const LOG_FILE_PATH = "/Users/alice/.pathwayos/userdata/logs/server-child.log";
 
 const environmentLayer = DesktopEnvironment.layer({
   dirname: "/repo/apps/desktop/dist-electron",
@@ -18,9 +18,9 @@ const environmentLayer = DesktopEnvironment.layer({
   platform: "darwin",
   processArch: "arm64",
   appVersion: "1.2.3",
-  appPath: "/Applications/T3 Code.app/Contents/Resources/app.asar",
+  appPath: "/Applications/pathwayOS.app/Contents/Resources/app.asar",
   isPackaged: true,
-  resourcesPath: "/Applications/T3 Code.app/Contents/Resources",
+  resourcesPath: "/Applications/pathwayOS.app/Contents/Resources",
   runningUnderArm64Translation: false,
 }).pipe(Layer.provide(Layer.merge(Path.layer, DesktopConfig.layerTest({}))));
 
@@ -50,7 +50,7 @@ describe("DesktopBackendOutputLog", () => {
       _tag: "PermissionDenied",
       module: "FileSystem",
       method: "makeDirectory",
-      pathOrDescriptor: "/Users/alice/.t3/userdata/logs",
+      pathOrDescriptor: "/Users/alice/.pathwayos/userdata/logs",
       description: "private setup diagnostic",
     });
     const fileSystemLayer = FileSystem.layerNoop({

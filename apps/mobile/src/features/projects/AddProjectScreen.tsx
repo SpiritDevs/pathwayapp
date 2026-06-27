@@ -9,7 +9,7 @@ import {
   resolveAddProjectPath,
   sortAddProjectProviderSources,
   type AddProjectRemoteSource,
-} from "@t3tools/client-runtime/operations/projects";
+} from "@pathwayos/client-runtime/operations/projects";
 import {
   appendBrowsePathSegment,
   canNavigateUp,
@@ -20,8 +20,8 @@ import {
   hasTrailingPathSeparator,
   inferProjectTitleFromPath,
   isFilesystemBrowseQuery,
-} from "@t3tools/client-runtime/state/projects";
-import { CommandId, type EnvironmentId, ProjectId } from "@t3tools/contracts";
+} from "@pathwayos/client-runtime/state/projects";
+import { CommandId, type EnvironmentId, ProjectId } from "@pathwayos/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -100,7 +100,7 @@ function sourceFromParam(value: string | string[] | undefined): AddProjectRemote
 function SectionTitle(props: { readonly children: string }) {
   return (
     <Text
-      className="px-1 text-2xs font-t3-bold uppercase text-foreground-muted"
+      className="px-1 text-2xs font-pathwayos-bold uppercase text-foreground-muted"
       style={{ letterSpacing: 0.7 }}
     >
       {props.children}
@@ -168,7 +168,7 @@ function ListRow(props: {
           {props.icon}
         </View>
         <View className="flex-1 gap-0.5">
-          <Text className="text-base leading-[21px] font-t3-bold">{props.title}</Text>
+          <Text className="text-base leading-[21px] font-pathwayos-bold">{props.title}</Text>
           {props.subtitle ? (
             <Text className="text-sm leading-[17px] text-foreground-muted" numberOfLines={2}>
               {props.subtitle}
@@ -202,7 +202,7 @@ function PrimaryActionButton(props: {
       {props.loading ? (
         <ActivityIndicator color={String(primaryForeground)} />
       ) : (
-        <Text className="text-base font-t3-bold text-primary-foreground">{props.label}</Text>
+        <Text className="text-base font-pathwayos-bold text-primary-foreground">{props.label}</Text>
       )}
     </Pressable>
   );
@@ -273,7 +273,7 @@ function EmptyEnvironmentState() {
 
   return (
     <View className="items-center gap-3 rounded-2xl bg-card px-5 py-8">
-      <Text className="text-center text-lg font-t3-bold">No environments connected</Text>
+      <Text className="text-center text-lg font-pathwayos-bold">No environments connected</Text>
       <Text className="text-center text-sm leading-[20px] text-foreground-muted">
         Add an environment before adding a project.
       </Text>
@@ -281,7 +281,7 @@ function EmptyEnvironmentState() {
         onPress={() => router.replace("/connections/new")}
         className="mt-1 rounded-full bg-primary px-4 py-2.5 active:opacity-70"
       >
-        <Text className="text-sm font-t3-bold text-primary-foreground">Add environment</Text>
+        <Text className="text-sm font-pathwayos-bold text-primary-foreground">Add environment</Text>
       </Pressable>
     </View>
   );
@@ -806,7 +806,7 @@ export function AddProjectDestinationScreen() {
       {error ? <ErrorBanner message={error} /> : null}
       {repositoryTitle ? (
         <View className="rounded-[24px] bg-card px-4 py-3">
-          <Text className="text-base font-t3-bold">{repositoryTitle}</Text>
+          <Text className="text-base font-pathwayos-bold">{repositoryTitle}</Text>
           <Text className="mt-0.5 text-xs text-foreground-muted" numberOfLines={2}>
             {remoteUrl}
           </Text>

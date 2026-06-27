@@ -9,8 +9,8 @@ import {
   EnvironmentHttpForbiddenError,
   EnvironmentHttpInternalServerError,
   EnvironmentHttpUnauthorizedError,
-} from "@t3tools/contracts";
-import { stripPairingTokenFromUrl } from "@t3tools/shared/remote";
+} from "@pathwayos/contracts";
+import { stripPairingTokenFromUrl } from "@pathwayos/shared/remote";
 import {
   type RelayEnvironmentConnectResponse as RelayEnvironmentConnectResponseType,
   type RelayEnvironmentLinkResponse as RelayEnvironmentLinkResponseType,
@@ -21,12 +21,12 @@ import {
   type RelayClientEnvironmentRecord,
   type RelayEnvironmentStatusResponse as RelayEnvironmentStatusResponseType,
   type RelayManagedEndpointProviderKind,
-} from "@t3tools/contracts/relay";
-import { exchangeRemoteDpopAccessToken } from "@t3tools/client-runtime/authorization";
-import { fetchRemoteEnvironmentDescriptor } from "@t3tools/client-runtime/environment";
-import { findErrorTraceId } from "@t3tools/client-runtime/errors";
-import { ManagedRelay } from "@t3tools/client-runtime/relay";
-import { makeEnvironmentHttpApiClient } from "@t3tools/client-runtime/rpc";
+} from "@pathwayos/contracts/relay";
+import { exchangeRemoteDpopAccessToken } from "@pathwayos/client-runtime/authorization";
+import { fetchRemoteEnvironmentDescriptor } from "@pathwayos/client-runtime/environment";
+import { findErrorTraceId } from "@pathwayos/client-runtime/errors";
+import { ManagedRelay } from "@pathwayos/client-runtime/relay";
+import { makeEnvironmentHttpApiClient } from "@pathwayos/client-runtime/rpc";
 
 import { authClientMetadata } from "../../lib/authClientMetadata";
 import type { SavedRemoteConnection } from "../../lib/connection";

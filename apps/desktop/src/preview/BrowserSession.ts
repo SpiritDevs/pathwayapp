@@ -9,7 +9,7 @@ import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 import * as SynchronizedRef from "effect/SynchronizedRef";
 
-const PREVIEW_PARTITION_PREFIX = "persist:t3code-preview-";
+const PREVIEW_PARTITION_PREFIX = "persist:pathwayos-preview-";
 
 export class BrowserSessionPartitionDerivationError extends Schema.TaggedErrorClass<BrowserSessionPartitionDerivationError>()(
   "BrowserSessionPartitionDerivationError",
@@ -87,7 +87,7 @@ export class BrowserSession extends Context.Service<
     readonly clearCookies: () => Effect.Effect<void, BrowserSessionStorageClearError>;
     readonly clearCache: () => Effect.Effect<void, BrowserSessionCacheClearError>;
   }
->()("@t3tools/desktop/preview/BrowserSession") {}
+>()("@pathwayos/desktop/preview/BrowserSession") {}
 
 export const make = Effect.gen(function* BrowserSessionMake() {
   const crypto = yield* Crypto.Crypto;
@@ -117,7 +117,7 @@ export const make = Effect.gen(function* BrowserSessionMake() {
           const userAgent = browserSession
             .getUserAgent()
             .replace(/Electron\/[\d.]+ /, "")
-            .replace(/\s*t3code\/[\d.]+/, "");
+            .replace(/\s*pathwayos\/[\d.]+/, "");
           browserSession.setUserAgent(userAgent);
           browserSession.setPermissionRequestHandler((_webContents, permission, callback) => {
             const allowed = ["clipboard-read", "clipboard-write", "notifications", "geolocation"];

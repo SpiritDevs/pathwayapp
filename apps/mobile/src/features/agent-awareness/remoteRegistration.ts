@@ -4,18 +4,18 @@ import * as Notifications from "expo-notifications";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { Platform } from "react-native";
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentId } from "@pathwayos/contracts";
 import {
   type RelayDeviceRegistrationRequest,
   type RelayLiveActivityRegistrationRequest,
-} from "@t3tools/contracts/relay";
-import { findErrorTraceId } from "@t3tools/client-runtime/errors";
-import { ManagedRelay } from "@t3tools/client-runtime/relay";
+} from "@pathwayos/contracts/relay";
+import { findErrorTraceId } from "@pathwayos/client-runtime/errors";
+import { ManagedRelay } from "@pathwayos/client-runtime/relay";
 import {
   isAtomCommandInterrupted,
   settleAsyncResult,
   squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
+} from "@pathwayos/client-runtime/state/runtime";
 
 import type { SavedRemoteConnection } from "../../lib/connection";
 import { runtime } from "../../lib/runtime";

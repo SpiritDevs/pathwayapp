@@ -6,15 +6,18 @@ import {
   PrimaryEnvironmentAuth,
   RelayDeviceIdentity,
   SshEnvironmentGateway,
-} from "@t3tools/client-runtime/platform";
+} from "@pathwayos/client-runtime/platform";
 import {
   ConnectionBlockedError,
   ConnectionTransientError,
   Connectivity,
   Wakeups,
-} from "@t3tools/client-runtime/connection";
-import { managedRelayAccountChanges, managedRelaySessionAtom } from "@t3tools/client-runtime/relay";
-import { AuthStandardClientScopes } from "@t3tools/contracts";
+} from "@pathwayos/client-runtime/connection";
+import {
+  managedRelayAccountChanges,
+  managedRelaySessionAtom,
+} from "@pathwayos/client-runtime/relay";
+import { AuthStandardClientScopes } from "@pathwayos/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -92,7 +95,7 @@ const capabilitiesLayer = Layer.succeedContext(
         if (session === null) {
           return yield* new ConnectionBlockedError({
             reason: "authentication",
-            detail: "Sign in to T3 Cloud to connect this environment.",
+            detail: "Sign in to PathwayOS Cloud to connect this environment.",
           });
         }
         const token = yield* session.readClerkToken().pipe(
@@ -107,7 +110,7 @@ const capabilitiesLayer = Layer.succeedContext(
         if (token === null) {
           return yield* new ConnectionBlockedError({
             reason: "authentication",
-            detail: "The T3 Cloud session is unavailable.",
+            detail: "The PathwayOS Cloud session is unavailable.",
           });
         }
         return token;

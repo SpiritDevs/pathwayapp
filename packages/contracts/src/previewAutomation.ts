@@ -15,7 +15,7 @@ const BoundedUrl = Schema.String.check(Schema.isTrimmed())
   .check(
     Schema.isNonEmpty({
       description:
-        "Absolute http(s) URL or a schemeless host such as t3.chat or localhost:5173. Schemeless public hosts use https; loopback hosts use http.",
+        "Absolute http(s) URL or a schemeless host such as pathwayos.chat or localhost:5173. Schemeless public hosts use https; loopback hosts use http.",
     }),
   )
   .check(Schema.isMaxLength(2048));
@@ -67,7 +67,7 @@ export type PreviewAutomationStatus = typeof PreviewAutomationStatus.Type;
 export const PreviewAutomationOpenInput = Schema.Struct({
   url: Schema.optional(BoundedUrl).annotate({
     description:
-      "Optional initial page URL, for example https://t3.chat or localhost:5173. Omit to open a blank tab.",
+      "Optional initial page URL, for example https://pathwayos.chat or localhost:5173. Omit to open a blank tab.",
   }),
   show: Schema.optional(
     Schema.Boolean.annotate({
@@ -119,7 +119,7 @@ export type BrowserNavigationTarget = typeof BrowserNavigationTarget.Type;
 export const PreviewAutomationNavigateInput = Schema.Struct({
   url: Schema.optional(BoundedUrl).annotate({
     description:
-      "Website URL, for example https://t3.chat. Use this for public pages and directly reachable URLs.",
+      "Website URL, for example https://pathwayos.chat. Use this for public pages and directly reachable URLs.",
   }),
   target: Schema.optional(
     BrowserNavigationTarget.annotate({

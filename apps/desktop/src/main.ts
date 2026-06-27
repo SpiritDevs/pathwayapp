@@ -8,10 +8,10 @@ import * as Option from "effect/Option";
 
 import * as Electron from "electron";
 
-import * as NetService from "@t3tools/shared/Net";
-import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
-import { resolveRemoteT3CliPackageSpec } from "@t3tools/ssh/command";
-import type { RemoteT3RunnerOptions } from "@t3tools/ssh/tunnel";
+import * as NetService from "@pathwayos/shared/Net";
+import { HostProcessArchitecture, HostProcessPlatform } from "@pathwayos/shared/hostProcess";
+import { resolveRemotePathwayOSCliPackageSpec } from "@pathwayos/ssh/command";
+import type { RemotePathwayOSRunnerOptions } from "@pathwayos/ssh/tunnel";
 import serverPackageJson from "../../server/package.json" with { type: "json" };
 
 import * as DesktopIpc from "./ipc/DesktopIpc.ts";
@@ -71,8 +71,8 @@ const desktopEnvironmentLayer = Layer.unwrap(
 const resolveDesktopSshCliRunner = (
   environment: DesktopEnvironment.DesktopEnvironment["Service"],
   settings: DesktopAppSettings.DesktopSettings,
-): RemoteT3RunnerOptions => {
-  const devRemoteEntryPath = Option.getOrUndefined(environment.devRemoteT3ServerEntryPath);
+): RemotePathwayOSRunnerOptions => {
+  const devRemoteEntryPath = Option.getOrUndefined(environment.devRemotePathwayOSServerEntryPath);
   if (environment.isDevelopment && devRemoteEntryPath !== undefined) {
     return {
       nodeScriptPath: devRemoteEntryPath,
@@ -80,7 +80,7 @@ const resolveDesktopSshCliRunner = (
     };
   }
   return {
-    packageSpec: resolveRemoteT3CliPackageSpec({
+    packageSpec: resolveRemotePathwayOSCliPackageSpec({
       appVersion: environment.appVersion,
       updateChannel: settings.updateChannel,
       isDevelopment: environment.isDevelopment,

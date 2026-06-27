@@ -47,20 +47,20 @@ import {
   type ResolvedKeybindingsConfig,
   type SidebarProjectGroupingMode,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   parseScopedThreadKey,
   scopedProjectKey,
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@t3tools/client-runtime/environment";
-import { safeErrorLogAttributes } from "@t3tools/client-runtime/errors";
+} from "@pathwayos/client-runtime/environment";
+import { safeErrorLogAttributes } from "@pathwayos/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
+} from "@pathwayos/client-runtime/state/runtime";
 import { Link, useLocation, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import {
   MAX_SIDEBAR_THREAD_PREVIEW_COUNT,
@@ -68,7 +68,7 @@ import {
   type SidebarProjectSortOrder,
   type SidebarThreadPreviewCount,
   type SidebarThreadSortOrder,
-} from "@t3tools/contracts/settings";
+} from "@pathwayos/contracts/settings";
 import { isElectron } from "../env";
 import { APP_STAGE_LABEL } from "../branding";
 import { useOpenPrLink } from "../lib/openPullRequestLink";
@@ -2670,7 +2670,7 @@ function SidebarBrand() {
       className="sidebar-brand ml-[var(--workspace-titlebar-content-left)] h-7 w-fit min-w-0 shrink-0 items-center gap-1 overflow-hidden rounded-md text-foreground outline-hidden ring-ring focus-visible:ring-2"
       to="/"
     >
-      <T3Wordmark />
+      <PathwayOSWordmark />
       <span className="truncate text-sm font-medium tracking-tight text-muted-foreground">
         Code
       </span>
@@ -2691,10 +2691,10 @@ function useSidebarStageLabel() {
   });
 }
 
-function T3Wordmark() {
+function PathwayOSWordmark() {
   return (
     <svg
-      aria-label="T3"
+      aria-label="PathwayOS"
       className="h-2.5 w-auto shrink-0 text-foreground"
       viewBox="15.5309 37 94.3941 56.96"
       xmlns="http://www.w3.org/2000/svg"

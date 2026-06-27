@@ -28,19 +28,19 @@ import {
   type DesktopSshEnvironmentTarget,
   type DesktopServerExposureState,
   type EnvironmentId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   connectionStatusText,
   RelayConnectionRegistration,
   RelayConnectionTarget,
-} from "@t3tools/client-runtime/connection";
-import { findErrorTraceId } from "@t3tools/client-runtime/errors";
+} from "@pathwayos/client-runtime/connection";
+import { findErrorTraceId } from "@pathwayos/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
-import type { RelayClientEnvironmentRecord } from "@t3tools/contracts/relay";
+} from "@pathwayos/client-runtime/state/runtime";
+import type { RelayClientEnvironmentRecord } from "@pathwayos/contracts/relay";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 
@@ -1458,7 +1458,7 @@ function SavedBackendListRow({
       : null;
   const metadataBits = [
     sshTarget ? `SSH ${formatDesktopSshTarget(sshTarget)}` : null,
-    environment.relayManaged ? "T3 Connect" : null,
+    environment.relayManaged ? "pathwayOS Connect" : null,
   ].filter((value): value is string => value !== null);
 
   return (
@@ -1576,7 +1576,7 @@ function CloudLinkSwitch({
 }) {
   const control = (
     <Switch
-      aria-label="Enable T3 Connect"
+      aria-label="Enable pathwayOS Connect"
       checked={checked}
       disabled={disabled}
       {...(onCheckedChange ? { onCheckedChange } : {})}
@@ -1613,13 +1613,18 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
   const [isUpdatingPreference, setIsUpdatingPreference] = useState(false);
 
   const reportUpdateFailure = (cause: unknown) => {
-    const message = cause instanceof Error ? cause.message : "Could not update T3 Connect access.";
+    const message =
+      cause instanceof Error ? cause.message : "Could not update pathwayOS Connect access.";
     const traceId = findErrorTraceId(cause);
-    console.error("[t3-connect] Could not update T3 Connect", { message, traceId, cause });
+    console.error("[pathwayos-connect] Could not update pathwayOS Connect", {
+      message,
+      traceId,
+      cause,
+    });
     setOperationError(traceId ? `${message} Trace ID: ${traceId}` : message);
     toastManager.add({
       type: "error",
-      title: "Could not update T3 Connect",
+      title: "Could not update pathwayOS Connect",
       description: message,
       data: traceId
         ? {
@@ -1649,7 +1654,9 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
       return;
     }
     if (enabled && !tokenResult.value) {
-      reportUpdateFailure(new Error("Sign in to T3 Connect before linking this environment."));
+      reportUpdateFailure(
+        new Error("Sign in to pathwayOS Connect before linking this environment."),
+      );
       setIsUpdating(false);
       return;
     }
@@ -1684,10 +1691,10 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
 
     toastManager.add({
       type: "success",
-      title: enabled ? "T3 Connect linked" : "T3 Connect unlinked",
+      title: enabled ? "pathwayOS Connect linked" : "pathwayOS Connect unlinked",
       description: enabled
-        ? "This environment is available through T3 Connect."
-        : "This environment is no longer available through T3 Connect.",
+        ? "This environment is available through pathwayOS Connect."
+        : "This environment is no longer available through pathwayOS Connect.",
     });
     setIsUpdating(false);
   };
@@ -1724,20 +1731,20 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
     setIsUpdatingPreference(false);
   };
   const disabledReason = !isSignedIn
-    ? "Sign in to T3 Connect to manage this environment."
+    ? "Sign in to pathwayOS Connect to manage this environment."
     : !canManageRelay
-      ? "Your session does not have permission to manage T3 Connect access."
+      ? "Your session does not have permission to manage pathwayOS Connect access."
       : null;
   const linked = primaryCloudLinkState.data?.linked ?? false;
 
   return (
     <>
       <SettingsRow
-        title="T3 Connect"
+        title="pathwayOS Connect"
         description={
           linked
-            ? "This environment is available to your other devices through T3 Connect."
-            : "Make this environment available to your other devices through T3 Connect."
+            ? "This environment is available to your other devices through pathwayOS Connect."
+            : "Make this environment available to your other devices through pathwayOS Connect."
         }
         status={operationError ?? primaryCloudLinkState.error}
         control={
@@ -1790,7 +1797,7 @@ function EmptyRemoteEnvironments({ cloudEnabled = true }: { readonly cloudEnable
         <EmptyTitle>No saved remote environments</EmptyTitle>
         <EmptyDescription>
           {cloudEnabled
-            ? "Click “Add environment” to pair another environment, or connect one from T3 Connect."
+            ? "Click “Add environment” to pair another environment, or connect one from pathwayOS Connect."
             : "Click “Add environment” to pair another environment."}
         </EmptyDescription>
       </EmptyHeader>
@@ -1855,7 +1862,7 @@ function ConfiguredCloudRemoteEnvironmentRows({
       toastManager.add({
         type: "success",
         title: "Environment connected",
-        description: `${environment.label} is available through T3 Connect.`,
+        description: `${environment.label} is available through pathwayOS Connect.`,
       });
       return;
     }
@@ -1864,9 +1871,11 @@ function ConfiguredCloudRemoteEnvironmentRows({
     }
     const cause = squashAtomCommandFailure(result);
     const message =
-      cause instanceof Error ? cause.message : "Could not connect the T3 Connect environment.";
+      cause instanceof Error
+        ? cause.message
+        : "Could not connect the pathwayOS Connect environment.";
     const traceId = findErrorTraceId(cause);
-    console.error("[t3-connect] Could not connect environment", { message, traceId, cause });
+    console.error("[pathwayos-connect] Could not connect environment", { message, traceId, cause });
     toastManager.add({
       type: "error",
       title: "Could not connect environment",
@@ -2977,8 +2986,8 @@ export function ConnectionsSettings() {
                 </AlertDialogTitle>
                 <AlertDialogDescription>
                   {pendingDesktopServerExposureMode === "network-accessible"
-                    ? "T3 Code will restart to expose this environment over the network."
-                    : "T3 Code will restart and limit this environment back to this machine."}
+                    ? "pathwayOS will restart to expose this environment over the network."
+                    : "pathwayOS will restart and limit this environment back to this machine."}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -3022,7 +3031,7 @@ export function ConnectionsSettings() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Disable Tailscale HTTPS?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  T3 Code will restart the local backend without Tailscale Serve.
+                  pathwayOS will restart the local backend without Tailscale Serve.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -3060,7 +3069,7 @@ export function ConnectionsSettings() {
               <DialogHeader>
                 <DialogTitle>Set up Tailscale HTTPS?</DialogTitle>
                 <DialogDescription>
-                  T3 Code will restart the local backend with Tailscale Serve enabled and ask
+                  pathwayOS will restart the local backend with Tailscale Serve enabled and ask
                   Tailscale to proxy HTTPS traffic to this backend.
                 </DialogDescription>
               </DialogHeader>

@@ -1,5 +1,5 @@
-import { makeLocalFileTracer, makeTraceSink } from "@t3tools/shared/observability";
-import { parsePersistedServerObservabilitySettings } from "@t3tools/shared/serverSettings";
+import { makeLocalFileTracer, makeTraceSink } from "@pathwayos/shared/observability";
+import { parsePersistedServerObservabilitySettings } from "@pathwayos/shared/serverSettings";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";

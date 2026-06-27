@@ -1,4 +1,4 @@
-import type { PreviewRenderedViewportSize, PreviewViewportSetting } from "@t3tools/contracts";
+import type { PreviewRenderedViewportSize, PreviewViewportSetting } from "@pathwayos/contracts";
 
 import { browserViewportSettingKey } from "~/browser/browserViewportLayout";
 

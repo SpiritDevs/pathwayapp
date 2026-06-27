@@ -5,7 +5,7 @@ import {
   ProviderDriverKind,
   type ServerProviderModel,
   type ServerProviderSlashCommand,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -17,9 +17,9 @@ import {
   getModelSelectionStringOptionValue,
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
-} from "@t3tools/shared/model";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
-import { compareSemverVersions } from "@t3tools/shared/semver";
+} from "@pathwayos/shared/model";
+import { resolveSpawnCommand } from "@pathwayos/shared/shell";
+import { compareSemverVersions } from "@pathwayos/shared/semver";
 import {
   query as claudeQuery,
   type SlashCommand as ClaudeSlashCommand,
@@ -647,7 +647,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Claude is disabled in T3 Code settings.",
+        message: "Claude is disabled in pathwayOS settings.",
       },
     });
   }
@@ -806,7 +806,7 @@ export const makePendingClaudeProvider = (
           version: null,
           status: "warning",
           auth: { status: "unknown" },
-          message: "Claude is disabled in T3 Code settings.",
+          message: "Claude is disabled in pathwayOS settings.",
         },
       });
     }

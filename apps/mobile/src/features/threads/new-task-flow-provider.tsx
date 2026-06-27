@@ -7,8 +7,8 @@ import type {
   ProviderOptionSelection,
   RuntimeMode,
   ServerProviderSkill,
-} from "@t3tools/contracts";
-import { DEFAULT_PROVIDER_INTERACTION_MODE, DEFAULT_RUNTIME_MODE } from "@t3tools/contracts";
+} from "@pathwayos/contracts";
+import { DEFAULT_PROVIDER_INTERACTION_MODE, DEFAULT_RUNTIME_MODE } from "@pathwayos/contracts";
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 
@@ -31,8 +31,8 @@ import {
   setPendingConnectionError,
   useSavedRemoteConnections,
 } from "../../state/use-remote-environment-registry";
-import { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
-import { type VcsRef } from "@t3tools/client-runtime/state/vcs";
+import { EnvironmentProject } from "@pathwayos/client-runtime/state/shell";
+import { type VcsRef } from "@pathwayos/client-runtime/state/vcs";
 
 type WorkspaceMode = "local" | "worktree";
 

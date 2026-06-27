@@ -7,8 +7,8 @@ import {
   type TerminalMetadataStreamEvent,
   type TerminalOpenInput,
   type TerminalRestartInput,
-} from "@t3tools/contracts";
-import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
+} from "@pathwayos/contracts";
+import { HostProcessPlatform } from "@pathwayos/shared/hostProcess";
 import * as Data from "effect/Data";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -234,7 +234,7 @@ const createManager = (
   Effect.flatMap(Effect.service(FileSystem.FileSystem), (fs) =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-terminal-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "pathwayos-terminal-" });
       const logsDir = join(baseDir, "userdata", "logs", "terminals");
       const ptyAdapter = options.ptyAdapter ?? new FakePtyAdapter();
 
@@ -367,7 +367,7 @@ it.layer(
       const unsubscribe = yield* manager.attachStream(
         openInput({
           env: {
-            T3CODE_WORKTREE_PATH: "/tmp/should-not-restart",
+            PATHWAYOS_WORKTREE_PATH: "/tmp/should-not-restart",
           },
           worktreePath: "/tmp/should-not-restart",
         }),
@@ -405,7 +405,7 @@ it.layer(
         {
           ...openInput({
             env: {
-              T3CODE_WORKTREE_PATH: "/tmp/restart-requested",
+              PATHWAYOS_WORKTREE_PATH: "/tmp/restart-requested",
             },
             worktreePath: "/tmp/restart-requested",
           }),
@@ -1315,7 +1315,7 @@ it.layer(
       const { manager, ptyAdapter } = yield* createManager(5, {
         env: {
           PORT: "5173",
-          T3CODE_PORT: "3773",
+          PATHWAYOS_PORT: "3773",
           VITE_DEV_SERVER_URL: "http://localhost:5173",
           TEST_TERMINAL_KEEP: "keep-me",
         },
@@ -1326,7 +1326,7 @@ it.layer(
       if (!spawnInput) return;
 
       expect(spawnInput.env.PORT).toBeUndefined();
-      expect(spawnInput.env.T3CODE_PORT).toBeUndefined();
+      expect(spawnInput.env.PATHWAYOS_PORT).toBeUndefined();
       expect(spawnInput.env.VITE_DEV_SERVER_URL).toBeUndefined();
       // Arbitrary host env vars must pass through — terminals inherit the
       // user's environment apart from the explicit blocklist.
@@ -1340,8 +1340,8 @@ it.layer(
       yield* manager.open(
         openInput({
           env: {
-            T3CODE_PROJECT_ROOT: "/repo",
-            T3CODE_WORKTREE_PATH: "/repo/worktree-a",
+            PATHWAYOS_PROJECT_ROOT: "/repo",
+            PATHWAYOS_WORKTREE_PATH: "/repo/worktree-a",
             CUSTOM_FLAG: "1",
           },
         }),
@@ -1350,8 +1350,8 @@ it.layer(
       expect(spawnInput).toBeDefined();
       if (!spawnInput) return;
 
-      assert.equal(spawnInput.env.T3CODE_PROJECT_ROOT, "/repo");
-      assert.equal(spawnInput.env.T3CODE_WORKTREE_PATH, "/repo/worktree-a");
+      assert.equal(spawnInput.env.PATHWAYOS_PROJECT_ROOT, "/repo");
+      assert.equal(spawnInput.env.PATHWAYOS_WORKTREE_PATH, "/repo/worktree-a");
       assert.equal(spawnInput.env.CUSTOM_FLAG, "1");
     }),
   );

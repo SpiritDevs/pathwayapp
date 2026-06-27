@@ -1,4 +1,4 @@
-import { Connection } from "@t3tools/client-runtime/connection";
+import { Connection } from "@pathwayos/client-runtime/connection";
 import * as Layer from "effect/Layer";
 import { Atom } from "effect/unstable/reactivity";
 

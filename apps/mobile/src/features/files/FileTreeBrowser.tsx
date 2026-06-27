@@ -1,4 +1,4 @@
-import type { ProjectEntry } from "@t3tools/contracts";
+import type { ProjectEntry } from "@pathwayos/contracts";
 import { SymbolView } from "expo-symbols";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from "react-native";
@@ -65,14 +65,16 @@ const FileTreeRow = memo(function FileTreeRow(props: {
       <Text
         className={cn(
           "min-w-0 flex-1 text-sm leading-[19px]",
-          selected ? "font-t3-bold text-foreground" : "font-t3-medium text-foreground-secondary",
+          selected
+            ? "font-pathwayos-bold text-foreground"
+            : "font-pathwayos-medium text-foreground-secondary",
         )}
         numberOfLines={1}
       >
         {node.name}
       </Text>
       {node.kind === "directory" ? (
-        <Text className="text-2xs font-t3-medium text-foreground-tertiary">
+        <Text className="text-2xs font-pathwayos-medium text-foreground-tertiary">
           {node.children.length}
         </Text>
       ) : null}
@@ -142,7 +144,7 @@ export function FileTreeBrowser(props: {
     <View className="flex-1 bg-sheet">
       {props.error && props.entries.length === 0 ? (
         <View className="px-4 py-5">
-          <Text className="text-sm font-t3-bold text-foreground">Files unavailable</Text>
+          <Text className="text-sm font-pathwayos-bold text-foreground">Files unavailable</Text>
           <Text className="mt-1 text-xs leading-[18px] text-foreground-muted">{props.error}</Text>
         </View>
       ) : (
@@ -172,7 +174,9 @@ export function FileTreeBrowser(props: {
                 <ActivityIndicator size="small" />
               ) : (
                 <>
-                  <Text className="text-sm font-t3-bold text-foreground">No files found</Text>
+                  <Text className="text-sm font-pathwayos-bold text-foreground">
+                    No files found
+                  </Text>
                   <Text className="mt-1 text-xs leading-[18px] text-foreground-muted">
                     {props.searchQuery.trim().length > 0
                       ? "Try a different search."

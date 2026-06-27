@@ -1,8 +1,8 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import * as Option from "effect/Option";
-import { EnvironmentId, type ProjectScript } from "@t3tools/contracts";
-import { projectScriptCwd, projectScriptRuntimeEnv } from "@t3tools/shared/projectScripts";
+import { EnvironmentId, type ProjectScript } from "@pathwayos/contracts";
+import { projectScriptCwd, projectScriptRuntimeEnv } from "@pathwayos/shared/projectScripts";
 import { Pressable, ScrollView, Text as RNText, View } from "react-native";
 import { useWorkspaceState } from "../../state/workspace";
 import { useThemeColor } from "../../lib/useThemeColor";

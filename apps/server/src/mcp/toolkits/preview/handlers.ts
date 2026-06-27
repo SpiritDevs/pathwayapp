@@ -6,7 +6,7 @@ import type {
   PreviewAutomationResizeResult,
   PreviewAutomationSnapshot,
   PreviewAutomationStatus,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as PreviewAutomationBroker from "../../PreviewAutomationBroker.ts";
@@ -18,7 +18,7 @@ const invoke = Effect.fn("PreviewToolkit.invoke")(function* <A>(
   timeoutMs?: number,
 ): Effect.fn.Return<
   A,
-  import("@t3tools/contracts").PreviewAutomationError,
+  import("@pathwayos/contracts").PreviewAutomationError,
   McpInvocationContext.McpInvocationContext | PreviewAutomationBroker.PreviewAutomationBroker
 > {
   const scope = yield* McpInvocationContext.requireMcpCapability("preview");

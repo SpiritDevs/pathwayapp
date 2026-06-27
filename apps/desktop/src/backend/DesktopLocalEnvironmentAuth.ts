@@ -1,4 +1,4 @@
-import { bootstrapRemoteBearerSession } from "@t3tools/client-runtime/authorization";
+import { bootstrapRemoteBearerSession } from "@pathwayos/client-runtime/authorization";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -39,7 +39,7 @@ export class DesktopLocalEnvironmentAuth extends Context.Service<
   {
     readonly getBearerToken: Effect.Effect<string, DesktopLocalEnvironmentAuthError>;
   }
->()("@t3tools/desktop/backend/DesktopLocalEnvironmentAuth") {}
+>()("@pathwayos/desktop/backend/DesktopLocalEnvironmentAuth") {}
 
 export const make = Effect.gen(function* () {
   const backendManager = yield* DesktopBackendManager.DesktopBackendManager;
@@ -64,7 +64,7 @@ export const make = Effect.gen(function* () {
           httpBaseUrl: config.httpBaseUrl.href,
           credential: config.bootstrap.desktopBootstrapToken,
           clientMetadata: {
-            label: "T3 Code Desktop",
+            label: "pathwayOS Desktop",
             deviceType: "desktop",
           },
         }).pipe(

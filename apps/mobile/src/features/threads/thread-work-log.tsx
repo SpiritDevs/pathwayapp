@@ -91,7 +91,7 @@ export function ThreadWorkLog(props: {
   return (
     <View className="-mx-1 mb-1 px-1 py-0">
       {!onlyToolRows ? (
-        <Text className="px-0.5 pb-0.5 font-t3-medium text-2xs text-foreground-muted opacity-60">
+        <Text className="px-0.5 pb-0.5 font-pathwayos-medium text-2xs text-foreground-muted opacity-60">
           work log
         </Text>
       ) : null}
@@ -144,7 +144,7 @@ export function ThreadWorkLog(props: {
                   >
                     <Text
                       className={cn(
-                        "font-t3-medium text-foreground",
+                        "font-pathwayos-medium text-foreground",
                         iconIsDestructive && "text-rose-600 dark:text-rose-400",
                       )}
                     >
@@ -157,7 +157,7 @@ export function ThreadWorkLog(props: {
 
                   <View className="shrink-0 flex-row items-center gap-px">
                     {props.copiedRowId === row.id ? (
-                      <Text className="pr-1 font-t3-medium text-3xs text-emerald-600 dark:text-emerald-400">
+                      <Text className="pr-1 font-pathwayos-medium text-3xs text-emerald-600 dark:text-emerald-400">
                         Copied
                       </Text>
                     ) : null}
@@ -263,7 +263,7 @@ export function ThreadWorkGroupToggle(props: {
             type="monochrome"
           />
         </View>
-        <Text className="font-t3-medium text-xs text-foreground opacity-80">
+        <Text className="font-pathwayos-medium text-xs text-foreground opacity-80">
           {props.expanded ? expandedLabel : `+${props.hiddenCount} previous ${noun}`}
         </Text>
       </Pressable>

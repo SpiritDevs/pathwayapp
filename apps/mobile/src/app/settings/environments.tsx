@@ -4,8 +4,8 @@ import { SymbolView } from "expo-symbols";
 import {
   connectionStatusText,
   type EnvironmentConnectionPhase,
-} from "@t3tools/client-runtime/connection";
-import type { EnvironmentId } from "@t3tools/contracts";
+} from "@pathwayos/client-runtime/connection";
+import type { EnvironmentId } from "@pathwayos/contracts";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -113,7 +113,7 @@ export default function SettingsEnvironmentsRouteScreen() {
             </View>
             <Text className="text-center text-sm leading-[20px] text-foreground-muted">
               No environments connected yet.{"\n"}Tap{" "}
-              <Text className="font-t3-bold text-foreground">+</Text> to add one.
+              <Text className="font-pathwayos-bold text-foreground">+</Text> to add one.
             </Text>
           </View>
         )}
@@ -160,7 +160,9 @@ function ConfiguredCloudEnvironmentRows(props: {
   return (
     <View collapsable={false} className="mt-5 gap-3">
       <View className="flex-row items-center justify-between px-1">
-        <Text className="text-sm font-t3-bold uppercase text-foreground-muted">T3 Cloud</Text>
+        <Text className="text-sm font-pathwayos-bold uppercase text-foreground-muted">
+          PathwayOS Cloud
+        </Text>
         <Pressable
           accessibilityRole="button"
           disabled={controller.relayDiscovery.isRefreshing}
@@ -210,8 +212,8 @@ function ConfiguredCloudEnvironmentRows(props: {
         </View>
       ) : controller.relayDiscovery.error ? (
         <View collapsable={false} className="gap-3 rounded-[24px] bg-card p-5">
-          <Text className="text-base font-t3-bold text-foreground">
-            Could not load T3 Cloud environments
+          <Text className="text-base font-pathwayos-bold text-foreground">
+            Could not load PathwayOS Cloud environments
           </Text>
           <Text className="text-sm leading-[18px] text-foreground-muted">
             {controller.relayDiscovery.error}
@@ -361,7 +363,7 @@ function CloudEnvironmentRowShell(props: {
         <View className="min-w-0 flex-row items-center gap-2">
           <ConnectionStatusDot state={props.connectionState} pulse={shouldPulse} size={7} />
           <Text
-            className="min-w-0 flex-shrink text-base font-t3-bold leading-[21px] text-foreground"
+            className="min-w-0 flex-shrink text-base font-pathwayos-bold leading-[21px] text-foreground"
             numberOfLines={1}
           >
             {props.label}
@@ -446,7 +448,7 @@ function CopyTraceIdButton(props: { readonly traceId: string }) {
       className="self-start flex-row items-center gap-1.5 rounded-full bg-subtle px-3 py-2 active:opacity-70"
     >
       <SymbolView name="doc.on.doc" size={12} tintColor={iconColor} type="monochrome" />
-      <Text className="text-xs font-t3-bold text-foreground">Copy trace ID</Text>
+      <Text className="text-xs font-pathwayos-bold text-foreground">Copy trace ID</Text>
     </Pressable>
   );
 }

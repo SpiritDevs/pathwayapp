@@ -1,7 +1,7 @@
 import type {
   RelayDeviceRegistrationRequest,
   RelayLiveActivityRegistrationRequest,
-} from "@t3tools/contracts/relay";
+} from "@pathwayos/contracts/relay";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -31,7 +31,7 @@ export class MobileRegistrations extends Context.Service<
       readonly deviceId: string;
     }) => Effect.Effect<{ readonly ok: true }, MobileRegistrationError>;
   }
->()("t3code-relay/agentActivity/MobileRegistrations") {}
+>()("pathwayos-relay/agentActivity/MobileRegistrations") {}
 
 export const make = Effect.gen(function* () {
   const devices = yield* Devices.Devices;

@@ -4,12 +4,12 @@ import type {
   ProjectScript,
   ThreadId,
   VcsStatusResult,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 import {
   type GitActionRequestInput,
   requiresDefaultBranchConfirmation,
   resolveQuickAction,
-} from "@t3tools/client-runtime/state/vcs";
+} from "@pathwayos/client-runtime/state/vcs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Stack from "expo-router/stack";
 import { useCallback, useMemo } from "react";

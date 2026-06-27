@@ -9,7 +9,7 @@ import {
   type ProjectListEntriesResult,
   type ProjectReadFileResult,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@pathwayos/contracts";
 
 import { AppText as Text } from "../../components/AppText";
 import { CopyTextButton } from "../../components/CopyTextButton";
@@ -95,7 +95,7 @@ function ModeButton(props: {
       <SymbolView name={props.icon} size={13} tintColor={iconColor} type="monochrome" />
       <Text
         className={cn(
-          "text-xs font-t3-bold",
+          "text-xs font-pathwayos-bold",
           props.active ? "text-primary-foreground" : "text-foreground-muted",
         )}
       >
@@ -184,8 +184,8 @@ function FileBreadcrumbs(props: { readonly projectName: string; readonly relativ
                 className={cn(
                   "max-w-[180px] px-1 text-xs",
                   crumb.kind === "file"
-                    ? "font-t3-bold text-foreground"
-                    : "font-t3-medium text-foreground-muted",
+                    ? "font-pathwayos-bold text-foreground"
+                    : "font-pathwayos-medium text-foreground-muted",
                 )}
                 numberOfLines={1}
               >
@@ -312,7 +312,7 @@ function FileContent(props: {
     <View className="flex-1 bg-card">
       {props.truncated ? (
         <View className="border-b border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-900/60 dark:bg-amber-950/40">
-          <Text className="text-2xs font-t3-bold uppercase text-amber-700 dark:text-amber-300">
+          <Text className="text-2xs font-pathwayos-bold uppercase text-amber-700 dark:text-amber-300">
             Partial file
           </Text>
           <Text className="text-xs leading-[17px] text-amber-800 dark:text-amber-200">

@@ -1,4 +1,4 @@
-import type { DesktopEnvironmentBootstrap } from "@t3tools/contracts";
+import type { DesktopEnvironmentBootstrap } from "@pathwayos/contracts";
 import * as Schema from "effect/Schema";
 
 const PrimaryEnvironmentTargetSource = Schema.Literals([

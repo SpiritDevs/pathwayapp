@@ -4,8 +4,8 @@ import {
   EnvironmentHttpForbiddenError,
   EnvironmentHttpInternalServerError,
   EnvironmentHttpUnauthorizedError,
-} from "@t3tools/contracts";
-import { makeEnvironmentHttpApiClient } from "@t3tools/client-runtime/rpc";
+} from "@pathwayos/contracts";
+import { makeEnvironmentHttpApiClient } from "@pathwayos/client-runtime/rpc";
 import {
   RelayCloudEnvironmentHealthProofPayload,
   RelayEnvironmentHealthResponse,
@@ -15,7 +15,7 @@ import {
   RelayCloudMintCredentialProofPayload,
   type RelayEnvironmentConnectResponse,
   type RelayEnvironmentStatusResponse,
-} from "@t3tools/contracts/relay";
+} from "@pathwayos/contracts/relay";
 import {
   normalizeRelayIssuer,
   RELAY_HEALTH_REQUEST_TYP,
@@ -24,8 +24,8 @@ import {
   RELAY_MINT_RESPONSE_TYP,
   signRelayJwt,
   verifyRelayJwt,
-} from "@t3tools/shared/relayJwt";
-import { stableStringify } from "@t3tools/shared/relaySigning";
+} from "@pathwayos/shared/relayJwt";
+import { stableStringify } from "@pathwayos/shared/relaySigning";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -155,7 +155,7 @@ export class EnvironmentConnector extends Context.Service<
       readonly environmentId: string;
     }) => Effect.Effect<RelayEnvironmentStatusResponse, EnvironmentConnectorError>;
   }
->()("t3code-relay/environments/EnvironmentConnector") {}
+>()("pathwayos-relay/environments/EnvironmentConnector") {}
 
 const decodeMintResponseProof = Schema.decodeUnknownEffect(
   RelayEnvironmentMintResponseProofPayload,
@@ -235,7 +235,7 @@ function verifyEnvironmentResponse(input: {
   return verifyWithEnvironmentKeys({
     token: input.response.proof,
     typ: RELAY_MINT_RESPONSE_TYP,
-    issuer: `t3-env:${input.environmentId}`,
+    issuer: `pathwayos-env:${input.environmentId}`,
     audience: normalizeRelayIssuer(input.relayIssuer),
     nowEpochSeconds: input.nowEpochSeconds,
     environmentPublicKeys: input.environmentPublicKeys,
@@ -268,7 +268,7 @@ function verifyEnvironmentHealthResponse(input: {
   return verifyWithEnvironmentKeys({
     token: input.response.proof,
     typ: RELAY_HEALTH_RESPONSE_TYP,
-    issuer: `t3-env:${input.environmentId}`,
+    issuer: `pathwayos-env:${input.environmentId}`,
     audience: normalizeRelayIssuer(input.relayIssuer),
     nowEpochSeconds: Math.floor(input.now.epochMilliseconds / 1_000),
     environmentPublicKeys: input.environmentPublicKeys,
@@ -442,7 +442,7 @@ const make = Effect.gen(function* () {
       );
       const payload = {
         iss: relayIssuer,
-        aud: `t3-env:${link.environmentId}`,
+        aud: `pathwayos-env:${link.environmentId}`,
         sub: input.userId,
         jti: yield* crypto.randomUUIDv4.pipe(
           Effect.mapError(
@@ -597,7 +597,7 @@ const make = Effect.gen(function* () {
       );
       const payload = {
         iss: relayIssuer,
-        aud: `t3-env:${link.environmentId}`,
+        aud: `pathwayos-env:${link.environmentId}`,
         sub: input.userId,
         jti: yield* crypto.randomUUIDv4.pipe(
           Effect.mapError(
@@ -634,7 +634,7 @@ const make = Effect.gen(function* () {
       );
       const environmentClient = yield* makeEnvironmentClient(endpoint.httpBaseUrl);
       const decoded = yield* environmentClient.connect
-        .t3MintCredential({ payload: { proof } })
+        .pathwayosMintCredential({ payload: { proof } })
         .pipe(
           withoutRedirects,
           Effect.mapError(

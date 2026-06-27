@@ -189,7 +189,7 @@ export default function ConnectionsNewRouteScreen() {
             <View collapsable={false} className="gap-4 rounded-[24px] bg-card p-4">
               <View collapsable={false} className="gap-1.5">
                 <Text
-                  className="text-2xs font-t3-bold uppercase text-foreground-muted"
+                  className="text-2xs font-pathwayos-bold uppercase text-foreground-muted"
                   style={{ letterSpacing: 0.8 }}
                 >
                   Host
@@ -208,7 +208,7 @@ export default function ConnectionsNewRouteScreen() {
 
               <View collapsable={false} className="gap-1.5">
                 <Text
-                  className="text-2xs font-t3-bold uppercase text-foreground-muted"
+                  className="text-2xs font-pathwayos-bold uppercase text-foreground-muted"
                   style={{ letterSpacing: 0.8 }}
                 >
                   Pairing code

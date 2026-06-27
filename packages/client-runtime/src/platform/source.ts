@@ -8,4 +8,4 @@ export class PlatformConnectionSource extends Context.Service<
   {
     readonly registrations: Stream.Stream<PrimaryConnectionRegistration>;
   }
->()("@t3tools/client-runtime/platform/source/PlatformConnectionSource") {}
+>()("@pathwayos/client-runtime/platform/source/PlatformConnectionSource") {}
