@@ -25,7 +25,10 @@ import {
 import { projectScriptCwd, projectScriptRuntimeEnv } from "@pathwayos/shared/projectScripts";
 import { nextTerminalId } from "@pathwayos/shared/terminalLabels";
 import { useAtomValue } from "@effect/atom-react";
+import { useNavigate } from "@tanstack/react-router";
 import {
+  type FormEvent,
+  type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -90,7 +93,7 @@ import {
 } from "../state/server";
 import { terminalEnvironment } from "../state/terminal";
 import { useAtomCommand } from "../state/use-atom-command";
-import type { ThreadTerminalGroup } from "../types";
+import { DEFAULT_INTERACTION_MODE, type ThreadTerminalGroup } from "../types";
 import { ProviderModelPicker } from "./chat/ProviderModelPicker";
 import { getComposerProviderState } from "./chat/composerProviderState";
 import { shouldRenderTraitsControls, TraitsPicker } from "./chat/TraitsPicker";
@@ -119,6 +122,8 @@ import { useResizableWidth } from "../hooks/useResizableWidth";
 import { cn } from "../lib/utils";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { RightPanelResizeHandle } from "./preview/RightPanelResizeHandle";
+import { buildDraftThreadRouteParams } from "../threadRoutes";
+import { markDraftForAutoSubmit } from "../lib/draftAutoSubmit";
 
 const pendingConnectionCards = [
   {
@@ -679,9 +684,13 @@ function PendingComposerAddContextMenu({
 
 function PendingComposerWorkspaceControls({
   selectedComposerMode,
+  draftId,
+  threadId,
   onWorkspaceSelectionChange,
 }: {
   selectedComposerMode: PendingComposerMode | null;
+  draftId: DraftId;
+  threadId: ThreadId;
   onWorkspaceSelectionChange?: (selection: PendingWorkspaceSelection) => void;
 }) {
   const projects = useProjects();
@@ -693,10 +702,6 @@ function PendingComposerWorkspaceControls({
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [envMode, setEnvMode] = useState<EnvMode>("local");
   const [startFromOrigin, setStartFromOrigin] = useState(false);
-  const [{ draftId, threadId }] = useState<PendingDraftIds>(() => ({
-    draftId: newDraftId(),
-    threadId: newThreadId(),
-  }));
   const setLogicalProjectDraftThreadId = useComposerDraftStore(
     (store) => store.setLogicalProjectDraftThreadId,
   );
@@ -1144,7 +1149,9 @@ function PendingRightToolsPanel({ open }: { open: boolean }) {
   const resizeHandlers = useMemo(
     () => ({
       onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-        setResizing(true);
+        if (event.button === 0) {
+          setResizing(true);
+        }
         handlers.onPointerDown(event);
       },
       onPointerMove: handlers.onPointerMove,
@@ -1159,6 +1166,20 @@ function PendingRightToolsPanel({ open }: { open: boolean }) {
     }),
     [handlers],
   );
+  useEffect(() => {
+    if (!resizing || typeof window === "undefined") {
+      return;
+    }
+    const stopResizing = () => setResizing(false);
+    window.addEventListener("pointerup", stopResizing);
+    window.addEventListener("pointercancel", stopResizing);
+    window.addEventListener("blur", stopResizing);
+    return () => {
+      window.removeEventListener("pointerup", stopResizing);
+      window.removeEventListener("pointercancel", stopResizing);
+      window.removeEventListener("blur", stopResizing);
+    };
+  }, [resizing]);
   const tools = [
     {
       label: "Browser",
@@ -1240,16 +1261,30 @@ function PendingRightToolsPanel({ open }: { open: boolean }) {
 }
 
 export function NoActiveThreadState() {
+  const navigate = useNavigate();
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [selectedComposerMode, setSelectedComposerMode] = useState<PendingComposerMode | null>(
     null,
   );
+  const [prompt, setPrompt] = useState("");
+  const [{ draftId, threadId }] = useState<PendingDraftIds>(() => ({
+    draftId: newDraftId(),
+    threadId: newThreadId(),
+  }));
   const [workspaceSelection, setWorkspaceSelection] = useState<PendingWorkspaceSelection>({
     project: null,
   });
   const [pendingTerminalThreadId, setPendingTerminalThreadId] = useState(() => newThreadId());
   const [connectionCardsVisible, setConnectionCardsVisible] = useState(true);
+  const projects = useProjects();
+  const defaultProject = projects[0] ?? null;
+  const setComposerPrompt = useComposerDraftStore((store) => store.setPrompt);
+  const setLogicalProjectDraftThreadId = useComposerDraftStore(
+    (store) => store.setLogicalProjectDraftThreadId,
+  );
+  const canStartDraft =
+    prompt.trim().length > 0 && (workspaceSelection.project !== null || defaultProject !== null);
   const handleWorkspaceSelectionChange = useCallback((selection: PendingWorkspaceSelection) => {
     setWorkspaceSelection((current) => {
       const currentKey = current.project
@@ -1264,6 +1299,59 @@ export function NoActiveThreadState() {
       return selection;
     });
   }, []);
+  const submitPendingComposer = useCallback(
+    (event?: FormEvent<HTMLFormElement>) => {
+      event?.preventDefault();
+      if (!canStartDraft) {
+        return;
+      }
+      const targetProject = workspaceSelection.project ?? defaultProject;
+      if (!targetProject) {
+        return;
+      }
+      const targetProjectRef = scopeProjectRef(targetProject.environmentId, targetProject.id);
+      setLogicalProjectDraftThreadId(
+        scopedProjectKey(targetProjectRef),
+        targetProjectRef,
+        draftId,
+        {
+          threadId,
+          runtimeMode: DEFAULT_RUNTIME_MODE,
+          interactionMode: selectedComposerMode === "plan" ? "plan" : DEFAULT_INTERACTION_MODE,
+          envMode: "local",
+          startFromOrigin: false,
+        },
+      );
+      setComposerPrompt(draftId, prompt);
+      markDraftForAutoSubmit(draftId);
+      void navigate({
+        to: "/draft/$draftId",
+        params: buildDraftThreadRouteParams(draftId),
+      });
+    },
+    [
+      canStartDraft,
+      defaultProject,
+      draftId,
+      navigate,
+      prompt,
+      selectedComposerMode,
+      setComposerPrompt,
+      setLogicalProjectDraftThreadId,
+      threadId,
+      workspaceSelection.project,
+    ],
+  );
+  const onPromptKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      submitPendingComposer();
+    },
+    [submitPendingComposer],
+  );
 
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground">
@@ -1286,11 +1374,19 @@ export function NoActiveThreadState() {
               </EmptyDescription>
             </EmptyHeader>
 
-            <div className="mt-11 rounded-[22px] bg-muted/58 pb-2 shadow-[0_18px_45px_hsl(var(--foreground)/0.08)]">
+            <form
+              className="mt-11 rounded-[22px] bg-muted/58 pb-2 shadow-[0_18px_45px_hsl(var(--foreground)/0.08)]"
+              onSubmit={submitPendingComposer}
+            >
               <div className="rounded-[18px] border border-border/70 bg-background shadow-[0_12px_32px_hsl(var(--foreground)/0.12)]">
-                <div className="min-h-18 rounded-t-[18px] px-4 pt-4 text-left text-sm text-muted-foreground/42">
-                  Do anything
-                </div>
+                <textarea
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.currentTarget.value)}
+                  onKeyDown={onPromptKeyDown}
+                  placeholder="Do anything"
+                  rows={1}
+                  className="block min-h-18 w-full resize-none rounded-t-[18px] bg-transparent px-4 pt-4 text-left text-sm text-foreground outline-none placeholder:text-muted-foreground/42"
+                />
                 <div className="flex items-center gap-2 px-3 pb-2.5">
                   <PendingComposerAddContextMenu
                     selectedMode={selectedComposerMode}
@@ -1320,8 +1416,14 @@ export function NoActiveThreadState() {
                       <MicIcon className="size-4" />
                     </button>
                     <button
-                      type="button"
-                      className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/70 text-background shadow-sm transition-colors hover:bg-foreground"
+                      type="submit"
+                      disabled={!canStartDraft}
+                      className={cn(
+                        "flex size-8 items-center justify-center rounded-full transition-all duration-150",
+                        canStartDraft
+                          ? "cursor-pointer bg-foreground text-background shadow-md shadow-foreground/20 ring-2 ring-ring/25 hover:scale-105 hover:bg-foreground/90"
+                          : "cursor-not-allowed bg-muted-foreground/35 text-background/80 opacity-60",
+                      )}
                       aria-label="Send message"
                     >
                       <ArrowUpIcon className="size-4" />
@@ -1333,10 +1435,12 @@ export function NoActiveThreadState() {
               <div className="flex min-w-0 items-center gap-4 px-4 pt-1.5 text-sm text-muted-foreground">
                 <PendingComposerWorkspaceControls
                   selectedComposerMode={selectedComposerMode}
+                  draftId={draftId}
+                  threadId={threadId}
                   onWorkspaceSelectionChange={handleWorkspaceSelectionChange}
                 />
               </div>
-            </div>
+            </form>
 
             {connectionCardsVisible ? (
               <div className="group/connection-cards relative mx-auto mt-8 max-w-[41.5rem]">

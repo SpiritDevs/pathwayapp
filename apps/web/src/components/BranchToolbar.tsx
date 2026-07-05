@@ -13,6 +13,7 @@ import { memo, useMemo } from "react";
 import { useComposerDraftStore, type DraftId } from "../composerDraftStore";
 import { useProject, useThread } from "../state/entities";
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { cn } from "../lib/utils";
 import {
   type EnvMode,
   type EnvironmentOption,
@@ -41,6 +42,7 @@ interface BranchToolbarProps {
   environmentId: EnvironmentId;
   threadId: ThreadId;
   draftId?: DraftId;
+  presentation?: "default" | "new-thread-composer";
   onEnvModeChange: (mode: EnvMode) => void;
   effectiveEnvModeOverride?: EnvMode;
   activeThreadBranchOverride?: string | null;
@@ -194,6 +196,7 @@ export const BranchToolbar = memo(function BranchToolbar({
   environmentId,
   threadId,
   draftId,
+  presentation = "default",
   onEnvModeChange,
   effectiveEnvModeOverride,
   activeThreadBranchOverride,
@@ -239,7 +242,13 @@ export const BranchToolbar = memo(function BranchToolbar({
   if (!hasActiveThread || !activeProject) return null;
 
   return (
-    <div className="mx-auto flex w-full max-w-208 items-center gap-2 px-2.5 pb-3 pt-1 sm:px-3">
+    <div
+      className={cn(
+        "mx-auto flex w-full max-w-208 items-center gap-2 px-2.5 pb-3 pt-1 sm:px-3",
+        presentation === "new-thread-composer" &&
+          "rounded-b-[22px] bg-muted/58 px-4 pb-2.5 pt-1.5 text-sm shadow-[0_18px_45px_hsl(var(--foreground)/0.08)]",
+      )}
+    >
       {isMobile ? (
         <MobileRunContextSelector
           envLocked={envLocked}

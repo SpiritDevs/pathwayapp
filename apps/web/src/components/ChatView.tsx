@@ -176,6 +176,7 @@ import {
   formatElementContextLabel,
 } from "../lib/elementContext";
 import { appendPreviewAnnotationPrompt } from "../lib/previewAnnotation";
+import { consumeDraftAutoSubmit } from "../lib/draftAutoSubmit";
 import { appendReviewCommentsToPrompt, type ReviewCommentContext } from "../reviewCommentContext";
 import { environmentCatalog } from "../connection/catalog";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
@@ -1244,6 +1245,11 @@ function ChatViewContent(props: ChatViewProps) {
   const interactionMode =
     composerInteractionMode ?? activeThread?.interactionMode ?? DEFAULT_INTERACTION_MODE;
   const isLocalDraftThread = !isServerThread && localDraftThread !== undefined;
+  const useNewThreadComposerShell =
+    routeKind === "draft" &&
+    isLocalDraftThread &&
+    !isServerThread &&
+    (activeThread?.messages.length ?? 0) === 0;
   const canCheckoutPullRequestIntoThread = isLocalDraftThread;
   const activeThreadId = activeThread?.id ?? null;
   const runningTerminalIds = useThreadRunningTerminalIds({
@@ -4010,6 +4016,23 @@ function ChatViewContent(props: ChatViewProps) {
     }
   };
 
+  useEffect(() => {
+    if (routeKind !== "draft" || !draftId) {
+      return;
+    }
+    if (!consumeDraftAutoSubmit(draftId)) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      void onSend({
+        preventDefault: () => undefined,
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [draftId, onSend, routeKind]);
+
   const onInterrupt = async () => {
     if (!activeThread) return;
     const result = await interruptThreadTurn({
@@ -4982,7 +5005,8 @@ function ChatViewContent(props: ChatViewProps) {
               </div>
               <div
                 className={cn(
-                  "chat-composer-horizontal-inset chat-composer-lower-chrome relative z-10",
+                  "chat-composer-horizontal-inset relative z-10",
+                  !useNewThreadComposerShell && "chat-composer-lower-chrome",
                   isGitRepo
                     ? "pb-[calc(env(safe-area-inset-bottom)+0.25rem)]"
                     : "pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-[calc(env(safe-area-inset-bottom)+1rem)]",
@@ -4993,6 +5017,9 @@ function ChatViewContent(props: ChatViewProps) {
                     <BranchToolbar
                       environmentId={activeThread.environmentId}
                       threadId={activeThread.id}
+                      {...(useNewThreadComposerShell
+                        ? { presentation: "new-thread-composer" as const }
+                        : {})}
                       {...(routeKind === "draft" && draftId ? { draftId } : {})}
                       onEnvModeChange={onEnvModeChange}
                       startFromOrigin={startFromOrigin}

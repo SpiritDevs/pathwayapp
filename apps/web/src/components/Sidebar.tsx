@@ -2872,6 +2872,7 @@ interface SidebarProjectsContentProps {
   handleProjectDragStart: (event: DragStartEvent) => void;
   handleProjectDragEnd: (event: DragEndEvent) => void;
   handleProjectDragCancel: (event: DragCancelEvent) => void;
+  onCreateNewChat: () => void;
   handleNewThread: ReturnType<typeof useNewThreadHandler>;
   archiveThread: ReturnType<typeof useThreadActions>["archiveThread"];
   deleteThread: ReturnType<typeof useThreadActions>["deleteThread"];
@@ -2879,6 +2880,7 @@ interface SidebarProjectsContentProps {
   expandedThreadListsByProject: ReadonlySet<string>;
   activeRouteProjectKey: string | null;
   routeThreadKey: string | null;
+  newChatShortcutLabel: string | null;
   newThreadShortcutLabel: string | null;
   commandPaletteShortcutLabel: string | null;
   threadJumpLabelByKey: ReadonlyMap<string, string>;
@@ -2913,6 +2915,7 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
     handleProjectDragStart,
     handleProjectDragEnd,
     handleProjectDragCancel,
+    onCreateNewChat,
     handleNewThread,
     archiveThread,
     deleteThread,
@@ -2920,6 +2923,7 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
     expandedThreadListsByProject,
     activeRouteProjectKey,
     routeThreadKey,
+    newChatShortcutLabel,
     newThreadShortcutLabel,
     commandPaletteShortcutLabel,
     threadJumpLabelByKey,
@@ -2961,7 +2965,23 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
   return (
     <SidebarContent className="gap-0">
       <SidebarGroup className="px-2 pt-2 pb-1">
-        <SidebarMenu>
+        <SidebarMenu className="gap-1.5">
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="sm"
+              className="gap-2 px-2 py-1.5 text-foreground hover:bg-accent focus-visible:ring-0"
+              data-testid="new-chat-sidebar-button"
+              onClick={onCreateNewChat}
+            >
+              <SquarePenIcon className="size-3.5 text-muted-foreground/80" />
+              <span className="flex-1 truncate text-left text-xs font-medium">New Chat</span>
+              {newChatShortcutLabel ? (
+                <Kbd className="h-4 min-w-0 rounded-sm px-1.5 text-[10px]">
+                  {newChatShortcutLabel}
+                </Kbd>
+              ) : null}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <CommandDialogTrigger
               render={
@@ -3287,6 +3307,13 @@ export default function Sidebar() {
   const newThreadShortcutLabel =
     shortcutLabelForCommand(keybindings, "chat.newLocal", newThreadShortcutLabelOptions) ??
     shortcutLabelForCommand(keybindings, "chat.new", newThreadShortcutLabelOptions);
+
+  const handleCreateNewChat = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    void navigate({ to: "/chat" });
+  }, [isMobile, navigate, setOpenMobile]);
 
   const navigateToThread = useCallback(
     (threadRef: ScopedThreadRef) => {
@@ -3734,6 +3761,7 @@ export default function Sidebar() {
                   handleProjectDragStart={handleProjectDragStart}
                   handleProjectDragEnd={handleProjectDragEnd}
                   handleProjectDragCancel={handleProjectDragCancel}
+                  onCreateNewChat={handleCreateNewChat}
                   handleNewThread={handleNewThread}
                   archiveThread={archiveThread}
                   deleteThread={deleteThread}
@@ -3741,6 +3769,7 @@ export default function Sidebar() {
                   expandedThreadListsByProject={expandedThreadListsByProject}
                   activeRouteProjectKey={activeRouteProjectKey}
                   routeThreadKey={routeThreadKey}
+                  newChatShortcutLabel={null}
                   newThreadShortcutLabel={newThreadShortcutLabel}
                   commandPaletteShortcutLabel={commandPaletteShortcutLabel}
                   threadJumpLabelByKey={visibleThreadJumpLabelByKey}
