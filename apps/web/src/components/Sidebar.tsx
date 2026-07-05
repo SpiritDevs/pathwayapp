@@ -1,14 +1,23 @@
 import {
   ArchiveIcon,
+  ArrowLeftIcon,
   ArrowUpDownIcon,
+  BriefcaseBusinessIcon,
+  ChartNoAxesCombinedIcon,
   ChevronRightIcon,
   CloudIcon,
   FolderPlusIcon,
+  FolderKanbanIcon,
   Globe2Icon,
+  HomeIcon,
+  ListTodoIcon,
+  MessageSquareIcon,
   SearchIcon,
   SquarePenIcon,
   TerminalIcon,
+  TimerIcon,
   TriangleAlertIcon,
+  type LucideIcon,
 } from "lucide-react";
 import {
   ChangeRequestStatusIcon,
@@ -60,7 +69,14 @@ import {
   settlePromise,
   squashAtomCommandFailure,
 } from "@pathwayos/client-runtime/state/runtime";
-import { Link, useLocation, useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import {
+  Link,
+  useCanGoBack,
+  useLocation,
+  useNavigate,
+  useParams,
+  useRouter,
+} from "@tanstack/react-router";
 import {
   MAX_SIDEBAR_THREAD_PREVIEW_COUNT,
   MIN_SIDEBAR_THREAD_PREVIEW_COUNT,
@@ -108,6 +124,7 @@ import { useNewThreadHandler } from "../hooks/useHandleNewThread";
 import { useDesktopUpdateState } from "../state/desktopUpdate";
 
 import { useThreadActions } from "../hooks/useThreadActions";
+import { isChatSurfacePathname, shouldShowSecondarySidebar } from "../appNavRoutes";
 import { projectEnvironment } from "../state/projects";
 import { useEnvironmentQuery } from "../state/query";
 import { threadEnvironment, useEnvironmentThread } from "../state/threads";
@@ -172,7 +189,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from "./ui/sidebar";
@@ -203,6 +219,7 @@ import { useIsMobile } from "~/hooks/useMediaQuery";
 import { CommandDialogTrigger } from "./ui/command";
 import { useClientSettings, useUpdateClientSettings } from "~/hooks/useSettings";
 import { primaryServerConfigAtom, primaryServerKeybindingsAtom } from "../state/server";
+import { markAppNavRouteSidebarMotionInstant } from "../appNavSidebarMotion";
 import {
   derivePhysicalProjectKey,
   deriveProjectGroupingOverrideKey,
@@ -238,6 +255,51 @@ const PROJECT_GROUPING_MODE_LABELS: Record<SidebarProjectGroupingMode, string> =
 };
 const SIDEBAR_ICON_ACTION_BUTTON_CLASS =
   "inline-flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-md px-[calc(--spacing(1)-1px)] text-muted-foreground/60 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring";
+
+const APP_NAV_ITEMS: readonly {
+  readonly title: string;
+  readonly icon: LucideIcon;
+  readonly to?: "/" | "/chat" | "/issues" | "/projects" | "/clients" | "/tracker" | "/analytics";
+  readonly isActive?: (pathname: string) => boolean;
+}[] = [
+  { title: "Home", icon: HomeIcon, to: "/", isActive: (pathname) => pathname === "/" },
+  {
+    title: "Chat",
+    icon: MessageSquareIcon,
+    to: "/chat",
+    isActive: isChatSurfacePathname,
+  },
+  {
+    title: "Issues",
+    icon: ListTodoIcon,
+    to: "/issues",
+    isActive: (pathname) => pathname === "/issues",
+  },
+  {
+    title: "Projects",
+    icon: FolderKanbanIcon,
+    to: "/projects",
+    isActive: (pathname) => pathname === "/projects",
+  },
+  {
+    title: "Clients",
+    icon: BriefcaseBusinessIcon,
+    to: "/clients",
+    isActive: (pathname) => pathname === "/clients",
+  },
+  {
+    title: "Tracker",
+    icon: TimerIcon,
+    to: "/tracker",
+    isActive: (pathname) => pathname === "/tracker",
+  },
+  {
+    title: "Analytics",
+    icon: ChartNoAxesCombinedIcon,
+    to: "/analytics",
+    isActive: (pathname) => pathname === "/analytics",
+  },
+];
 
 function SidebarThreadDetailPrewarmer({ threadRef }: { readonly threadRef: ScopedThreadRef }) {
   useEnvironmentThread(threadRef.environmentId, threadRef.threadId);
@@ -2661,6 +2723,94 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
   );
 });
 
+const SidebarAppNavRail = memo(function SidebarAppNavRail({ pathname }: { pathname: string }) {
+  const navigate = useNavigate();
+  const isSettingsRoute = pathname.startsWith("/settings");
+
+  return (
+    <nav
+      aria-label="Primary navigation"
+      className="flex w-[var(--app-nav-rail-width)] shrink-0 flex-col border-sidebar-border/70 border-r bg-sidebar px-[2px] py-2 text-sidebar-foreground"
+    >
+      <div className="flex min-h-0 flex-1 flex-col items-stretch gap-1 py-1">
+        {APP_NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.isActive?.(pathname) ?? false;
+          const button = (
+            <button
+              key={item.title}
+              type="button"
+              aria-label={item.title}
+              aria-current={isActive ? "page" : undefined}
+              className={`flex min-h-12 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[10px] font-medium leading-none outline-hidden ring-ring transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:ring-2 ${
+                isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground/70"
+              }`}
+              onClick={() => {
+                if (item.to) {
+                  markAppNavRouteSidebarMotionInstant();
+                  void navigate({ to: item.to });
+                }
+              }}
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="max-w-full truncate">{item.title}</span>
+            </button>
+          );
+
+          return (
+            <Tooltip key={item.title}>
+              <TooltipTrigger render={button} />
+              <TooltipPopup hidden side="right">
+                {item.title}
+              </TooltipPopup>
+            </Tooltip>
+          );
+        })}
+      </div>
+      <div className="mt-auto flex justify-center pb-2">
+        {isSettingsRoute ? (
+          <SidebarAppNavBackButton />
+        ) : (
+          <PathwayOSMainSidebarAccount variant="rail" />
+        )}
+      </div>
+    </nav>
+  );
+});
+
+function SidebarAppNavBackButton() {
+  const navigate = useNavigate();
+  const canGoBack = useCanGoBack();
+  const handleBackClick = useCallback(() => {
+    if (canGoBack) {
+      window.history.back();
+      return;
+    }
+    void navigate({ to: "/" });
+  }, [canGoBack, navigate]);
+
+  const button = (
+    <button
+      type="button"
+      aria-label="Back"
+      className="flex min-h-12 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[10px] font-medium leading-none text-muted-foreground/70 outline-hidden ring-ring transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:ring-2"
+      onClick={handleBackClick}
+    >
+      <ArrowLeftIcon className="size-4 shrink-0" />
+      <span className="max-w-full truncate">Back</span>
+    </button>
+  );
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={button} />
+      <TooltipPopup hidden side="right">
+        Back
+      </TooltipPopup>
+    </Tooltip>
+  );
+}
+
 function SidebarBrand() {
   const stageLabel = useSidebarStageLabel();
 
@@ -2692,10 +2842,9 @@ function useSidebarStageLabel() {
 
 const SidebarChromeFooter = memo(function SidebarChromeFooter() {
   return (
-    <SidebarFooter className="sticky bottom-0 z-10 gap-2 border-sidebar-border/70 border-t bg-sidebar/86 p-2 backdrop-blur-md supports-[not_((backdrop-filter:blur(1px)))]:bg-sidebar">
+    <SidebarFooter className="sticky bottom-0 z-10 gap-2 bg-sidebar/86 p-2 backdrop-blur-md supports-[not_((backdrop-filter:blur(1px)))]:bg-sidebar">
       <SidebarProviderUpdatePill />
       <SidebarUpdatePill />
-      <PathwayOSMainSidebarAccount />
     </SidebarFooter>
   );
 });
@@ -2979,6 +3128,8 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (loc) => loc.pathname });
   const isOnSettings = pathname.startsWith("/settings");
+  const showSecondarySidebar = shouldShowSecondarySidebar(pathname);
+  const showChatSidebar = isChatSurfacePathname(pathname);
   const sidebarThreadSortOrder = useClientSettings((s) => s.sidebarThreadSortOrder);
   const sidebarProjectSortOrder = useClientSettings((s) => s.sidebarProjectSortOrder);
   const sidebarProjectGroupingMode = useClientSettings((s) => s.sidebarProjectGroupingMode);
@@ -3550,54 +3701,60 @@ export default function Sidebar() {
       {prewarmedSidebarThreadRefs.map((threadRef) => (
         <SidebarThreadDetailPrewarmer key={scopedThreadKey(threadRef)} threadRef={threadRef} />
       ))}
-      <SidebarChromeHeader isElectron={isElectron} />
+      <div className="flex min-h-0 flex-1">
+        <SidebarAppNavRail pathname={pathname} />
+        {showSecondarySidebar ? (
+          <div className="flex min-w-0 flex-1 flex-col group-data-[state=collapsed]:hidden">
+            {showChatSidebar ? <SidebarChromeHeader isElectron={isElectron} /> : null}
 
-      {isOnSettings ? (
-        <SettingsSidebarNav pathname={pathname} />
-      ) : (
-        <>
-          <SidebarProjectsContent
-            showArm64IntelBuildWarning={showArm64IntelBuildWarning}
-            arm64IntelBuildWarningDescription={arm64IntelBuildWarningDescription}
-            desktopUpdateButtonAction={desktopUpdateButtonAction}
-            desktopUpdateButtonDisabled={desktopUpdateButtonDisabled}
-            handleDesktopUpdateButtonClick={handleDesktopUpdateButtonClick}
-            projectSortOrder={sidebarProjectSortOrder}
-            threadSortOrder={sidebarThreadSortOrder}
-            projectGroupingMode={sidebarProjectGroupingMode}
-            threadPreviewCount={sidebarThreadPreviewCount}
-            updateSettings={updateSettings}
-            openAddProject={openAddProjectCommandPalette}
-            isManualProjectSorting={isManualProjectSorting}
-            projectDnDSensors={projectDnDSensors}
-            projectCollisionDetection={projectCollisionDetection}
-            handleProjectDragStart={handleProjectDragStart}
-            handleProjectDragEnd={handleProjectDragEnd}
-            handleProjectDragCancel={handleProjectDragCancel}
-            handleNewThread={handleNewThread}
-            archiveThread={archiveThread}
-            deleteThread={deleteThread}
-            sortedProjects={sortedProjects}
-            expandedThreadListsByProject={expandedThreadListsByProject}
-            activeRouteProjectKey={activeRouteProjectKey}
-            routeThreadKey={routeThreadKey}
-            newThreadShortcutLabel={newThreadShortcutLabel}
-            commandPaletteShortcutLabel={commandPaletteShortcutLabel}
-            threadJumpLabelByKey={visibleThreadJumpLabelByKey}
-            attachThreadListAutoAnimateRef={attachThreadListAutoAnimateRef}
-            expandThreadListForProject={expandThreadListForProject}
-            collapseThreadListForProject={collapseThreadListForProject}
-            dragInProgressRef={dragInProgressRef}
-            suppressProjectClickAfterDragRef={suppressProjectClickAfterDragRef}
-            suppressProjectClickForContextMenuRef={suppressProjectClickForContextMenuRef}
-            attachProjectListAutoAnimateRef={attachProjectListAutoAnimateRef}
-            projectsLength={projects.length}
-          />
+            {isOnSettings ? (
+              <SettingsSidebarNav pathname={pathname} />
+            ) : (
+              <>
+                <SidebarProjectsContent
+                  showArm64IntelBuildWarning={showArm64IntelBuildWarning}
+                  arm64IntelBuildWarningDescription={arm64IntelBuildWarningDescription}
+                  desktopUpdateButtonAction={desktopUpdateButtonAction}
+                  desktopUpdateButtonDisabled={desktopUpdateButtonDisabled}
+                  handleDesktopUpdateButtonClick={handleDesktopUpdateButtonClick}
+                  projectSortOrder={sidebarProjectSortOrder}
+                  threadSortOrder={sidebarThreadSortOrder}
+                  projectGroupingMode={sidebarProjectGroupingMode}
+                  threadPreviewCount={sidebarThreadPreviewCount}
+                  updateSettings={updateSettings}
+                  openAddProject={openAddProjectCommandPalette}
+                  isManualProjectSorting={isManualProjectSorting}
+                  projectDnDSensors={projectDnDSensors}
+                  projectCollisionDetection={projectCollisionDetection}
+                  handleProjectDragStart={handleProjectDragStart}
+                  handleProjectDragEnd={handleProjectDragEnd}
+                  handleProjectDragCancel={handleProjectDragCancel}
+                  handleNewThread={handleNewThread}
+                  archiveThread={archiveThread}
+                  deleteThread={deleteThread}
+                  sortedProjects={sortedProjects}
+                  expandedThreadListsByProject={expandedThreadListsByProject}
+                  activeRouteProjectKey={activeRouteProjectKey}
+                  routeThreadKey={routeThreadKey}
+                  newThreadShortcutLabel={newThreadShortcutLabel}
+                  commandPaletteShortcutLabel={commandPaletteShortcutLabel}
+                  threadJumpLabelByKey={visibleThreadJumpLabelByKey}
+                  attachThreadListAutoAnimateRef={attachThreadListAutoAnimateRef}
+                  expandThreadListForProject={expandThreadListForProject}
+                  collapseThreadListForProject={collapseThreadListForProject}
+                  dragInProgressRef={dragInProgressRef}
+                  suppressProjectClickAfterDragRef={suppressProjectClickAfterDragRef}
+                  suppressProjectClickForContextMenuRef={suppressProjectClickForContextMenuRef}
+                  attachProjectListAutoAnimateRef={attachProjectListAutoAnimateRef}
+                  projectsLength={projects.length}
+                />
 
-          <SidebarSeparator />
-          <SidebarChromeFooter />
-        </>
-      )}
+                <SidebarChromeFooter />
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }

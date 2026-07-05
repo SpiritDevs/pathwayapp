@@ -1,7 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useEffect, type CSSProperties, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 
+import { shouldShowSecondarySidebar } from "../appNavRoutes";
 import { isElectron } from "../env";
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import { isMacPlatform } from "../lib/utils";
@@ -11,16 +12,24 @@ import { Sidebar, SidebarProvider, SidebarRail, SidebarTrigger, useSidebar } fro
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 const THREAD_SIDEBAR_WIDTH_STORAGE_KEY = "chat_thread_sidebar_width";
-const THREAD_SIDEBAR_MIN_WIDTH = 13 * 16;
+const THREAD_SIDEBAR_MIN_WIDTH = 20 * 16;
 const THREAD_MAIN_CONTENT_MIN_WIDTH = 40 * 16;
 const MACOS_TRAFFIC_LIGHTS_LEFT_INSET = "90px";
+const THREAD_SIDEBAR_DEFAULT_WIDTH = "20.5rem";
+const THREAD_SIDEBAR_APP_NAV_RAIL_WIDTH = "62px";
 
 function SidebarControl() {
+  const pathname = useLocation({ select: (location) => location.pathname });
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const { toggleSidebar } = useSidebar();
   const shortcutLabel = shortcutLabelForCommand(keybindings, "sidebar.toggle");
+  const showSecondarySidebar = shouldShowSecondarySidebar(pathname);
 
   useEffect(() => {
+    if (!showSecondarySidebar) {
+      return;
+    }
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (resolveShortcutCommand(event, keybindings) !== "sidebar.toggle") return;
@@ -32,11 +41,15 @@ function SidebarControl() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [keybindings, toggleSidebar]);
+  }, [keybindings, showSecondarySidebar, toggleSidebar]);
+
+  if (!showSecondarySidebar) {
+    return null;
+  }
 
   return (
     <div
-      className="pointer-events-none fixed left-[var(--workspace-controls-left)] top-[var(--workspace-controls-top)] z-50 flex h-[var(--workspace-topbar-height)] items-center"
+      className="pointer-events-none fixed left-[calc(var(--app-nav-rail-width)+0.25rem)] top-[var(--workspace-controls-top)] z-50 flex h-[var(--workspace-topbar-height)] items-center"
       data-sidebar-control=""
     >
       <Tooltip>
@@ -55,10 +68,21 @@ function SidebarControl() {
 
 export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const sidebarWidth = shouldShowSecondarySidebar(pathname)
+    ? THREAD_SIDEBAR_DEFAULT_WIDTH
+    : THREAD_SIDEBAR_APP_NAV_RAIL_WIDTH;
   const macosWindowControlsStyle =
     isElectron && isMacPlatform(navigator.platform)
-      ? ({ "--workspace-controls-left": MACOS_TRAFFIC_LIGHTS_LEFT_INSET } as CSSProperties)
-      : undefined;
+      ? ({
+          "--workspace-controls-left": MACOS_TRAFFIC_LIGHTS_LEFT_INSET,
+          "--sidebar-width": sidebarWidth,
+          "--app-nav-rail-width": THREAD_SIDEBAR_APP_NAV_RAIL_WIDTH,
+        } as CSSProperties)
+      : ({
+          "--sidebar-width": sidebarWidth,
+          "--app-nav-rail-width": THREAD_SIDEBAR_APP_NAV_RAIL_WIDTH,
+        } as CSSProperties);
 
   useEffect(() => {
     const onMenuAction = window.desktopBridge?.onMenuAction;
@@ -81,7 +105,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
     <SidebarProvider className="h-dvh! min-h-0!" defaultOpen style={macosWindowControlsStyle}>
       <Sidebar
         side="left"
-        collapsible="offcanvas"
+        collapsible="icon"
         className="border-r border-border bg-card text-foreground"
         resizable={{
           minWidth: THREAD_SIDEBAR_MIN_WIDTH,

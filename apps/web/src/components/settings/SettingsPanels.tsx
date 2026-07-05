@@ -1,4 +1,13 @@
-import { ArchiveIcon, ArchiveX, LoaderIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArchiveX,
+  LoaderIcon,
+  MonitorIcon,
+  MoonIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SunIcon,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
@@ -39,6 +48,7 @@ import { buildHostedChannelSelectionUrl, type HostedAppChannel } from "../../hos
 import { useTheme } from "../../hooks/useTheme";
 import { usePrimarySettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
 import { useThreadActions } from "../../hooks/useThreadActions";
+import { cn } from "../../lib/utils";
 import { useDesktopUpdateState } from "../../state/desktopUpdate";
 import {
   getCustomModelOptionsByInstance,
@@ -64,7 +74,7 @@ import { DraftInput } from "../ui/draft-input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { stackedThreadToast, toastManager } from "../ui/toast";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { AddProviderInstanceDialog } from "./AddProviderInstanceDialog";
 import {
   canOneClickUpdateProviderCandidate,
@@ -93,14 +103,20 @@ const THEME_OPTIONS = [
   {
     value: "system",
     label: "System",
+    icon: MonitorIcon,
+    tooltip: "Use your browser or operating system appearance.",
   },
   {
     value: "light",
     label: "Light",
+    icon: SunIcon,
+    tooltip: "Always use the light appearance.",
   },
   {
     value: "dark",
     label: "Dark",
+    icon: MoonIcon,
+    tooltip: "Always use the dark appearance.",
   },
 ] as const;
 
@@ -111,6 +127,59 @@ const TIMESTAMP_FORMAT_LABELS = {
 } as const;
 
 const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
+const DEFAULT_PROVIDER_DRIVER_KINDS = new Set<ProviderDriverKind>([
+  ProviderDriverKind.make("codex"),
+  ProviderDriverKind.make("claudeAgent"),
+]);
+type ThemePreferenceValue = (typeof THEME_OPTIONS)[number]["value"];
+
+function ThemeSegmentedControl({
+  value,
+  onChange,
+}: {
+  value: ThemePreferenceValue;
+  onChange: (value: ThemePreferenceValue) => void;
+}) {
+  return (
+    <TooltipProvider delay={0}>
+      <div
+        aria-label="Theme preference"
+        className="inline-flex h-8 rounded-lg border border-input bg-muted p-0.5 shadow-xs/5"
+        role="radiogroup"
+      >
+        {THEME_OPTIONS.map((option) => {
+          const selected = value === option.value;
+          const Icon = option.icon;
+
+          return (
+            <Tooltip key={option.value}>
+              <TooltipTrigger
+                render={
+                  <button
+                    aria-checked={selected}
+                    aria-label={option.label}
+                    className={cn(
+                      "relative inline-flex size-7 cursor-pointer select-none items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                      selected
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                    )}
+                    onClick={() => onChange(option.value)}
+                    role="radio"
+                    type="button"
+                  >
+                    <Icon className="size-4" />
+                  </button>
+                }
+              />
+              <TooltipPopup side="top">{option.tooltip}</TooltipPopup>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
+  );
+}
 
 function withoutProviderInstanceKey<V>(
   record: Readonly<Record<ProviderInstanceId, V>> | undefined,
@@ -128,7 +197,9 @@ function withoutProviderInstanceFavorites(
   return favorites.filter((favorite) => favorite.provider !== instanceId);
 }
 
-const PROVIDER_SETTINGS = DRIVER_OPTIONS.map((definition) => ({
+const PROVIDER_SETTINGS = DRIVER_OPTIONS.filter((definition) =>
+  DEFAULT_PROVIDER_DRIVER_KINDS.has(definition.value),
+).map((definition) => ({
   provider: definition.value,
 }));
 
@@ -524,29 +595,7 @@ export function GeneralSettingsPanel() {
               <SettingResetButton label="theme" onClick={() => setTheme("system")} />
             ) : null
           }
-          control={
-            <Select
-              value={theme}
-              onValueChange={(value) => {
-                if (value === "system" || value === "light" || value === "dark") {
-                  setTheme(value);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-40" aria-label="Theme preference">
-                <SelectValue>
-                  {THEME_OPTIONS.find((option) => option.value === theme)?.label ?? "System"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectPopup align="end" alignItemWithTrigger={false}>
-                {THEME_OPTIONS.map((option) => (
-                  <SelectItem hideIndicator key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          }
+          control={<ThemeSegmentedControl value={theme} onChange={(value) => setTheme(value)} />}
         />
 
         <SettingsRow

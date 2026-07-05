@@ -9,24 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrackerRouteImport } from './routes/tracker'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PairRouteImport } from './routes/pair'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as IssuesRouteImport } from './routes/issues'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as ChatRouteImport } from './routes/_chat'
-import { Route as ChatIndexRouteImport } from './routes/_chat.index'
+import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as WorkspaceChatRouteImport } from './routes/_workspace-chat'
+import { Route as WorkspaceChatIndexRouteImport } from './routes/_workspace-chat.index'
 import { Route as SettingsSourceControlRouteImport } from './routes/settings.source-control'
 import { Route as SettingsProvidersRouteImport } from './routes/settings.providers'
+import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
 import { Route as SettingsKeybindingsRouteImport } from './routes/settings.keybindings'
 import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
 import { Route as SettingsDiagnosticsRouteImport } from './routes/settings.diagnostics'
 import { Route as SettingsConnectionsRouteImport } from './routes/settings.connections'
 import { Route as SettingsArchivedRouteImport } from './routes/settings.archived'
 import { Route as SessionTasksResetPasswordRouteImport } from './routes/session-tasks.reset-password'
-import { Route as ChatDraftDraftIdRouteImport } from './routes/_chat.draft.$draftId'
-import { Route as ChatEnvironmentIdThreadIdRouteImport } from './routes/_chat.$environmentId.$threadId'
+import { Route as WorkspaceChatDraftDraftIdRouteImport } from './routes/_workspace-chat.draft.$draftId'
+import { Route as WorkspaceChatEnvironmentIdThreadIdRouteImport } from './routes/_workspace-chat.$environmentId.$threadId'
 
+const TrackerRoute = TrackerRouteImport.update({
+  id: '/tracker',
+  path: '/tracker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -35,6 +47,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PairRoute = PairRouteImport.update({
@@ -47,19 +64,39 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IssuesRoute = IssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/_chat',
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatIndexRoute = ChatIndexRouteImport.update({
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceChatRoute = WorkspaceChatRouteImport.update({
+  id: '/_workspace-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceChatIndexRoute = WorkspaceChatIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ChatRoute,
+  getParentRoute: () => WorkspaceChatRoute,
 } as any)
 const SettingsSourceControlRoute = SettingsSourceControlRouteImport.update({
   id: '/source-control',
@@ -69,6 +106,11 @@ const SettingsSourceControlRoute = SettingsSourceControlRouteImport.update({
 const SettingsProvidersRoute = SettingsProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsKeybindingsRoute = SettingsKeybindingsRouteImport.update({
@@ -102,106 +144,142 @@ const SessionTasksResetPasswordRoute =
     path: '/session-tasks/reset-password',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ChatDraftDraftIdRoute = ChatDraftDraftIdRouteImport.update({
-  id: '/draft/$draftId',
-  path: '/draft/$draftId',
-  getParentRoute: () => ChatRoute,
-} as any)
-const ChatEnvironmentIdThreadIdRoute =
-  ChatEnvironmentIdThreadIdRouteImport.update({
+const WorkspaceChatDraftDraftIdRoute =
+  WorkspaceChatDraftDraftIdRouteImport.update({
+    id: '/draft/$draftId',
+    path: '/draft/$draftId',
+    getParentRoute: () => WorkspaceChatRoute,
+  } as any)
+const WorkspaceChatEnvironmentIdThreadIdRoute =
+  WorkspaceChatEnvironmentIdThreadIdRouteImport.update({
     id: '/$environmentId/$threadId',
     path: '/$environmentId/$threadId',
-    getParentRoute: () => ChatRoute,
+    getParentRoute: () => WorkspaceChatRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ChatIndexRoute
+  '/': typeof WorkspaceChatIndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/chat': typeof ChatRoute
+  '/clients': typeof ClientsRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/pair': typeof PairRoute
+  '/projects': typeof ProjectsRoute
   '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/tracker': typeof TrackerRoute
   '/session-tasks/reset-password': typeof SessionTasksResetPasswordRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/diagnostics': typeof SettingsDiagnosticsRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/settings/keybindings': typeof SettingsKeybindingsRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/settings/providers': typeof SettingsProvidersRoute
   '/settings/source-control': typeof SettingsSourceControlRoute
-  '/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
-  '/draft/$draftId': typeof ChatDraftDraftIdRoute
+  '/$environmentId/$threadId': typeof WorkspaceChatEnvironmentIdThreadIdRoute
+  '/draft/$draftId': typeof WorkspaceChatDraftDraftIdRoute
 }
 export interface FileRoutesByTo {
+  '/analytics': typeof AnalyticsRoute
+  '/chat': typeof ChatRoute
+  '/clients': typeof ClientsRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/pair': typeof PairRoute
+  '/projects': typeof ProjectsRoute
   '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/tracker': typeof TrackerRoute
   '/session-tasks/reset-password': typeof SessionTasksResetPasswordRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/diagnostics': typeof SettingsDiagnosticsRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/settings/keybindings': typeof SettingsKeybindingsRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/settings/providers': typeof SettingsProvidersRoute
   '/settings/source-control': typeof SettingsSourceControlRoute
-  '/': typeof ChatIndexRoute
-  '/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
-  '/draft/$draftId': typeof ChatDraftDraftIdRoute
+  '/': typeof WorkspaceChatIndexRoute
+  '/$environmentId/$threadId': typeof WorkspaceChatEnvironmentIdThreadIdRoute
+  '/draft/$draftId': typeof WorkspaceChatDraftDraftIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_chat': typeof ChatRouteWithChildren
+  '/_workspace-chat': typeof WorkspaceChatRouteWithChildren
+  '/analytics': typeof AnalyticsRoute
+  '/chat': typeof ChatRoute
+  '/clients': typeof ClientsRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/issues': typeof IssuesRoute
   '/login': typeof LoginRoute
   '/pair': typeof PairRoute
+  '/projects': typeof ProjectsRoute
   '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/tracker': typeof TrackerRoute
   '/session-tasks/reset-password': typeof SessionTasksResetPasswordRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/diagnostics': typeof SettingsDiagnosticsRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/settings/keybindings': typeof SettingsKeybindingsRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/settings/providers': typeof SettingsProvidersRoute
   '/settings/source-control': typeof SettingsSourceControlRoute
-  '/_chat/': typeof ChatIndexRoute
-  '/_chat/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
-  '/_chat/draft/$draftId': typeof ChatDraftDraftIdRoute
+  '/_workspace-chat/': typeof WorkspaceChatIndexRoute
+  '/_workspace-chat/$environmentId/$threadId': typeof WorkspaceChatEnvironmentIdThreadIdRoute
+  '/_workspace-chat/draft/$draftId': typeof WorkspaceChatDraftDraftIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analytics'
+    | '/chat'
+    | '/clients'
     | '/forgot-password'
+    | '/issues'
     | '/login'
     | '/pair'
+    | '/projects'
     | '/register'
     | '/settings'
+    | '/tracker'
     | '/session-tasks/reset-password'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/diagnostics'
     | '/settings/general'
     | '/settings/keybindings'
+    | '/settings/profile'
     | '/settings/providers'
     | '/settings/source-control'
     | '/$environmentId/$threadId'
     | '/draft/$draftId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/analytics'
+    | '/chat'
+    | '/clients'
     | '/forgot-password'
+    | '/issues'
     | '/login'
     | '/pair'
+    | '/projects'
     | '/register'
     | '/settings'
+    | '/tracker'
     | '/session-tasks/reset-password'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/diagnostics'
     | '/settings/general'
     | '/settings/keybindings'
+    | '/settings/profile'
     | '/settings/providers'
     | '/settings/source-control'
     | '/'
@@ -209,37 +287,57 @@ export interface FileRouteTypes {
     | '/draft/$draftId'
   id:
     | '__root__'
-    | '/_chat'
+    | '/_workspace-chat'
+    | '/analytics'
+    | '/chat'
+    | '/clients'
     | '/forgot-password'
+    | '/issues'
     | '/login'
     | '/pair'
+    | '/projects'
     | '/register'
     | '/settings'
+    | '/tracker'
     | '/session-tasks/reset-password'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/diagnostics'
     | '/settings/general'
     | '/settings/keybindings'
+    | '/settings/profile'
     | '/settings/providers'
     | '/settings/source-control'
-    | '/_chat/'
-    | '/_chat/$environmentId/$threadId'
-    | '/_chat/draft/$draftId'
+    | '/_workspace-chat/'
+    | '/_workspace-chat/$environmentId/$threadId'
+    | '/_workspace-chat/draft/$draftId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ChatRoute: typeof ChatRouteWithChildren
+  WorkspaceChatRoute: typeof WorkspaceChatRouteWithChildren
+  AnalyticsRoute: typeof AnalyticsRoute
+  ChatRoute: typeof ChatRoute
+  ClientsRoute: typeof ClientsRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  IssuesRoute: typeof IssuesRoute
   LoginRoute: typeof LoginRoute
   PairRoute: typeof PairRoute
+  ProjectsRoute: typeof ProjectsRoute
   RegisterRoute: typeof RegisterRoute
   SettingsRoute: typeof SettingsRouteWithChildren
+  TrackerRoute: typeof TrackerRoute
   SessionTasksResetPasswordRoute: typeof SessionTasksResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tracker': {
+      id: '/tracker'
+      path: '/tracker'
+      fullPath: '/tracker'
+      preLoaderRoute: typeof TrackerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -252,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pair': {
@@ -268,6 +373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/issues': {
+      id: '/issues'
+      path: '/issues'
+      fullPath: '/issues'
+      preLoaderRoute: typeof IssuesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
@@ -275,19 +387,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_chat': {
-      id: '/_chat'
-      path: ''
-      fullPath: '/'
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
       preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_chat/': {
-      id: '/_chat/'
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace-chat': {
+      id: '/_workspace-chat'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof WorkspaceChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace-chat/': {
+      id: '/_workspace-chat/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof ChatIndexRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof WorkspaceChatIndexRouteImport
+      parentRoute: typeof WorkspaceChatRoute
     }
     '/settings/source-control': {
       id: '/settings/source-control'
@@ -301,6 +434,13 @@ declare module '@tanstack/react-router' {
       path: '/providers'
       fullPath: '/settings/providers'
       preLoaderRoute: typeof SettingsProvidersRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/keybindings': {
@@ -345,36 +485,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionTasksResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_chat/draft/$draftId': {
-      id: '/_chat/draft/$draftId'
+    '/_workspace-chat/draft/$draftId': {
+      id: '/_workspace-chat/draft/$draftId'
       path: '/draft/$draftId'
       fullPath: '/draft/$draftId'
-      preLoaderRoute: typeof ChatDraftDraftIdRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof WorkspaceChatDraftDraftIdRouteImport
+      parentRoute: typeof WorkspaceChatRoute
     }
-    '/_chat/$environmentId/$threadId': {
-      id: '/_chat/$environmentId/$threadId'
+    '/_workspace-chat/$environmentId/$threadId': {
+      id: '/_workspace-chat/$environmentId/$threadId'
       path: '/$environmentId/$threadId'
       fullPath: '/$environmentId/$threadId'
-      preLoaderRoute: typeof ChatEnvironmentIdThreadIdRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof WorkspaceChatEnvironmentIdThreadIdRouteImport
+      parentRoute: typeof WorkspaceChatRoute
     }
   }
 }
 
-interface ChatRouteChildren {
-  ChatIndexRoute: typeof ChatIndexRoute
-  ChatEnvironmentIdThreadIdRoute: typeof ChatEnvironmentIdThreadIdRoute
-  ChatDraftDraftIdRoute: typeof ChatDraftDraftIdRoute
+interface WorkspaceChatRouteChildren {
+  WorkspaceChatIndexRoute: typeof WorkspaceChatIndexRoute
+  WorkspaceChatEnvironmentIdThreadIdRoute: typeof WorkspaceChatEnvironmentIdThreadIdRoute
+  WorkspaceChatDraftDraftIdRoute: typeof WorkspaceChatDraftDraftIdRoute
 }
 
-const ChatRouteChildren: ChatRouteChildren = {
-  ChatIndexRoute: ChatIndexRoute,
-  ChatEnvironmentIdThreadIdRoute: ChatEnvironmentIdThreadIdRoute,
-  ChatDraftDraftIdRoute: ChatDraftDraftIdRoute,
+const WorkspaceChatRouteChildren: WorkspaceChatRouteChildren = {
+  WorkspaceChatIndexRoute: WorkspaceChatIndexRoute,
+  WorkspaceChatEnvironmentIdThreadIdRoute:
+    WorkspaceChatEnvironmentIdThreadIdRoute,
+  WorkspaceChatDraftDraftIdRoute: WorkspaceChatDraftDraftIdRoute,
 }
 
-const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
+const WorkspaceChatRouteWithChildren = WorkspaceChatRoute._addFileChildren(
+  WorkspaceChatRouteChildren,
+)
 
 interface SettingsRouteChildren {
   SettingsArchivedRoute: typeof SettingsArchivedRoute
@@ -382,6 +525,7 @@ interface SettingsRouteChildren {
   SettingsDiagnosticsRoute: typeof SettingsDiagnosticsRoute
   SettingsGeneralRoute: typeof SettingsGeneralRoute
   SettingsKeybindingsRoute: typeof SettingsKeybindingsRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsProvidersRoute: typeof SettingsProvidersRoute
   SettingsSourceControlRoute: typeof SettingsSourceControlRoute
 }
@@ -392,6 +536,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsDiagnosticsRoute: SettingsDiagnosticsRoute,
   SettingsGeneralRoute: SettingsGeneralRoute,
   SettingsKeybindingsRoute: SettingsKeybindingsRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   SettingsProvidersRoute: SettingsProvidersRoute,
   SettingsSourceControlRoute: SettingsSourceControlRoute,
 }
@@ -401,12 +546,18 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  ChatRoute: ChatRouteWithChildren,
+  WorkspaceChatRoute: WorkspaceChatRouteWithChildren,
+  AnalyticsRoute: AnalyticsRoute,
+  ChatRoute: ChatRoute,
+  ClientsRoute: ClientsRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  IssuesRoute: IssuesRoute,
   LoginRoute: LoginRoute,
   PairRoute: PairRoute,
+  ProjectsRoute: ProjectsRoute,
   RegisterRoute: RegisterRoute,
   SettingsRoute: SettingsRouteWithChildren,
+  TrackerRoute: TrackerRoute,
   SessionTasksResetPasswordRoute: SessionTasksResetPasswordRoute,
 }
 export const routeTree = rootRouteImport

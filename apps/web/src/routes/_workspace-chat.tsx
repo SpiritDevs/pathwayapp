@@ -157,7 +157,7 @@ function ChatRouteLayout() {
   );
 }
 
-export const Route = createFileRoute("/_chat")({
+export const Route = createFileRoute("/_workspace-chat")({
   beforeLoad: async ({ context }) => {
     if (
       context.authGateState.status !== "authenticated" &&

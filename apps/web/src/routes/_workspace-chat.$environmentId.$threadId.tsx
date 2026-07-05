@@ -46,7 +46,7 @@ function ChatThreadRouteView() {
     }
 
     if (!routeThreadExists && environmentHasAnyThreads) {
-      void navigate({ to: "/", replace: true });
+      void navigate({ to: "/chat", replace: true });
     }
   }, [bootstrapComplete, environmentHasAnyThreads, navigate, routeThreadExists, threadRef]);
 
@@ -72,6 +72,6 @@ function ChatThreadRouteView() {
   );
 }
 
-export const Route = createFileRoute("/_chat/$environmentId/$threadId")({
+export const Route = createFileRoute("/_workspace-chat/$environmentId/$threadId")({
   component: ChatThreadRouteView,
 });

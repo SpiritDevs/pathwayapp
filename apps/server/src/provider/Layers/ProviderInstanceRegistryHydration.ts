@@ -13,7 +13,7 @@
  *      yet to an explicit `providerInstances` entry.
  *
  * This module bridges (2) into (1) and wires the resulting map into a
- * mutable registry. For every built-in driver whose id is not already
+ * mutable registry. For every default provider driver whose id is not already
  * present in `providerInstances` (keyed on
  * `defaultInstanceIdForDriver(driverKind)` — literally the driver kind as a
  * routing slug), we synthesize an envelope from the legacy field. The
@@ -52,7 +52,11 @@ import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
 
 import { ServerSettingsService } from "../../serverSettings.ts";
-import { BUILT_IN_DRIVERS, type BuiltInDriversEnv } from "../builtInDrivers.ts";
+import {
+  BUILT_IN_DRIVERS,
+  DEFAULT_PROVIDER_INSTANCE_DRIVERS,
+  type BuiltInDriversEnv,
+} from "../builtInDrivers.ts";
 import { ProviderInstanceRegistry } from "../Services/ProviderInstanceRegistry.ts";
 import { ProviderInstanceRegistryMutator } from "../Services/ProviderInstanceRegistryMutator.ts";
 import { ProviderInstanceRegistryMutableLayer } from "./ProviderInstanceRegistryLive.ts";
@@ -62,7 +66,7 @@ import { ProviderInstanceRegistryMutableLayer } from "./ProviderInstanceRegistry
  *
  * Strategy:
  *   1. Copy all explicit `settings.providerInstances` entries verbatim.
- *   2. For each built-in driver whose `defaultInstanceIdForDriver(id)` key
+ *   2. For each default provider driver whose `defaultInstanceIdForDriver(id)` key
  *      is *not* already in the explicit map, synthesize an entry from the
  *      matching legacy `settings.providers.<kind>` blob.
  *
@@ -75,7 +79,7 @@ export const deriveProviderInstanceConfigMap = (
 ): ProviderInstanceConfigMap => {
   const merged: Record<string, ProviderInstanceConfig> = { ...settings.providerInstances };
 
-  for (const driver of BUILT_IN_DRIVERS) {
+  for (const driver of DEFAULT_PROVIDER_INSTANCE_DRIVERS) {
     const instanceId = defaultInstanceIdForDriver(driver.driverKind);
     if (instanceId in merged) {
       // Explicit `providerInstances` entry for this slot — user-authored

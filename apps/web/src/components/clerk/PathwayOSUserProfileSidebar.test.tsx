@@ -74,4 +74,25 @@ describe("PathwayOS sidebar account", () => {
     expect(html).toContain("Open account menu for corey@example.com");
     expect(html).toContain("Open account profile");
   });
+
+  it("renders the signed-in account as a compact rail trigger", () => {
+    const html = renderSidebarAccount(
+      <PathwayOSSignedInSidebarAccount
+        account={{
+          email: "corey@example.com",
+          imageUrl: null,
+          initial: "C",
+          planLabel: FREE_PLAN_LABEL,
+        }}
+        onOpenAccountProfile={vi.fn()}
+        onOpenProfile={vi.fn()}
+        onOpenSettings={vi.fn()}
+        onSignOut={vi.fn()}
+        variant="rail"
+      />,
+    );
+
+    expect(html).toContain("Open account menu for corey@example.com");
+    expect(html).toContain("size-11");
+  });
 });

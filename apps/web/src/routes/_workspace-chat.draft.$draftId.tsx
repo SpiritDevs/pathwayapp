@@ -51,7 +51,7 @@ function DraftChatThreadRouteView() {
     if (draftSession || canonicalThreadRef) {
       return;
     }
-    void navigate({ to: "/", replace: true });
+    void navigate({ to: "/chat", replace: true });
   }, [canonicalThreadRef, draftSession, navigate]);
 
   if (canonicalThreadRef) {
@@ -82,6 +82,6 @@ function DraftChatThreadRouteView() {
   );
 }
 
-export const Route = createFileRoute("/_chat/draft/$draftId")({
+export const Route = createFileRoute("/_workspace-chat/draft/$draftId")({
   component: DraftChatThreadRouteView,
 });

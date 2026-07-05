@@ -2,7 +2,7 @@
 
 /**
  * Typed window-event bus for preview-panel actions. Lets the global
- * keybinding handler in `routes/_chat.tsx` reach `ChatView`'s URL-aware
+ * keybinding handler in `routes/_workspace-chat.tsx` reach `ChatView`'s URL-aware
  * arbitration without prop drilling or shared refs.
  */
 export type PreviewAction =

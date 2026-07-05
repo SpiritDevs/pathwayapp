@@ -51,3 +51,12 @@ export const BUILT_IN_DRIVERS: ReadonlyArray<AnyProviderDriver<BuiltInDriversEnv
   GrokDriver,
   OpenCodeDriver,
 ];
+
+/**
+ * Drivers that should appear as built-in default instances for a fresh user.
+ * The remaining built-in drivers are still available when the user adds an
+ * explicit `providerInstances.*` entry.
+ */
+export const DEFAULT_PROVIDER_INSTANCE_DRIVERS: ReadonlyArray<
+  AnyProviderDriver<BuiltInDriversEnv>
+> = [CodexDriver, ClaudeDriver];

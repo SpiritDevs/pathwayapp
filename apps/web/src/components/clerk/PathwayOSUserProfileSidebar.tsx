@@ -1,4 +1,4 @@
-import { UserButton, useAuth, useClerk, useUser } from "@clerk/react";
+import { useAuth, useClerk, useUser } from "@clerk/react";
 import type { ServerProvider } from "@pathwayos/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -41,7 +41,6 @@ import { Collapsible, CollapsiblePanel } from "../ui/collapsible";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuShortcut, MenuTrigger } from "../ui/menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
-import { MobileClientsUserProfilePage } from "./MobileClientsUserProfilePage";
 
 export interface PathwayOSAccountView {
   readonly email: string;
@@ -117,35 +116,6 @@ export function resolvePathwayOSAccountView(user: ClerkUserLike | null | undefin
   } satisfies PathwayOSAccountView;
 }
 
-function PathwayOSUserButton({ avatarClassName }: { readonly avatarClassName?: string }) {
-  return (
-    <UserButton
-      appearance={{
-        elements: {
-          avatarBox: cn("size-8", avatarClassName),
-          userButtonTrigger:
-            "rounded-lg p-1 hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        },
-      }}
-    >
-      <UserButton.MenuItems>
-        <UserButton.Link
-          href="/settings"
-          label="Settings"
-          labelIcon={<SettingsIcon className="size-4" />}
-        />
-      </UserButton.MenuItems>
-      <UserButton.UserProfilePage
-        label="Mobile clients"
-        labelIcon={<SmartphoneIcon className="size-4" />}
-        url="mobile-clients"
-      >
-        <MobileClientsUserProfilePage />
-      </UserButton.UserProfilePage>
-    </UserButton>
-  );
-}
-
 export function PathwayOSCloudUnavailableSidebarAccount({
   onOpenSettings,
 }: {
@@ -185,10 +155,25 @@ export function PathwayOSCloudUnavailableSidebarAccount({
 export function PathwayOSSignedOutSidebarAccount({
   onOpenSettings,
   onSignIn,
+  variant = "sidebar",
 }: {
   readonly onOpenSettings: () => void;
   readonly onSignIn: () => void;
+  readonly variant?: "sidebar" | "rail";
 }) {
+  if (variant === "rail") {
+    return (
+      <button
+        aria-label="Sign in to pathwayOS"
+        className="flex size-11 cursor-pointer items-center justify-center rounded-lg text-muted-foreground/70 outline-none ring-ring transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:ring-2"
+        type="button"
+        onClick={onSignIn}
+      >
+        <LogInIcon className="size-4" aria-hidden="true" />
+      </button>
+    );
+  }
+
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1">
       <SidebarMenu className="min-w-0">
@@ -228,6 +213,7 @@ export function PathwayOSSignedInSidebarAccount({
   onRefreshUsage,
   onSignOut,
   profileControl,
+  variant = "sidebar",
   usageRemaining,
 }: {
   readonly account: PathwayOSAccountView;
@@ -238,6 +224,7 @@ export function PathwayOSSignedInSidebarAccount({
   readonly onRefreshUsage?: () => void;
   readonly onSignOut: () => void;
   readonly profileControl?: ReactNode;
+  readonly variant?: "sidebar" | "rail";
   readonly usageRemaining?: PathwayOSUsageRemainingView;
 }) {
   const [isUsageExpanded, setIsUsageExpanded] = useState(false);
@@ -254,40 +241,91 @@ export function PathwayOSSignedInSidebarAccount({
       ? `${Math.round(contextWindow.usedPercentage)}%`
       : null;
   const usageButtonLabel = hasEnabledProvider ? "Usage remaining" : "Enable provider to view usage";
+  const isRailVariant = variant === "rail";
+  const menuTrigger = isRailVariant ? (
+    <button
+      aria-label={`Open account menu for ${account.email}`}
+      className="group/account flex size-11 cursor-pointer items-center justify-center rounded-lg outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 data-popup-open:bg-accent"
+      type="button"
+    />
+  ) : (
+    <button
+      aria-label={`Open account menu for ${account.email}`}
+      className="group/account grid min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-2 text-left outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 data-popup-open:bg-accent"
+      type="button"
+    />
+  );
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-1">
+    <div
+      className={
+        isRailVariant
+          ? "flex w-full justify-center"
+          : "grid grid-cols-[minmax(0,1fr)_auto] items-stretch gap-1"
+      }
+    >
       <Menu>
-        <MenuTrigger
-          render={
-            <button
-              aria-label={`Open account menu for ${account.email}`}
-              className="group/account grid min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-2 text-left outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 data-popup-open:bg-accent"
-              type="button"
+        <MenuTrigger render={menuTrigger}>
+          {isRailVariant ? (
+            <PathwayOSAccountAvatar
+              account={account}
+              avatarClassName="size-8"
+              profileControl={profileControl}
             />
-          }
-        >
-          <PathwayOSAccountAvatar account={account} profileControl={profileControl} />
-          <div className="min-w-0">
-            <span className="block truncate text-[13px] font-medium text-foreground">
-              {account.email}
-            </span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {account.planLabel}
-            </span>
-          </div>
+          ) : (
+            <>
+              <PathwayOSAccountAvatar account={account} profileControl={profileControl} />
+              <div className="min-w-0">
+                <span className="block truncate text-[13px] font-medium text-foreground">
+                  {account.email}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {account.planLabel}
+                </span>
+              </div>
+            </>
+          )}
         </MenuTrigger>
         <MenuPopup align="start" side="top" sideOffset={8} className="w-64">
-          <div className="px-2 py-1.5">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <PathwayOSAccountAvatar account={account} avatarClassName="size-5 text-[11px]" />
-              <span className="min-w-0 truncate">{account.email}</span>
+          {isRailVariant ? (
+            <div className="flex items-center gap-2 p-1">
+              <button
+                aria-label={`Open account profile for ${account.email}`}
+                className="grid min-w-0 flex-1 cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-2 text-left outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2"
+                type="button"
+                onClick={onOpenProfile}
+              >
+                <PathwayOSAccountAvatar account={account} profileControl={profileControl} />
+                <div className="min-w-0">
+                  <span className="block truncate text-[13px] font-medium text-foreground">
+                    {account.email}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {account.planLabel}
+                  </span>
+                </div>
+              </button>
+              <button
+                aria-label="Open account profile"
+                className="flex h-12 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground/65 outline-none ring-ring transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:ring-2"
+                type="button"
+                onClick={onOpenAccountProfile}
+              >
+                <SmartphoneIcon className="size-4" aria-hidden="true" />
+              </button>
             </div>
-            <div className="mt-2 flex items-center gap-2 text-muted-foreground text-sm">
-              <SettingsIcon className="size-4 shrink-0 opacity-80" aria-hidden="true" />
-              <span>{account.planLabel} account</span>
+          ) : (
+            <div className="px-2 py-1.5">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <PathwayOSAccountAvatar account={account} avatarClassName="size-5 text-[11px]" />
+                <span className="min-w-0 truncate">{account.email}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-muted-foreground text-sm">
+                <SettingsIcon className="size-4 shrink-0 opacity-80" aria-hidden="true" />
+                <span>{account.planLabel} account</span>
+              </div>
             </div>
-          </div>
+          )}
           <MenuSeparator />
           <MenuItem className="cursor-pointer" onClick={onOpenProfile}>
             <CircleUserRoundIcon />
@@ -459,14 +497,16 @@ export function PathwayOSSignedInSidebarAccount({
           </MenuItem>
         </MenuPopup>
       </Menu>
-      <button
-        aria-label="Open account profile"
-        className="flex w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground/65 outline-none ring-ring transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:ring-2"
-        type="button"
-        onClick={onOpenAccountProfile}
-      >
-        <SmartphoneIcon className="size-4" aria-hidden="true" />
-      </button>
+      {!isRailVariant ? (
+        <button
+          aria-label="Open account profile"
+          className="flex w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground/65 outline-none ring-ring transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:ring-2"
+          type="button"
+          onClick={onOpenAccountProfile}
+        >
+          <SmartphoneIcon className="size-4" aria-hidden="true" />
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -524,7 +564,11 @@ export function PathwayOSSidebarAccountSkeleton() {
   );
 }
 
-export function PathwayOSMainSidebarAccount() {
+export function PathwayOSMainSidebarAccount({
+  variant = "sidebar",
+}: {
+  readonly variant?: "sidebar" | "rail";
+}) {
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const closeMobileSidebar = useCallback(() => {
@@ -534,7 +578,7 @@ export function PathwayOSMainSidebarAccount() {
   }, [isMobile, setOpenMobile]);
   const openSettings = useCallback(() => {
     closeMobileSidebar();
-    void navigate({ to: "/settings" });
+    void navigate({ to: "/settings/general" });
   }, [closeMobileSidebar, navigate]);
   const openProviders = useCallback(() => {
     closeMobileSidebar();
@@ -546,6 +590,19 @@ export function PathwayOSMainSidebarAccount() {
   }, [closeMobileSidebar, navigate]);
 
   if (!hasClerkPublicConfig()) {
+    if (variant === "rail") {
+      return (
+        <button
+          aria-label="Open settings"
+          className="flex size-11 cursor-pointer items-center justify-center rounded-lg text-muted-foreground/70 outline-none ring-ring transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:ring-2"
+          type="button"
+          onClick={openSettings}
+        >
+          <SettingsIcon className="size-4" aria-hidden="true" />
+        </button>
+      );
+    }
+
     return <PathwayOSCloudUnavailableSidebarAccount onOpenSettings={openSettings} />;
   }
 
@@ -554,6 +611,7 @@ export function PathwayOSMainSidebarAccount() {
       onOpenProviders={openProviders}
       onOpenSettings={openSettings}
       onSignIn={signIn}
+      variant={variant}
     />
   );
 }
@@ -562,14 +620,18 @@ function ConfiguredPathwayOSMainSidebarAccount({
   onOpenProviders,
   onOpenSettings,
   onSignIn,
+  variant,
 }: {
   readonly onOpenProviders: () => void;
   readonly onOpenSettings: () => void;
   readonly onSignIn: () => void;
+  readonly variant: "sidebar" | "rail";
 }) {
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user } = useUser();
   const clerk = useClerk();
+  const navigate = useNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
   const primaryEnvironment = usePrimaryEnvironment();
   const settings = usePrimarySettings();
   const serverProviders = useAtomValue(primaryServerProvidersAtom);
@@ -621,18 +683,31 @@ function ConfiguredPathwayOSMainSidebarAccount({
     });
   }, [isRefreshingUsage, primaryEnvironment, refreshServerProviders, routeThreadRef]);
   const openProfile = useCallback(() => {
-    clerk.openUserProfile();
-  }, [clerk]);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    void navigate({ to: "/settings/profile" });
+  }, [isMobile, navigate, setOpenMobile]);
   const signOut = useCallback(() => {
     void clerk.signOut();
   }, [clerk]);
 
   if (!isLoaded) {
+    if (variant === "rail") {
+      return <Skeleton className="size-8 rounded-full" />;
+    }
+
     return <PathwayOSSidebarAccountSkeleton />;
   }
 
   if (!isSignedIn || !user) {
-    return <PathwayOSSignedOutSidebarAccount onOpenSettings={onOpenSettings} onSignIn={onSignIn} />;
+    return (
+      <PathwayOSSignedOutSidebarAccount
+        onOpenSettings={onOpenSettings}
+        onSignIn={onSignIn}
+        variant={variant}
+      />
+    );
   }
 
   return (
@@ -645,6 +720,7 @@ function ConfiguredPathwayOSMainSidebarAccount({
       onRefreshUsage={refreshUsage}
       onSignOut={signOut}
       usageRemaining={usageRemaining}
+      variant={variant}
     />
   );
 }
@@ -693,8 +769,26 @@ export function PathwayOSConnectSidebarAvatar() {
 
 function ConfiguredPathwayOSConnectSidebarAvatar() {
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
 
-  if (!isLoaded || !isSignedIn) return null;
+  const openProfile = useCallback(() => {
+    void navigate({ to: "/settings/profile" });
+  }, [navigate]);
 
-  return <PathwayOSUserButton avatarClassName="size-7" />;
+  if (!isLoaded || !isSignedIn || !user) return null;
+
+  return (
+    <button
+      aria-label="Open profile settings"
+      className="flex size-9 cursor-pointer items-center justify-center rounded-lg outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2"
+      type="button"
+      onClick={openProfile}
+    >
+      <PathwayOSAccountAvatar
+        account={resolvePathwayOSAccountView(user)}
+        avatarClassName="size-7"
+      />
+    </button>
+  );
 }
