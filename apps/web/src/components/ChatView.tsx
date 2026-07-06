@@ -1265,11 +1265,6 @@ function ChatViewContent(props: ChatViewProps) {
   const interactionMode =
     composerInteractionMode ?? activeThread?.interactionMode ?? DEFAULT_INTERACTION_MODE;
   const isLocalDraftThread = !isServerThread && localDraftThread !== undefined;
-  const useNewThreadComposerShell =
-    routeKind === "draft" &&
-    isLocalDraftThread &&
-    !isServerThread &&
-    (activeThread?.messages.length ?? 0) === 0;
   const canCheckoutPullRequestIntoThread = isLocalDraftThread;
   const activeThreadId = activeThread?.id ?? null;
   const runningTerminalIds = useThreadRunningTerminalIds({
@@ -1822,6 +1817,10 @@ function ChatViewContent(props: ChatViewProps) {
     latestTurnSettled &&
     hasActionableProposedPlan(activeProposedPlan);
   const activePendingApproval = pendingApprovals[0] ?? null;
+  const useComposerShell =
+    activePendingApproval === null &&
+    pendingUserInputs.length === 0 &&
+    !(showPlanFollowUpPrompt && activeProposedPlan);
   const {
     beginLocalDispatch,
     resetLocalDispatch,
@@ -2176,6 +2175,7 @@ function ChatViewContent(props: ChatViewProps) {
     terminalUiLaunchContext?.threadId === activeThreadId ? terminalUiLaunchContext : null;
   // Default true while loading to avoid toolbar flicker.
   const isGitRepo = gitStatusQuery.data?.isRepo ?? true;
+  const showComposerBranchToolbar = isGitRepo && (activeThread?.messages.length ?? 0) === 0;
   const terminalShortcutLabelOptions = useMemo(
     () => ({
       context: {
@@ -5073,20 +5073,18 @@ function ChatViewContent(props: ChatViewProps) {
               <div
                 className={cn(
                   "chat-composer-horizontal-inset relative z-10",
-                  !useNewThreadComposerShell && "chat-composer-lower-chrome",
-                  isGitRepo
+                  !useComposerShell && "chat-composer-lower-chrome",
+                  showComposerBranchToolbar
                     ? "pb-[calc(env(safe-area-inset-bottom)+0.25rem)]"
                     : "pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-[calc(env(safe-area-inset-bottom)+1rem)]",
                 )}
               >
-                {isGitRepo && (
+                {showComposerBranchToolbar && (
                   <div className="pointer-events-auto">
                     <BranchToolbar
                       environmentId={activeThread.environmentId}
                       threadId={activeThread.id}
-                      {...(useNewThreadComposerShell
-                        ? { presentation: "new-thread-composer" as const }
-                        : {})}
+                      {...(useComposerShell ? { presentation: "composer-shell" as const } : {})}
                       {...(routeKind === "draft" && draftId ? { draftId } : {})}
                       onEnvModeChange={onEnvModeChange}
                       startFromOrigin={startFromOrigin}

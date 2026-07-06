@@ -42,7 +42,7 @@ interface BranchToolbarProps {
   environmentId: EnvironmentId;
   threadId: ThreadId;
   draftId?: DraftId;
-  presentation?: "default" | "new-thread-composer";
+  presentation?: "default" | "composer-shell";
   onEnvModeChange: (mode: EnvMode) => void;
   effectiveEnvModeOverride?: EnvMode;
   activeThreadBranchOverride?: string | null;
@@ -246,7 +246,7 @@ export const BranchToolbar = memo(function BranchToolbar({
     <div
       className={cn(
         "mx-auto flex w-full max-w-208 items-center gap-2 px-2.5 pb-3 pt-1 sm:px-3",
-        presentation === "new-thread-composer" &&
+        presentation === "composer-shell" &&
           "rounded-b-[22px] bg-muted/58 px-4 pb-2.5 pt-1.5 text-sm shadow-[0_18px_45px_hsl(var(--foreground)/0.08)]",
       )}
     >

@@ -3,13 +3,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { AUTH_COMPLETE_ROUTE, SIGN_IN_ROUTE, SIGN_UP_ROUTE } from "~/authRoutes";
-import {
-  AuthComponentFallback,
-  AuthRouteShell,
-  AuthUnavailableState,
-} from "~/components/auth/AuthRouteShell";
+import { AuthRouteShell, AuthUnavailableState } from "~/components/auth/AuthRouteShell";
 import { PathwayOSForgotPasswordForm } from "~/components/auth/PathwayOSAuthForms";
 import { hasClerkPublicConfig } from "~/cloud/publicConfig";
+import { SplashScreen } from "~/components/SplashScreen";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordRouteView,
@@ -33,16 +30,8 @@ function ConfiguredForgotPasswordRoute() {
     }
   }, [isLoaded, isSignedIn, navigate]);
 
-  if (isLoaded && isSignedIn) {
-    return (
-      <AuthRouteShell
-        description="Opening pathwayOS with your active account session."
-        eyebrow="Account recovery"
-        title="Reset your password"
-      >
-        <AuthComponentFallback label="Opening pathwayOS..." />
-      </AuthRouteShell>
-    );
+  if (!isLoaded || isSignedIn) {
+    return <SplashScreen />;
   }
 
   return (

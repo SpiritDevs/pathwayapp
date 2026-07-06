@@ -875,12 +875,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     isComposerApprovalState ||
     pendingUserInputs.length > 0 ||
     (showPlanFollowUpPrompt && activeProposedPlan !== null);
-  const useNewThreadComposerShell =
-    routeKind === "draft" &&
-    _isLocalDraftThread &&
-    !_isServerThread &&
-    (activeThread?.messages.length ?? 0) === 0 &&
-    !hasComposerHeader;
+  const useComposerShell = !hasComposerHeader;
+  const composerShellHasAttachedToolbar =
+    useComposerShell && (activeThread?.messages.length ?? 0) === 0;
   const showCollapsedMobilePromptRow =
     isComposerCollapsedMobile && !isComposerApprovalState && pendingUserInputs.length === 0;
 
@@ -1895,9 +1892,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       onSubmit={submitComposer}
       className="mx-auto w-full min-w-0 max-w-208"
       data-chat-composer-form="true"
-      data-chat-composer-new-thread-shell={useNewThreadComposerShell ? "true" : "false"}
+      data-chat-composer-shell={useComposerShell ? "true" : "false"}
     >
-      {useNewThreadComposerShell ? (
+      {useComposerShell ? (
         <input
           ref={composerImageInputRef}
           className="sr-only"
@@ -1911,7 +1908,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       <div
         className={cn(
           "group rounded-[22px] p-px transition-colors duration-200",
-          useNewThreadComposerShell &&
+          composerShellHasAttachedToolbar &&
             "rounded-b-none bg-muted/58 shadow-[0_18px_45px_hsl(var(--foreground)/0.08)]",
           composerProviderState.composerFrameClassName,
         )}
@@ -1925,7 +1922,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           data-chat-composer-mobile-collapsed={isComposerCollapsedMobile ? "true" : "false"}
           className={cn(
             "chat-composer-glass rounded-[20px] border transition-colors duration-200 has-focus-visible:border-ring/45",
-            useNewThreadComposerShell &&
+            useComposerShell &&
               "rounded-[18px] bg-background shadow-[0_12px_32px_hsl(var(--foreground)/0.12)]",
             isDragOverComposer ? "border-primary/70 bg-accent/45" : "border-border",
             environmentUnavailable ? "opacity-75" : null,
@@ -2101,7 +2098,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             className={cn(
               "relative px-3 pb-2 sm:px-4",
               hasComposerHeader ? "pt-2.5 sm:pt-3" : "pt-3.5 sm:pt-4",
-              useNewThreadComposerShell && "px-4 pb-1 pt-4 sm:px-4 sm:pt-4",
+              useComposerShell && "px-4 pb-1 pt-4 sm:px-4 sm:pt-4",
               isComposerCollapsedMobile && "hidden",
             )}
           >
@@ -2264,7 +2261,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                 }
                 skills={selectedProviderStatus?.skills ?? []}
                 className={cn(
-                  useNewThreadComposerShell && "min-h-18 text-sm sm:text-sm",
+                  useComposerShell && "min-h-18 text-sm sm:text-sm",
                   showMobilePendingAnswerActions && "max-sm:pb-11",
                 )}
                 onRemoveTerminalContext={removeComposerTerminalContextFromDraft}
@@ -2283,7 +2280,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                               environmentUnavailable.connection,
                             )}`
                           : phase === "disconnected"
-                            ? useNewThreadComposerShell
+                            ? useComposerShell
                               ? "Do anything"
                               : "Ask for follow-up changes or attach images"
                             : "Ask anything, @tag files/folders, $use skills, or / for commands"
@@ -2337,11 +2334,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                 "flex min-w-0 flex-nowrap items-center justify-between gap-2 overflow-visible px-2.5 pb-2.5 sm:px-3 sm:pb-3",
                 pendingUserInputs.length > 0 && "pt-2",
                 isComposerFooterCompact ? "gap-1.5" : "gap-2 sm:gap-0",
-                useNewThreadComposerShell && "px-3 pb-2.5 sm:px-3 sm:pb-2.5",
+                useComposerShell && "px-3 pb-2.5 sm:px-3 sm:pb-2.5",
                 showMobilePendingAnswerActions && "hidden sm:flex",
               )}
             >
-              {useNewThreadComposerShell ? (
+              {useComposerShell ? (
                 <>
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <button

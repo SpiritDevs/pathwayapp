@@ -94,6 +94,7 @@ interface GitActionsControlProps {
   gitCwd: string | null;
   activeThreadRef: ScopedThreadRef | null;
   draftId?: DraftId;
+  presentation?: "toolbar" | "list";
 }
 
 interface PendingDefaultBranchAction {
@@ -970,6 +971,7 @@ export default function GitActionsControl({
   gitCwd,
   activeThreadRef,
   draftId,
+  presentation = "toolbar",
 }: GitActionsControlProps) {
   const updateThreadMetadata = useAtomCommand(
     threadEnvironment.updateMetadata,
@@ -1650,6 +1652,7 @@ export default function GitActionsControl({
   );
 
   const canPublishRepository = isRepo && gitStatusForActions !== null && !hasPrimaryRemote;
+  const isListPresentation = presentation === "list";
 
   if (!gitCwd) return null;
 
@@ -1658,7 +1661,8 @@ export default function GitActionsControl({
       {!isRepo ? (
         <Button
           variant="outline"
-          size="xs"
+          size={isListPresentation ? "sm" : "xs"}
+          className={isListPresentation ? "w-full justify-start" : undefined}
           disabled={initAction.isPending}
           onClick={() => {
             void (async () => {
@@ -1684,7 +1688,7 @@ export default function GitActionsControl({
           </span>
         </Button>
       ) : (
-        <Group aria-label="Git actions" className="shrink-0">
+        <Group aria-label="Git actions" className={cn("shrink-0", isListPresentation && "w-full")}>
           {quickActionDisabledReason ? (
             <Popover>
               <PopoverTrigger
@@ -1692,8 +1696,11 @@ export default function GitActionsControl({
                 render={
                   <Button
                     aria-disabled="true"
-                    className="cursor-not-allowed rounded-e-none border-e-0 opacity-64 before:rounded-e-none"
-                    size="xs"
+                    className={cn(
+                      "cursor-not-allowed rounded-e-none border-e-0 opacity-64 before:rounded-e-none",
+                      isListPresentation && "min-w-0 flex-1 justify-start",
+                    )}
+                    size={isListPresentation ? "sm" : "xs"}
                     variant="outline"
                   />
                 }
@@ -1702,7 +1709,12 @@ export default function GitActionsControl({
                   quickAction={quickAction}
                   SourceControlIcon={SourceControlIcon}
                 />
-                <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
+                <span
+                  className={cn(
+                    "sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5",
+                    isListPresentation && "not-sr-only ml-0.5",
+                  )}
+                >
                   {quickAction.label}
                 </span>
               </PopoverTrigger>
@@ -1713,17 +1725,25 @@ export default function GitActionsControl({
           ) : (
             <Button
               variant="outline"
-              size="xs"
+              size={isListPresentation ? "sm" : "xs"}
+              className={isListPresentation ? "min-w-0 flex-1 justify-start" : undefined}
               disabled={isGitActionRunning || quickAction.disabled}
               onClick={runQuickAction}
             >
               <GitQuickActionIcon quickAction={quickAction} SourceControlIcon={SourceControlIcon} />
-              <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
+              <span
+                className={cn(
+                  "sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5",
+                  isListPresentation && "not-sr-only ml-0.5",
+                )}
+              >
                 {quickAction.label}
               </span>
             </Button>
           )}
-          <GroupSeparator className="hidden @3xl/header-actions:block" />
+          <GroupSeparator
+            {...(!isListPresentation ? { className: "hidden @3xl/header-actions:block" } : {})}
+          />
           <Menu
             onOpenChange={(open) => {
               if (open) {
@@ -1732,7 +1752,13 @@ export default function GitActionsControl({
             }}
           >
             <MenuTrigger
-              render={<Button aria-label="Git action options" size="icon-xs" variant="outline" />}
+              render={
+                <Button
+                  aria-label="Git action options"
+                  size={isListPresentation ? "icon-sm" : "icon-xs"}
+                  variant="outline"
+                />
+              }
               disabled={isGitActionRunning}
             >
               <ChevronDownIcon aria-hidden="true" className="size-4" />

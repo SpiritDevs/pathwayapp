@@ -7,12 +7,11 @@ import {
   type VcsStatusResult,
 } from "@pathwayos/contracts";
 import { scopedThreadKey, scopeThreadRef } from "@pathwayos/client-runtime/environment";
-import { memo } from "react";
+import { memo, useRef } from "react";
 import {
   FilesIcon,
   GitBranchIcon,
   GitCommitHorizontalIcon,
-  GitPullRequestIcon,
   GlobeIcon,
   LaptopIcon,
   PlusIcon,
@@ -118,13 +117,34 @@ const EMPTY_RIGHT_PANEL_STATE: ThreadRightPanelState = {
 function EnvironmentOptionsPopover({
   activeThreadEnvironmentId,
   activeThreadId,
+  draftId,
   activeProjectName,
+  activeProjectScripts,
+  preferredScriptId,
+  keybindings,
   gitCwd,
+  popupAnchor,
+  onRunProjectScript,
+  onAddProjectScript,
+  onUpdateProjectScript,
+  onDeleteProjectScript,
 }: {
   activeThreadEnvironmentId: EnvironmentId;
   activeThreadId: ThreadId;
+  draftId?: DraftId;
   activeProjectName: string | undefined;
+  activeProjectScripts: ReadonlyArray<ProjectScript> | undefined;
+  preferredScriptId: string | null;
+  keybindings: ResolvedKeybindingsConfig;
   gitCwd: string | null;
+  popupAnchor: React.RefObject<HTMLElement | null>;
+  onRunProjectScript: (script: ProjectScript) => void;
+  onAddProjectScript: (input: NewProjectScriptInput) => Promise<ProjectScriptActionResult>;
+  onUpdateProjectScript: (
+    scriptId: string,
+    input: NewProjectScriptInput,
+  ) => Promise<ProjectScriptActionResult>;
+  onDeleteProjectScript: (scriptId: string) => Promise<ProjectScriptActionResult>;
 }) {
   const activeThreadRef = scopeThreadRef(activeThreadEnvironmentId, activeThreadId);
   const threadKey = scopedThreadKey(activeThreadRef);
@@ -150,6 +170,7 @@ function EnvironmentOptionsPopover({
     return url ? [url] : [];
   });
   const showFilesRow = fileSurfaces > 0 || changedFiles > 0;
+  const showActionsSection = Boolean(activeProjectScripts || activeProjectName);
 
   return (
     <Popover>
@@ -168,8 +189,9 @@ function EnvironmentOptionsPopover({
         <TooltipPopup side="top">Environment options</TooltipPopup>
       </Tooltip>
       <PopoverPopup
+        anchor={popupAnchor}
         align="end"
-        sideOffset={6}
+        sideOffset={24}
         className="w-[20rem] max-w-[calc(100vw-1rem)] rounded-xl border-border/70 bg-popover/95 p-0 shadow-xl"
         viewportClassName="p-0"
       >
@@ -205,18 +227,41 @@ function EnvironmentOptionsPopover({
                   : "Synced or no upstream"
               }
             />
-            <EnvironmentOptionsRow
-              icon={GitPullRequestIcon}
-              label="Commit or push"
-              detail={
-                gitStatus?.pr?.state === "open"
-                  ? `Open PR #${gitStatus.pr.number}`
-                  : gitStatus?.hasWorkingTreeChanges
-                    ? "Ready for changes"
-                    : "Nothing pending"
-              }
-            />
           </section>
+
+          {showActionsSection ? (
+            <>
+              <div className="h-px bg-border/60" />
+
+              <section className="grid gap-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Actions</h3>
+                  {activeProjectScripts ? (
+                    <ProjectScriptsControl
+                      scripts={activeProjectScripts}
+                      keybindings={keybindings}
+                      preferredScriptId={preferredScriptId}
+                      presentation="compact"
+                      onRunScript={onRunProjectScript}
+                      onAddScript={onAddProjectScript}
+                      onUpdateScript={onUpdateProjectScript}
+                      onDeleteScript={onDeleteProjectScript}
+                    />
+                  ) : null}
+                </div>
+                <div className="grid gap-2">
+                  {activeProjectName ? (
+                    <GitActionsControl
+                      gitCwd={gitCwd}
+                      activeThreadRef={activeThreadRef}
+                      presentation="list"
+                      {...(draftId ? { draftId } : {})}
+                    />
+                  ) : null}
+                </div>
+              </section>
+            </>
+          ) : null}
 
           {showFilesRow ? (
             <>
@@ -277,6 +322,7 @@ export const ChatHeader = memo(function ChatHeader({
   onUpdateProjectScript,
   onDeleteProjectScript,
 }: ChatHeaderProps) {
+  const environmentOptionsAnchorRef = useRef<HTMLSpanElement>(null);
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const showOpenInPicker = shouldShowOpenInPicker({
     activeProjectName,
@@ -284,7 +330,12 @@ export const ChatHeader = memo(function ChatHeader({
     primaryEnvironmentId,
   });
   return (
-    <div className="@container/header-actions flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+    <div className="@container/header-actions relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+      <span
+        ref={environmentOptionsAnchorRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 bottom-0 size-px"
+      />
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden sm:gap-3">
         <Tooltip>
           <TooltipTrigger
@@ -307,17 +358,6 @@ export const ChatHeader = memo(function ChatHeader({
           rightPanelOpen ? "pr-0" : "pr-16",
         )}
       >
-        {activeProjectScripts && (
-          <ProjectScriptsControl
-            scripts={activeProjectScripts}
-            keybindings={keybindings}
-            preferredScriptId={preferredScriptId}
-            onRunScript={onRunProjectScript}
-            onAddScript={onAddProjectScript}
-            onUpdateScript={onUpdateProjectScript}
-            onDeleteScript={onDeleteProjectScript}
-          />
-        )}
         {showOpenInPicker && (
           <OpenInPicker
             environmentId={activeThreadEnvironmentId}
@@ -329,16 +369,18 @@ export const ChatHeader = memo(function ChatHeader({
         <EnvironmentOptionsPopover
           activeThreadEnvironmentId={activeThreadEnvironmentId}
           activeThreadId={activeThreadId}
+          {...(draftId ? { draftId } : {})}
           activeProjectName={activeProjectName}
+          activeProjectScripts={activeProjectScripts}
+          preferredScriptId={preferredScriptId}
+          keybindings={keybindings}
           gitCwd={gitCwd}
+          popupAnchor={environmentOptionsAnchorRef}
+          onRunProjectScript={onRunProjectScript}
+          onAddProjectScript={onAddProjectScript}
+          onUpdateProjectScript={onUpdateProjectScript}
+          onDeleteProjectScript={onDeleteProjectScript}
         />
-        {activeProjectName && (
-          <GitActionsControl
-            gitCwd={gitCwd}
-            activeThreadRef={scopeThreadRef(activeThreadEnvironmentId, activeThreadId)}
-            {...(draftId ? { draftId } : {})}
-          />
-        )}
       </div>
     </div>
   );
