@@ -182,7 +182,7 @@ const make = Effect.gen(function* () {
   // a git repository.
   const resolveCheckpointCwd = Effect.fn("resolveCheckpointCwd")(function* (input: {
     readonly threadId: ThreadId;
-    readonly thread: { readonly projectId: ProjectId; readonly worktreePath: string | null };
+    readonly thread: { readonly projectId: ProjectId | null; readonly worktreePath: string | null };
     readonly projects: ReadonlyArray<{ readonly id: ProjectId; readonly workspaceRoot: string }>;
     readonly preferSessionRuntime: boolean;
   }): Effect.fn.Return<string | undefined> {
@@ -377,6 +377,10 @@ const make = Effect.gen(function* () {
         return;
       }
 
+      if (thread.projectId === null) {
+        return;
+      }
+
       const projects = yield* resolveThreadProjects(thread.projectId);
       const checkpointCwd = yield* resolveCheckpointCwd({
         threadId: thread.id,
@@ -453,6 +457,10 @@ const make = Effect.gen(function* () {
       return;
     }
 
+    if (thread.projectId === null) {
+      return;
+    }
+
     const projects = yield* resolveThreadProjects(thread.projectId);
     const checkpointCwd = yield* resolveCheckpointCwd({
       threadId,
@@ -485,6 +493,10 @@ const make = Effect.gen(function* () {
 
       const thread = yield* resolveThreadDetail(event.threadId);
       if (!thread) {
+        return;
+      }
+
+      if (thread.projectId === null) {
         return;
       }
 
@@ -567,6 +579,10 @@ const make = Effect.gen(function* () {
     const threadId = event.payload.threadId;
     const thread = yield* resolveThreadDetail(threadId);
     if (!thread) {
+      return;
+    }
+
+    if (thread.projectId === null) {
       return;
     }
 

@@ -13,6 +13,13 @@ export function markDraftForAutoSubmit(draftId: DraftId): void {
   window.sessionStorage.setItem(draftAutoSubmitStorageKey(draftId), "1");
 }
 
+export function hasDraftAutoSubmit(draftId: DraftId): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return window.sessionStorage.getItem(draftAutoSubmitStorageKey(draftId)) === "1";
+}
+
 export function consumeDraftAutoSubmit(draftId: DraftId): boolean {
   if (typeof window === "undefined") {
     return false;

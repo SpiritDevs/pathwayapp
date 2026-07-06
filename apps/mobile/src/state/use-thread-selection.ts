@@ -36,7 +36,7 @@ export function useThreadSelection() {
   const selectedThread = useThreadShell(selectedThreadRef);
   const selectedProjectRef = useMemo<ScopedProjectRef | null>(
     () =>
-      selectedThread === null
+      selectedThread === null || selectedThread.projectId === null
         ? null
         : {
             environmentId: selectedThread.environmentId,

@@ -2757,7 +2757,7 @@ describe("ProviderRuntimeIngestion", () => {
       id: "evt-account-rate-limits-updated",
       tone: "info",
       kind: "account-rate-limits.updated",
-      summary: "Codex usage updated",
+      summary: "Provider usage updated",
       payload: {
         planType: "pro",
         primary: {

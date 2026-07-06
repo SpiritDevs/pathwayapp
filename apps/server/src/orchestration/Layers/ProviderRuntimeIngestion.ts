@@ -562,7 +562,7 @@ function runtimeEventToActivities(
           createdAt: event.createdAt,
           tone: "info",
           kind: "account-rate-limits.updated",
-          summary: "Codex usage updated",
+          summary: "Provider usage updated",
           payload: event.payload.rateLimits,
           turnId: toTurnId(event.turnId) ?? null,
           ...maybeSequence,

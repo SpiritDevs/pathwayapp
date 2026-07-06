@@ -207,7 +207,7 @@ type LegacyPersistedComposerDraftStoreState = PersistedComposerDraftStoreState &
 const PersistedDraftThreadState = Schema.Struct({
   threadId: ThreadId,
   environmentId: Schema.String,
-  projectId: ProjectId,
+  projectId: Schema.NullOr(ProjectId),
   logicalProjectKey: Schema.optionalKey(Schema.String),
   createdAt: Schema.String,
   runtimeMode: RuntimeMode,
@@ -286,7 +286,7 @@ export interface ComposerThreadDraftState {
 export interface DraftSessionState {
   threadId: ThreadId;
   environmentId: EnvironmentId;
-  projectId: ProjectId;
+  projectId: ProjectId | null;
   logicalProjectKey: string;
   createdAt: string;
   runtimeMode: RuntimeMode;
@@ -357,6 +357,17 @@ interface ComposerDraftStoreState {
       createdAt?: string;
       envMode?: DraftThreadEnvMode;
       startFromOrigin?: boolean;
+      runtimeMode?: RuntimeMode;
+      interactionMode?: ProviderInteractionMode;
+    },
+  ) => void;
+  /** Creates or updates the draft session used for projectless conversation. */
+  setStandaloneDraftThreadId: (
+    environmentId: EnvironmentId,
+    draftId: DraftId,
+    options?: {
+      threadId?: ThreadId;
+      createdAt?: string;
       runtimeMode?: RuntimeMode;
       interactionMode?: ProviderInteractionMode;
     },
@@ -1188,6 +1199,10 @@ function logicalProjectDraftKey(logicalProjectKey: string): string {
   return logicalProjectKey.trim();
 }
 
+function standaloneDraftKey(environmentId: EnvironmentId): string {
+  return `standalone:${environmentId}`;
+}
+
 /**
  * Runtime composer storage key for app-facing identities only.
  *
@@ -1309,12 +1324,13 @@ function toProjectDraftSession(
 }
 
 function createDraftThreadState(
-  projectRef: ScopedProjectRef,
+  projectRef: ScopedProjectRef | null,
   threadId: ThreadId,
   logicalProjectKey: string,
   existingThread: DraftThreadState | undefined,
   options?: {
     threadId?: ThreadId;
+    environmentId?: EnvironmentId;
     branch?: string | null;
     worktreePath?: string | null;
     createdAt?: string;
@@ -1324,22 +1340,32 @@ function createDraftThreadState(
     interactionMode?: ProviderInteractionMode;
   },
 ): DraftThreadState {
+  const nextEnvironmentId =
+    projectRef?.environmentId ?? options?.environmentId ?? existingThread?.environmentId;
+  if (!nextEnvironmentId) {
+    throw new Error("Draft thread requires an environment id.");
+  }
+  const nextProjectId = projectRef?.projectId ?? null;
   const projectChanged =
     existingThread !== undefined &&
-    (existingThread.environmentId !== projectRef.environmentId ||
-      existingThread.projectId !== projectRef.projectId);
+    (existingThread.environmentId !== nextEnvironmentId ||
+      existingThread.projectId !== nextProjectId);
   const nextWorktreePath =
-    options?.worktreePath === undefined
-      ? projectChanged
-        ? null
-        : (existingThread?.worktreePath ?? null)
-      : (options.worktreePath ?? null);
+    projectRef === null
+      ? null
+      : options?.worktreePath === undefined
+        ? projectChanged
+          ? null
+          : (existingThread?.worktreePath ?? null)
+        : (options.worktreePath ?? null);
   const nextBranch =
-    options?.branch === undefined
-      ? projectChanged
-        ? null
-        : (existingThread?.branch ?? null)
-      : (options.branch ?? null);
+    projectRef === null
+      ? null
+      : options?.branch === undefined
+        ? projectChanged
+          ? null
+          : (existingThread?.branch ?? null)
+        : (options.branch ?? null);
   const nextStartFromOrigin =
     options?.startFromOrigin === undefined
       ? projectChanged
@@ -1348,8 +1374,8 @@ function createDraftThreadState(
       : options.startFromOrigin;
   return {
     threadId,
-    environmentId: projectRef.environmentId,
-    projectId: projectRef.projectId,
+    environmentId: nextEnvironmentId,
+    projectId: nextProjectId,
     logicalProjectKey,
     createdAt: options?.createdAt ?? existingThread?.createdAt ?? new Date().toISOString(),
     runtimeMode: options?.runtimeMode ?? existingThread?.runtimeMode ?? DEFAULT_RUNTIME_MODE,
@@ -1509,20 +1535,24 @@ function normalizePersistedDraftThreads(
               promotedToRecord.threadId as ThreadId,
             )
           : null;
-      if (typeof projectId !== "string" || projectId.length === 0 || environmentId === undefined) {
+      const normalizedProjectId =
+        typeof projectId === "string" && projectId.length > 0 ? (projectId as ProjectId) : null;
+      if (environmentId === undefined || (projectId !== null && normalizedProjectId === null)) {
         continue;
       }
       const normalizedEnvironmentId = environmentId as EnvironmentId;
       draftThreadsByThreadKey[threadKey] = {
         threadId,
         environmentId: normalizedEnvironmentId,
-        projectId: projectId as ProjectId,
+        projectId: normalizedProjectId,
         logicalProjectKey:
           typeof candidateDraftThread.logicalProjectKey === "string" &&
           candidateDraftThread.logicalProjectKey.length > 0
             ? candidateDraftThread.logicalProjectKey
             : parsedThreadRef
-              ? projectDraftKey(scopeProjectRef(normalizedEnvironmentId, projectId as ProjectId))
+              ? normalizedProjectId === null
+                ? standaloneDraftKey(normalizedEnvironmentId)
+                : projectDraftKey(scopeProjectRef(normalizedEnvironmentId, normalizedProjectId))
               : threadKeyOrId,
         createdAt:
           typeof createdAt === "string" && createdAt.length > 0
@@ -2144,12 +2174,14 @@ function toHydratedDraftThreadState(
     projectId: persistedDraftThread.projectId,
     logicalProjectKey:
       persistedDraftThread.logicalProjectKey ??
-      projectDraftKey(
-        scopeProjectRef(
-          persistedDraftThread.environmentId as EnvironmentId,
-          persistedDraftThread.projectId,
-        ),
-      ),
+      (persistedDraftThread.projectId === null
+        ? standaloneDraftKey(persistedDraftThread.environmentId as EnvironmentId)
+        : projectDraftKey(
+            scopeProjectRef(
+              persistedDraftThread.environmentId as EnvironmentId,
+              persistedDraftThread.projectId,
+            ),
+          )),
     createdAt: persistedDraftThread.createdAt,
     runtimeMode: persistedDraftThread.runtimeMode,
     interactionMode: persistedDraftThread.interactionMode,
@@ -2299,6 +2331,69 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             };
           });
         },
+        setStandaloneDraftThreadId: (environmentId, draftId, options) => {
+          const logicalProjectKey = standaloneDraftKey(environmentId);
+          if (draftId.length === 0) {
+            return;
+          }
+          set((state) => {
+            const existingThread = state.draftThreadsByThreadKey[draftId];
+            const previousThreadKeyForStandalone =
+              state.logicalProjectDraftThreadKeyByLogicalProjectKey[logicalProjectKey];
+            const nextDraftThread = createDraftThreadState(
+              null,
+              options?.threadId ?? existingThread?.threadId ?? ThreadId.make(draftId),
+              logicalProjectKey,
+              existingThread,
+              {
+                ...options,
+                environmentId,
+                envMode: "local",
+                startFromOrigin: false,
+                branch: null,
+                worktreePath: null,
+              },
+            );
+            const hasSameStandaloneMapping = previousThreadKeyForStandalone === draftId;
+            if (hasSameStandaloneMapping && draftThreadsEqual(existingThread, nextDraftThread)) {
+              return state;
+            }
+            const nextLogicalProjectDraftThreadKeyByLogicalProjectKey: Record<string, string> = {
+              ...state.logicalProjectDraftThreadKeyByLogicalProjectKey,
+              [logicalProjectKey]: draftId,
+            };
+            const nextDraftThreadsByThreadKey: Record<string, DraftThreadState> = {
+              ...state.draftThreadsByThreadKey,
+              [draftId]: nextDraftThread,
+            };
+            let nextDraftsByThreadKey = state.draftsByThreadKey;
+            const previousDraftThread =
+              previousThreadKeyForStandalone === undefined
+                ? undefined
+                : nextDraftThreadsByThreadKey[previousThreadKeyForStandalone];
+            if (
+              previousThreadKeyForStandalone &&
+              previousThreadKeyForStandalone !== draftId &&
+              !isComposerThreadKeyInUse(
+                nextLogicalProjectDraftThreadKeyByLogicalProjectKey,
+                previousThreadKeyForStandalone,
+              ) &&
+              !isDraftThreadPromoting(previousDraftThread)
+            ) {
+              delete nextDraftThreadsByThreadKey[previousThreadKeyForStandalone];
+              if (state.draftsByThreadKey[previousThreadKeyForStandalone] !== undefined) {
+                nextDraftsByThreadKey = { ...state.draftsByThreadKey };
+                delete nextDraftsByThreadKey[previousThreadKeyForStandalone];
+              }
+            }
+            return {
+              draftsByThreadKey: nextDraftsByThreadKey,
+              draftThreadsByThreadKey: nextDraftThreadsByThreadKey,
+              logicalProjectDraftThreadKeyByLogicalProjectKey:
+                nextLogicalProjectDraftThreadKeyByLogicalProjectKey,
+            };
+          });
+        },
         setProjectDraftThreadId: (projectRef, draftId, options) => {
           get().setLogicalProjectDraftThreadId(
             projectDraftKey(projectRef),
@@ -2317,41 +2412,58 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             if (!existing) {
               return state;
             }
-            const nextProjectRef = options.projectRef ?? {
-              environmentId: existing.environmentId,
-              projectId: existing.projectId,
-            };
-            if (
-              nextProjectRef.projectId.length === 0 ||
-              nextProjectRef.environmentId.length === 0
-            ) {
+            const nextProjectRef =
+              options.projectRef ??
+              (existing.projectId === null
+                ? null
+                : {
+                    environmentId: existing.environmentId,
+                    projectId: existing.projectId,
+                  });
+            const nextEnvironmentId = nextProjectRef?.environmentId ?? existing.environmentId;
+            const nextProjectId = nextProjectRef?.projectId ?? existing.projectId;
+            if (nextEnvironmentId.length === 0) {
               return state;
             }
             const projectChanged =
-              nextProjectRef.environmentId !== existing.environmentId ||
-              nextProjectRef.projectId !== existing.projectId;
+              nextEnvironmentId !== existing.environmentId || nextProjectId !== existing.projectId;
             const nextWorktreePath =
-              options.worktreePath === undefined
-                ? projectChanged
-                  ? null
-                  : existing.worktreePath
-                : (options.worktreePath ?? null);
+              nextProjectId === null
+                ? null
+                : options.worktreePath === undefined
+                  ? projectChanged
+                    ? null
+                    : existing.worktreePath
+                  : (options.worktreePath ?? null);
             const nextBranch =
-              options.branch === undefined
-                ? projectChanged
-                  ? null
-                  : existing.branch
-                : (options.branch ?? null);
+              nextProjectId === null
+                ? null
+                : options.branch === undefined
+                  ? projectChanged
+                    ? null
+                    : existing.branch
+                  : (options.branch ?? null);
             const nextStartFromOrigin =
-              options.startFromOrigin === undefined
-                ? projectChanged
-                  ? false
-                  : existing.startFromOrigin
-                : options.startFromOrigin;
+              nextProjectId === null
+                ? false
+                : options.startFromOrigin === undefined
+                  ? projectChanged
+                    ? false
+                    : existing.startFromOrigin
+                  : options.startFromOrigin;
+            const nextEnvMode =
+              nextProjectId === null
+                ? "local"
+                : (options.envMode ??
+                  (nextWorktreePath
+                    ? "worktree"
+                    : projectChanged
+                      ? "local"
+                      : (existing.envMode ?? "local")));
             const nextDraftThread: DraftThreadState = {
               threadId: existing.threadId,
-              environmentId: nextProjectRef.environmentId,
-              projectId: nextProjectRef.projectId,
+              environmentId: nextEnvironmentId,
+              projectId: nextProjectId,
               logicalProjectKey: existing.logicalProjectKey,
               createdAt:
                 options.createdAt === undefined
@@ -2361,13 +2473,7 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
               interactionMode: options.interactionMode ?? existing.interactionMode,
               branch: nextBranch,
               worktreePath: nextWorktreePath,
-              envMode:
-                options.envMode ??
-                (nextWorktreePath
-                  ? "worktree"
-                  : projectChanged
-                    ? "local"
-                    : (existing.envMode ?? "local")),
+              envMode: nextEnvMode,
               startFromOrigin: nextStartFromOrigin,
               promotedTo: existing.promotedTo ?? null,
             };

@@ -1277,14 +1277,18 @@ export function NoActiveThreadState() {
   });
   const [pendingTerminalThreadId, setPendingTerminalThreadId] = useState(() => newThreadId());
   const [connectionCardsVisible, setConnectionCardsVisible] = useState(true);
-  const projects = useProjects();
-  const defaultProject = projects[0] ?? null;
+  const primaryServerConfig = useAtomValue(primaryServerConfigAtom);
+  const standaloneEnvironmentId = primaryServerConfig?.environment.environmentId ?? null;
   const setComposerPrompt = useComposerDraftStore((store) => store.setPrompt);
   const setLogicalProjectDraftThreadId = useComposerDraftStore(
     (store) => store.setLogicalProjectDraftThreadId,
   );
+  const setStandaloneDraftThreadId = useComposerDraftStore(
+    (store) => store.setStandaloneDraftThreadId,
+  );
   const canStartDraft =
-    prompt.trim().length > 0 && (workspaceSelection.project !== null || defaultProject !== null);
+    prompt.trim().length > 0 &&
+    (workspaceSelection.project !== null || standaloneEnvironmentId !== null);
   const handleWorkspaceSelectionChange = useCallback((selection: PendingWorkspaceSelection) => {
     setWorkspaceSelection((current) => {
       const currentKey = current.project
@@ -1305,23 +1309,30 @@ export function NoActiveThreadState() {
       if (!canStartDraft) {
         return;
       }
-      const targetProject = workspaceSelection.project ?? defaultProject;
-      if (!targetProject) {
-        return;
-      }
-      const targetProjectRef = scopeProjectRef(targetProject.environmentId, targetProject.id);
-      setLogicalProjectDraftThreadId(
-        scopedProjectKey(targetProjectRef),
-        targetProjectRef,
-        draftId,
-        {
+      const targetProject = workspaceSelection.project;
+      if (targetProject) {
+        const targetProjectRef = scopeProjectRef(targetProject.environmentId, targetProject.id);
+        setLogicalProjectDraftThreadId(
+          scopedProjectKey(targetProjectRef),
+          targetProjectRef,
+          draftId,
+          {
+            threadId,
+            runtimeMode: DEFAULT_RUNTIME_MODE,
+            interactionMode: selectedComposerMode === "plan" ? "plan" : DEFAULT_INTERACTION_MODE,
+            envMode: "local",
+            startFromOrigin: false,
+          },
+        );
+      } else if (standaloneEnvironmentId) {
+        setStandaloneDraftThreadId(standaloneEnvironmentId, draftId, {
           threadId,
           runtimeMode: DEFAULT_RUNTIME_MODE,
           interactionMode: selectedComposerMode === "plan" ? "plan" : DEFAULT_INTERACTION_MODE,
-          envMode: "local",
-          startFromOrigin: false,
-        },
-      );
+        });
+      } else {
+        return;
+      }
       setComposerPrompt(draftId, prompt);
       markDraftForAutoSubmit(draftId);
       void navigate({
@@ -1331,13 +1342,14 @@ export function NoActiveThreadState() {
     },
     [
       canStartDraft,
-      defaultProject,
       draftId,
       navigate,
       prompt,
       selectedComposerMode,
       setComposerPrompt,
       setLogicalProjectDraftThreadId,
+      setStandaloneDraftThreadId,
+      standaloneEnvironmentId,
       threadId,
       workspaceSelection.project,
     ],

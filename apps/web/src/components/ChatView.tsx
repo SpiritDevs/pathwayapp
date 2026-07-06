@@ -176,7 +176,7 @@ import {
   formatElementContextLabel,
 } from "../lib/elementContext";
 import { appendPreviewAnnotationPrompt } from "../lib/previewAnnotation";
-import { consumeDraftAutoSubmit } from "../lib/draftAutoSubmit";
+import { consumeDraftAutoSubmit, hasDraftAutoSubmit } from "../lib/draftAutoSubmit";
 import { appendReviewCommentsToPrompt, type ReviewCommentContext } from "../reviewCommentContext";
 import { environmentCatalog } from "../connection/catalog";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
@@ -330,6 +330,24 @@ function formatOutgoingPrompt(params: {
   const promptEffort = resolvePromptInjectedEffort(caps, params.effort);
   return applyClaudePromptEffortPrefix(params.text, promptEffort);
 }
+
+const promotedDraftOptimisticMessagesByThreadKey = new Map<string, ChatMessage[]>();
+
+function stashPromotedDraftOptimisticMessage(threadRef: ScopedThreadRef, message: ChatMessage) {
+  const threadKey = scopedThreadKey(threadRef);
+  promotedDraftOptimisticMessagesByThreadKey.set(threadKey, [
+    ...(promotedDraftOptimisticMessagesByThreadKey.get(threadKey) ?? []),
+    message,
+  ]);
+}
+
+function takePromotedDraftOptimisticMessages(threadRef: ScopedThreadRef): ChatMessage[] {
+  const threadKey = scopedThreadKey(threadRef);
+  const messages = promotedDraftOptimisticMessagesByThreadKey.get(threadKey) ?? [];
+  promotedDraftOptimisticMessagesByThreadKey.delete(threadKey);
+  return messages;
+}
+
 const SCRIPT_TERMINAL_COLS = 120;
 const SCRIPT_TERMINAL_ROWS = 30;
 
@@ -491,11 +509,12 @@ const PersistentThreadTerminalDrawer = memo(function PersistentThreadTerminalDra
   const closeTerminalMutation = useAtomCommand(terminalEnvironment.close, "terminal close");
   const serverThread = useThread(threadRef);
   const draftThread = useComposerDraftStore((store) => store.getDraftThreadByRef(threadRef));
-  const projectRef = serverThread
-    ? scopeProjectRef(serverThread.environmentId, serverThread.projectId)
-    : draftThread
-      ? scopeProjectRef(draftThread.environmentId, draftThread.projectId)
-      : null;
+  const projectRef =
+    serverThread && serverThread.projectId !== null
+      ? scopeProjectRef(serverThread.environmentId, serverThread.projectId)
+      : draftThread && draftThread.projectId !== null
+        ? scopeProjectRef(draftThread.environmentId, draftThread.projectId)
+        : null;
   const project = useProject(projectRef);
   const terminalUiState = useTerminalUiStateStore((state) =>
     selectThreadTerminalUiState(state.terminalUiStateByThreadKey, threadRef),
@@ -847,11 +866,12 @@ const PersistentThreadTerminalPanel = memo(function PersistentThreadTerminalPane
 }: PersistentThreadTerminalPanelProps) {
   const serverThread = useThread(threadRef);
   const draftThread = useComposerDraftStore((store) => store.getDraftThreadByRef(threadRef));
-  const projectRef = serverThread
-    ? scopeProjectRef(serverThread.environmentId, serverThread.projectId)
-    : draftThread
-      ? scopeProjectRef(draftThread.environmentId, draftThread.projectId)
-      : null;
+  const projectRef =
+    serverThread && serverThread.projectId !== null
+      ? scopeProjectRef(serverThread.environmentId, serverThread.projectId)
+      : draftThread && draftThread.projectId !== null
+        ? scopeProjectRef(draftThread.environmentId, draftThread.projectId)
+        : null;
   const project = useProject(projectRef);
   const knownTerminalSessions = useKnownTerminalSessions({
     environmentId: threadRef.environmentId,
@@ -1213,7 +1233,7 @@ function ChatViewContent(props: ChatViewProps) {
     [mountedTerminalThreadKeys],
   );
 
-  const fallbackDraftProjectRef = draftThread
+  const fallbackDraftProjectRef = draftThread?.projectId
     ? scopeProjectRef(draftThread.environmentId, draftThread.projectId)
     : null;
   const fallbackDraftProject = useProject(fallbackDraftProjectRef);
@@ -1381,7 +1401,7 @@ function ChatViewContent(props: ChatViewProps) {
     });
   }, [activeThreadKey, existingOpenTerminalThreadKeys, terminalUiState.terminalOpen]);
   const latestTurnSettled = isLatestTurnSettled(activeLatestTurn, activeThread?.session ?? null);
-  const activeProjectRef = activeThread
+  const activeProjectRef = activeThread?.projectId
     ? scopeProjectRef(activeThread.environmentId, activeThread.projectId)
     : null;
   const activeProject = useProject(activeProjectRef);
@@ -3340,6 +3360,26 @@ function ChatViewContent(props: ChatViewProps) {
     setExpandedImage(null);
   }, [draftId, resetLocalDispatch, threadId]);
 
+  useEffect(() => {
+    if (!activeThreadRef || !isServerThread) {
+      return;
+    }
+    const handoffMessages = takePromotedDraftOptimisticMessages(activeThreadRef);
+    if (handoffMessages.length === 0) {
+      return;
+    }
+    const serverMessageIds = new Set(activeThread?.messages.map((message) => message.id) ?? []);
+    const pendingMessages = handoffMessages.filter((message) => !serverMessageIds.has(message.id));
+    if (pendingMessages.length === 0) {
+      return;
+    }
+    setOptimisticUserMessages((existing) => {
+      const existingMessageIds = new Set(existing.map((message) => message.id));
+      const nextMessages = pendingMessages.filter((message) => !existingMessageIds.has(message.id));
+      return nextMessages.length === 0 ? existing : [...existing, ...nextMessages];
+    });
+  }, [activeThread?.messages, activeThreadRef, isServerThread]);
+
   const closeExpandedImage = useCallback(() => {
     setExpandedImage(null);
   }, []);
@@ -3745,18 +3785,20 @@ function ChatViewContent(props: ChatViewProps) {
       }
       return;
     }
-    if (!activeProject) return;
     const threadIdForSend = activeThread.id;
     const isFirstMessage = !isServerThread || activeThread.messages.length === 0;
     const baseBranchForWorktree =
-      isFirstMessage && sendEnvMode === "worktree" && !activeThread.worktreePath
+      activeProject && isFirstMessage && sendEnvMode === "worktree" && !activeThread.worktreePath
         ? activeThreadBranch
         : null;
 
     // In worktree mode, require an explicit base branch so we don't silently
     // fall back to local execution when branch selection is missing.
     const shouldCreateWorktree =
-      isFirstMessage && sendEnvMode === "worktree" && !activeThread.worktreePath;
+      activeProject !== null &&
+      isFirstMessage &&
+      sendEnvMode === "worktree" &&
+      !activeThread.worktreePath;
     if (shouldCreateWorktree && !activeThreadBranch) {
       setThreadError(threadIdForSend, "Select a base branch before sending in New worktree mode.");
       return;
@@ -3818,19 +3860,17 @@ function ChatViewContent(props: ChatViewProps) {
       threadKey: scopedThreadKey(scopeThreadRef(activeThread.environmentId, threadIdForSend)),
       messageId: messageIdForSend,
     });
-    setOptimisticUserMessages((existing) => [
-      ...existing,
-      {
-        id: messageIdForSend,
-        role: "user",
-        text: outgoingMessageText,
-        ...(optimisticAttachments.length > 0 ? { attachments: optimisticAttachments } : {}),
-        turnId: null,
-        createdAt: messageCreatedAt,
-        updatedAt: messageCreatedAt,
-        streaming: false,
-      },
-    ]);
+    const optimisticMessage: ChatMessage = {
+      id: messageIdForSend,
+      role: "user",
+      text: outgoingMessageText,
+      ...(optimisticAttachments.length > 0 ? { attachments: optimisticAttachments } : {}),
+      turnId: null,
+      createdAt: messageCreatedAt,
+      updatedAt: messageCreatedAt,
+      streaming: false,
+    };
+    setOptimisticUserMessages((existing) => [...existing, optimisticMessage]);
     setThreadError(threadIdForSend, null);
     if (expiredTerminalContextCount > 0) {
       const toastCopy = buildExpiredTerminalContextToastCopy(
@@ -3871,7 +3911,7 @@ function ChatViewContent(props: ChatViewProps) {
     const title = truncate(titleSeed);
     const threadCreateModelSelection = createModelSelection(
       ctxSelectedModelSelection.instanceId,
-      ctxSelectedModel || activeProject.defaultModelSelection?.model || DEFAULT_MODEL,
+      ctxSelectedModel || activeProject?.defaultModelSelection?.model || DEFAULT_MODEL,
       ctxSelectedModelSelection.options,
     );
 
@@ -3916,18 +3956,18 @@ function ChatViewContent(props: ChatViewProps) {
               ...(isLocalDraftThread
                 ? {
                     createThread: {
-                      projectId: activeProject.id,
+                      projectId: activeProject?.id ?? null,
                       title,
                       modelSelection: threadCreateModelSelection,
                       runtimeMode,
                       interactionMode,
-                      branch: activeThreadBranch,
-                      worktreePath: activeThread.worktreePath,
+                      branch: activeProject ? activeThreadBranch : null,
+                      worktreePath: activeProject ? activeThread.worktreePath : null,
                       createdAt: activeThread.createdAt,
                     },
                   }
                 : {}),
-              ...(baseBranchForWorktree
+              ...(baseBranchForWorktree && activeProject
                 ? {
                     prepareWorktree: {
                       projectCwd: activeProject.workspaceRoot,
@@ -3963,6 +4003,12 @@ function ChatViewContent(props: ChatViewProps) {
         failure = startResult;
       } else {
         turnStartSucceeded = true;
+        if (isLocalDraftThread) {
+          stashPromotedDraftOptimisticMessage(
+            scopeThreadRef(activeThread.environmentId, threadIdForSend),
+            optimisticMessage,
+          );
+        }
       }
     }
 
@@ -4020,18 +4066,39 @@ function ChatViewContent(props: ChatViewProps) {
     if (routeKind !== "draft" || !draftId) {
       return;
     }
-    if (!consumeDraftAutoSubmit(draftId)) {
+    if (!hasDraftAutoSubmit(draftId)) {
       return;
     }
-    const frame = window.requestAnimationFrame(() => {
+
+    let cancelled = false;
+    let frame = 0;
+    let attempts = 0;
+    const submitWhenReady = () => {
+      if (cancelled) {
+        return;
+      }
+      const draftPrompt = useComposerDraftStore.getState().getComposerDraft(draftId)?.prompt ?? "";
+      if (!activeThread || !composerRef.current || draftPrompt.trim().length === 0) {
+        attempts += 1;
+        if (attempts < 120 && hasDraftAutoSubmit(draftId)) {
+          frame = window.requestAnimationFrame(submitWhenReady);
+        }
+        return;
+      }
+      if (!consumeDraftAutoSubmit(draftId)) {
+        return;
+      }
+      promptRef.current = draftPrompt;
       void onSend({
         preventDefault: () => undefined,
       });
-    });
+    };
+    frame = window.requestAnimationFrame(submitWhenReady);
     return () => {
+      cancelled = true;
       window.cancelAnimationFrame(frame);
     };
-  }, [draftId, onSend, routeKind]);
+  }, [activeThread, composerRef, draftId, onSend, routeKind]);
 
   const onInterrupt = async () => {
     if (!activeThread) return;

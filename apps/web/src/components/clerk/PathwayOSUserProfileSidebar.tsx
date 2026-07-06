@@ -1,5 +1,4 @@
 import { useAuth, useClerk, useUser } from "@clerk/react";
-import type { ServerProvider } from "@pathwayos/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
@@ -28,7 +27,11 @@ import {
   type ContextWindowSnapshot,
 } from "~/lib/contextWindow";
 import { cn } from "~/lib/utils";
-import { applyProviderInstanceSettings, deriveProviderInstanceEntries } from "~/providerInstances";
+import {
+  applyProviderInstanceSettings,
+  deriveProviderInstanceEntries,
+  type ProviderInstanceEntry,
+} from "~/providerInstances";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { usePrimaryEnvironment } from "~/state/environments";
 import { primaryServerProvidersAtom, serverEnvironment } from "~/state/server";
@@ -37,6 +40,7 @@ import { environmentThreads } from "~/state/threads";
 import { resolveThreadRouteRef } from "~/threadRoutes";
 import { usePrimarySettings } from "~/hooks/useSettings";
 import { useAtomCommand } from "~/state/use-atom-command";
+import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { Collapsible, CollapsiblePanel } from "../ui/collapsible";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuShortcut, MenuTrigger } from "../ui/menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
@@ -52,8 +56,18 @@ export interface PathwayOSAccountView {
 export interface PathwayOSUsageRemainingView {
   readonly hasEnabledProvider: boolean;
   readonly contextWindow: ContextWindowSnapshot | null;
-  readonly rateLimits: CodexRateLimitSnapshot | null;
+  readonly providers: ReadonlyArray<PathwayOSProviderUsageView>;
   readonly isRefreshing: boolean;
+}
+
+export interface PathwayOSProviderUsageView {
+  readonly id: string;
+  readonly driverKind: ProviderInstanceEntry["driverKind"] | null;
+  readonly label: string;
+  readonly accentColor?: string | undefined;
+  readonly rateLimits: CodexRateLimitSnapshot | null;
+  readonly detail: string | null;
+  readonly hasConfigurationIssue: boolean;
 }
 
 interface ClerkUserLike {
@@ -78,26 +92,35 @@ function hasEnabledProviderSettings(settings: ProviderEnabledSettingsSnapshot): 
   );
 }
 
-function deriveProviderRateLimitSnapshot(
-  serverProviders: ReadonlyArray<ServerProvider>,
-): CodexRateLimitSnapshot | null {
-  let latest: CodexRateLimitSnapshot | null = null;
-  for (const provider of serverProviders) {
-    if (provider.driver !== "codex" || !provider.rateLimits) {
-      continue;
-    }
-    const snapshot = deriveCodexRateLimitSnapshotFromPayload(
-      provider.rateLimits,
-      provider.checkedAt,
-    );
-    if (!snapshot) {
-      continue;
-    }
-    if (!latest || snapshot.updatedAt > latest.updatedAt) {
-      latest = snapshot;
-    }
-  }
-  return latest;
+function deriveProviderUsageViews(
+  providers: ReadonlyArray<ProviderInstanceEntry>,
+): ReadonlyArray<PathwayOSProviderUsageView> {
+  return providers
+    .filter((provider) => provider.enabled)
+    .map((provider) => {
+      const rateLimits =
+        provider.snapshot.rateLimits === undefined
+          ? null
+          : deriveCodexRateLimitSnapshotFromPayload(
+              provider.snapshot.rateLimits,
+              provider.snapshot.checkedAt,
+            );
+      const hasConfigurationIssue = provider.status !== "ready";
+      const detail = rateLimits
+        ? null
+        : hasConfigurationIssue
+          ? "Configuration issue"
+          : "Usage has not been reported yet.";
+      return {
+        id: provider.instanceId,
+        driverKind: provider.driverKind,
+        label: provider.displayName,
+        accentColor: provider.accentColor,
+        rateLimits,
+        detail,
+        hasConfigurationIssue,
+      };
+    });
 }
 
 export function resolvePathwayOSAccountView(user: ClerkUserLike | null | undefined) {
@@ -230,16 +253,10 @@ export function PathwayOSSignedInSidebarAccount({
   const [isUsageExpanded, setIsUsageExpanded] = useState(false);
   const hasEnabledProvider = usageRemaining?.hasEnabledProvider ?? true;
   const contextWindow = usageRemaining?.contextWindow ?? null;
-  const rateLimits = usageRemaining?.rateLimits ?? null;
+  const usageProviders = usageRemaining?.providers ?? [];
+  const hasUsageData =
+    usageProviders.some((provider) => provider.rateLimits !== null) || contextWindow !== null;
   const isRefreshingUsage = usageRemaining?.isRefreshing ?? false;
-  const remainingPercentage =
-    contextWindow?.remainingPercentage !== null && contextWindow?.remainingPercentage !== undefined
-      ? `${Math.round(contextWindow.remainingPercentage)}%`
-      : null;
-  const usedPercentage =
-    contextWindow?.usedPercentage !== null && contextWindow?.usedPercentage !== undefined
-      ? `${Math.round(contextWindow.usedPercentage)}%`
-      : null;
   const usageButtonLabel = hasEnabledProvider ? "Usage remaining" : "Enable provider to view usage";
   const isRailVariant = variant === "rail";
   const menuTrigger = isRailVariant ? (
@@ -346,7 +363,7 @@ export function PathwayOSSignedInSidebarAccount({
                 return;
               }
               event.preventDefault();
-              if (!isUsageExpanded && !rateLimits && !contextWindow) {
+              if (!isUsageExpanded && !hasUsageData) {
                 onRefreshUsage?.();
               }
               setIsUsageExpanded((expanded) => !expanded);
@@ -367,128 +384,13 @@ export function PathwayOSSignedInSidebarAccount({
           </MenuItem>
           <Collapsible open={isUsageExpanded}>
             <CollapsiblePanel className="transition-[height,opacity] duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-open:opacity-100 motion-reduce:transition-none">
-              {rateLimits ? (
-                <div className="grid gap-2 px-2 pt-1 pb-2 text-sm">
-                  {rateLimits.primary ? (
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
-                      <span className="font-medium text-foreground">
-                        {rateLimits.primary.label}
-                      </span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {Math.round(rateLimits.primary.remainingPercent)}%
-                      </span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {rateLimits.primary.resetLabel ?? "-"}
-                      </span>
-                    </div>
-                  ) : null}
-                  {rateLimits.secondary ? (
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
-                      <span className="font-medium text-foreground">
-                        {rateLimits.secondary.label}
-                      </span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {Math.round(rateLimits.secondary.remainingPercent)}%
-                      </span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {rateLimits.secondary.resetLabel ?? "-"}
-                      </span>
-                    </div>
-                  ) : null}
-                  {rateLimits.individualLimit ? (
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
-                      <span className="font-medium text-foreground">Spend limit</span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {Math.round(rateLimits.individualLimit.remainingPercent)}%
-                      </span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {rateLimits.individualLimit.resetLabel ?? "-"}
-                      </span>
-                    </div>
-                  ) : null}
-                  <button
-                    className="grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 pl-6 text-left text-foreground outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 disabled:cursor-wait disabled:text-muted-foreground"
-                    type="button"
-                    disabled={isRefreshingUsage}
-                    onClick={onRefreshUsage}
-                  >
-                    <span>{isRefreshingUsage ? "Refreshing usage" : "Refresh usage"}</span>
-                    <RefreshCwIcon
-                      className={cn(
-                        "size-4 text-muted-foreground",
-                        isRefreshingUsage && "animate-spin",
-                      )}
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
-              ) : contextWindow ? (
-                <div className="grid gap-2 px-2 pt-1 pb-2 text-sm">
-                  <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
-                    <span className="font-medium text-foreground">Context left</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {remainingPercentage ?? "-"}
-                    </span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {formatContextWindowTokens(contextWindow.remainingTokens)}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
-                    <span className="font-medium text-foreground">Context used</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {usedPercentage ?? "-"}
-                    </span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {formatContextWindowTokens(contextWindow.usedTokens)}
-                      {contextWindow.maxTokens != null
-                        ? `/${formatContextWindowTokens(contextWindow.maxTokens)}`
-                        : ""}
-                    </span>
-                  </div>
-                  {contextWindow.totalProcessedTokens != null ? (
-                    <div className="grid grid-cols-[1fr_auto] items-center gap-3 pl-6">
-                      <span className="font-medium text-foreground">Total processed</span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {formatContextWindowTokens(contextWindow.totalProcessedTokens)}
-                      </span>
-                    </div>
-                  ) : null}
-                  <button
-                    className="grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 pl-6 text-left text-foreground outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2"
-                    type="button"
-                    onClick={onOpenProviders}
-                  >
-                    <span>Provider settings</span>
-                    <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-                  </button>
-                </div>
-              ) : (
-                <div className="grid gap-2 px-2 pt-1 pb-2 text-sm">
-                  <button
-                    className="grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 pl-6 text-left text-foreground outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 disabled:cursor-wait disabled:text-muted-foreground"
-                    type="button"
-                    disabled={isRefreshingUsage}
-                    onClick={onRefreshUsage}
-                  >
-                    <span>{isRefreshingUsage ? "Refreshing usage" : "Refresh usage"}</span>
-                    <RefreshCwIcon
-                      className={cn(
-                        "size-4 text-muted-foreground",
-                        isRefreshingUsage && "animate-spin",
-                      )}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  <button
-                    className="grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 pl-6 text-left text-foreground outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2"
-                    type="button"
-                    onClick={onOpenProviders}
-                  >
-                    <span>Provider settings</span>
-                    <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-                  </button>
-                </div>
-              )}
+              <UsageRemainingPanel
+                contextWindow={contextWindow}
+                isRefreshingUsage={isRefreshingUsage}
+                onOpenProviders={onOpenProviders}
+                onRefreshUsage={onRefreshUsage}
+                providers={usageProviders}
+              />
             </CollapsiblePanel>
           </Collapsible>
           <MenuItem className="cursor-pointer" onClick={onSignOut}>
@@ -561,6 +463,267 @@ export function PathwayOSSidebarAccountSkeleton() {
       </div>
       <Skeleton className="size-4 rounded" />
     </div>
+  );
+}
+
+function UsageRemainingPanel({
+  contextWindow,
+  isRefreshingUsage,
+  onOpenProviders,
+  onRefreshUsage,
+  providers,
+}: {
+  readonly contextWindow: ContextWindowSnapshot | null;
+  readonly isRefreshingUsage: boolean;
+  readonly onOpenProviders: (() => void) | undefined;
+  readonly onRefreshUsage: (() => void) | undefined;
+  readonly providers: ReadonlyArray<PathwayOSProviderUsageView>;
+}) {
+  const showProviderLabels = providers.length > 1;
+  const hasProviderRateLimits = providers.some((provider) => provider.rateLimits !== null);
+
+  return (
+    <div className="grid gap-2 px-2 pt-1 pb-2 text-sm">
+      {providers.map((provider) => (
+        <ProviderUsageSection
+          key={provider.id}
+          onOpenProviders={onOpenProviders}
+          provider={provider}
+          showLabel={showProviderLabels}
+        />
+      ))}
+      {contextWindow && !hasProviderRateLimits ? (
+        <ContextWindowUsageSection contextWindow={contextWindow} />
+      ) : null}
+      <UsageRemainingActions
+        isRefreshingUsage={isRefreshingUsage}
+        onOpenProviders={onOpenProviders}
+        onRefreshUsage={onRefreshUsage}
+      />
+    </div>
+  );
+}
+
+function ProviderUsageSection({
+  onOpenProviders,
+  provider,
+  showLabel,
+}: {
+  readonly onOpenProviders: (() => void) | undefined;
+  readonly provider: PathwayOSProviderUsageView;
+  readonly showLabel: boolean;
+}) {
+  if (showLabel) {
+    return (
+      <div className="grid grid-cols-[16px_minmax(0,1fr)] gap-x-2 gap-y-1">
+        {provider.driverKind ? (
+          <ProviderInstanceIcon
+            driverKind={provider.driverKind}
+            displayName={provider.label}
+            accentColor={provider.accentColor}
+            className="mt-px size-4"
+            iconClassName="size-4 text-foreground/75"
+          />
+        ) : (
+          <span className="size-4" aria-hidden="true" />
+        )}
+        <div className="min-w-0 font-medium text-foreground text-xs">{provider.label}</div>
+        <div className="col-start-2 grid min-w-0 gap-1">
+          {provider.rateLimits ? (
+            <RateLimitRows rateLimits={provider.rateLimits} rowClassName="" />
+          ) : (
+            <ProviderUsageDetail onOpenProviders={onOpenProviders} provider={provider} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-1">
+      {provider.rateLimits ? (
+        <RateLimitRows rateLimits={provider.rateLimits} />
+      ) : (
+        <ProviderUsageDetail
+          onOpenProviders={onOpenProviders}
+          provider={provider}
+          rowClassName="pl-6"
+        />
+      )}
+    </div>
+  );
+}
+
+function ProviderUsageDetail({
+  onOpenProviders,
+  provider,
+  rowClassName,
+}: {
+  readonly onOpenProviders: (() => void) | undefined;
+  readonly provider: PathwayOSProviderUsageView;
+  readonly rowClassName?: string;
+}) {
+  if (provider.detail === null) {
+    return null;
+  }
+
+  if (!provider.hasConfigurationIssue || !onOpenProviders) {
+    return (
+      <div className={cn("text-muted-foreground text-xs", rowClassName)}>{provider.detail}</div>
+    );
+  }
+
+  return (
+    <button
+      aria-label={`Open provider settings for ${provider.label}`}
+      className={cn(
+        "grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 text-left text-foreground text-xs outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2",
+        rowClassName,
+      )}
+      type="button"
+      onClick={onOpenProviders}
+    >
+      <span>{provider.detail}</span>
+      <ChevronRightIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+    </button>
+  );
+}
+
+function RateLimitRows({
+  rateLimits,
+  rowClassName = "pl-6",
+}: {
+  readonly rateLimits: CodexRateLimitSnapshot;
+  readonly rowClassName?: string;
+}) {
+  return (
+    <>
+      {rateLimits.primary ? (
+        <RateLimitRow
+          label={rateLimits.primary.label}
+          remainingPercent={rateLimits.primary.remainingPercent}
+          resetLabel={rateLimits.primary.resetLabel}
+          rowClassName={rowClassName}
+        />
+      ) : null}
+      {rateLimits.secondary ? (
+        <RateLimitRow
+          label={rateLimits.secondary.label}
+          remainingPercent={rateLimits.secondary.remainingPercent}
+          resetLabel={rateLimits.secondary.resetLabel}
+          rowClassName={rowClassName}
+        />
+      ) : null}
+      {rateLimits.individualLimit ? (
+        <RateLimitRow
+          label="Spend limit"
+          remainingPercent={rateLimits.individualLimit.remainingPercent}
+          resetLabel={rateLimits.individualLimit.resetLabel}
+          rowClassName={rowClassName}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function RateLimitRow({
+  label,
+  remainingPercent,
+  resetLabel,
+  rowClassName,
+}: {
+  readonly label: string;
+  readonly remainingPercent: number;
+  readonly resetLabel: string | null;
+  readonly rowClassName: string;
+}) {
+  return (
+    <div className={cn("grid grid-cols-[1fr_auto_auto] items-center gap-3", rowClassName)}>
+      <span className="font-medium text-foreground">{label}</span>
+      <span className="text-muted-foreground tabular-nums">{Math.round(remainingPercent)}%</span>
+      <span className="text-muted-foreground tabular-nums">{resetLabel ?? "-"}</span>
+    </div>
+  );
+}
+
+function ContextWindowUsageSection({
+  contextWindow,
+}: {
+  readonly contextWindow: ContextWindowSnapshot;
+}) {
+  const remainingPercentage =
+    contextWindow.remainingPercentage !== null && contextWindow.remainingPercentage !== undefined
+      ? `${Math.round(contextWindow.remainingPercentage)}%`
+      : null;
+  const usedPercentage =
+    contextWindow.usedPercentage !== null && contextWindow.usedPercentage !== undefined
+      ? `${Math.round(contextWindow.usedPercentage)}%`
+      : null;
+
+  return (
+    <div className="grid gap-1">
+      <div className="pl-6 font-medium text-foreground text-xs">Current thread</div>
+      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
+        <span className="font-medium text-foreground">Context left</span>
+        <span className="text-muted-foreground tabular-nums">{remainingPercentage ?? "-"}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {formatContextWindowTokens(contextWindow.remainingTokens)}
+        </span>
+      </div>
+      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 pl-6">
+        <span className="font-medium text-foreground">Context used</span>
+        <span className="text-muted-foreground tabular-nums">{usedPercentage ?? "-"}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {formatContextWindowTokens(contextWindow.usedTokens)}
+          {contextWindow.maxTokens != null
+            ? `/${formatContextWindowTokens(contextWindow.maxTokens)}`
+            : ""}
+        </span>
+      </div>
+      {contextWindow.totalProcessedTokens != null ? (
+        <div className="grid grid-cols-[1fr_auto] items-center gap-3 pl-6">
+          <span className="font-medium text-foreground">Total processed</span>
+          <span className="text-muted-foreground tabular-nums">
+            {formatContextWindowTokens(contextWindow.totalProcessedTokens)}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function UsageRemainingActions({
+  isRefreshingUsage,
+  onOpenProviders,
+  onRefreshUsage,
+}: {
+  readonly isRefreshingUsage: boolean;
+  readonly onOpenProviders: (() => void) | undefined;
+  readonly onRefreshUsage: (() => void) | undefined;
+}) {
+  return (
+    <>
+      <button
+        className="grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 pl-6 text-left text-foreground outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 disabled:cursor-wait disabled:text-muted-foreground"
+        type="button"
+        disabled={isRefreshingUsage}
+        onClick={onRefreshUsage}
+      >
+        <span>{isRefreshingUsage ? "Refreshing usage" : "Refresh usage"}</span>
+        <RefreshCwIcon
+          className={cn("size-4 text-muted-foreground", isRefreshingUsage && "animate-spin")}
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        className="grid cursor-pointer grid-cols-[1fr_auto] items-center rounded-sm py-1 pr-1 pl-6 text-left text-foreground outline-none ring-ring transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-2"
+        type="button"
+        onClick={onOpenProviders}
+      >
+        <span>Provider settings</span>
+        <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+      </button>
+    </>
   );
 }
 
@@ -650,14 +813,30 @@ function ConfiguredPathwayOSMainSidebarAccount({
       settings,
     );
     const activityRateLimits = deriveLatestCodexRateLimitSnapshot(activeThreadActivities);
-    const providerRateLimits = deriveProviderRateLimitSnapshot(serverProviders);
+    const providerUsageViews = deriveProviderUsageViews(configuredProviders);
+    const providers =
+      activityRateLimits && !providerUsageViews.some((provider) => provider.rateLimits !== null)
+        ? providerUsageViews.length === 1 && providerUsageViews[0]
+          ? [{ ...providerUsageViews[0], rateLimits: activityRateLimits, detail: null }]
+          : [
+              ...providerUsageViews,
+              {
+                id: "active-thread-rate-limits",
+                driverKind: null,
+                label: "Current thread",
+                rateLimits: activityRateLimits,
+                detail: null,
+                hasConfigurationIssue: false,
+              },
+            ]
+        : providerUsageViews;
     return {
       hasEnabledProvider:
         configuredProviders.length > 0
           ? configuredProviders.some((provider) => provider.enabled)
           : hasEnabledProviderSettings(settings),
       contextWindow: deriveLatestContextWindowSnapshot(activeThreadActivities),
-      rateLimits: activityRateLimits ?? providerRateLimits,
+      providers,
       isRefreshing: isRefreshingUsage,
     };
   }, [activeThreadActivities, isRefreshingUsage, serverProviders, settings]);
