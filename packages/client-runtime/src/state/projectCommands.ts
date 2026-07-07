@@ -102,5 +102,14 @@ export function createProjectEnvironmentAtoms<R, E>(
           JSON.stringify([environmentId, input.cwd, input.relativePath]),
       },
     }),
+    setIcon: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:projects:set-icon",
+      tag: WS_METHODS.projectsSetIcon,
+      scheduler: fileScheduler,
+      concurrency: {
+        mode: "serial",
+        key: ({ environmentId, input }) => JSON.stringify([environmentId, input.cwd]),
+      },
+    }),
   };
 }

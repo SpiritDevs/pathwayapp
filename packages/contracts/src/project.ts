@@ -223,3 +223,51 @@ export class ProjectWriteFileError extends Schema.TaggedErrorClass<ProjectWriteF
     } as any);
   }
 }
+
+export const PROJECT_ICON_MAX_BYTES = 5 * 1024 * 1024;
+const PROJECT_ICON_MAX_DATA_URL_CHARS = 7_000_000;
+
+export const ProjectSetIconInput = Schema.Struct({
+  cwd: TrimmedNonEmptyString,
+  fileName: Schema.optional(TrimmedNonEmptyString.check(Schema.isMaxLength(255))),
+  dataUrl: TrimmedNonEmptyString.check(Schema.isMaxLength(PROJECT_ICON_MAX_DATA_URL_CHARS)),
+});
+export type ProjectSetIconInput = typeof ProjectSetIconInput.Type;
+
+export const ProjectSetIconResult = Schema.Struct({
+  cwd: TrimmedNonEmptyString,
+});
+export type ProjectSetIconResult = typeof ProjectSetIconResult.Type;
+
+export const ProjectSetIconFailure = Schema.Literals([
+  "workspace_root_not_found",
+  "invalid_image",
+  "operation_failed",
+]);
+export type ProjectSetIconFailure = typeof ProjectSetIconFailure.Type;
+
+export class ProjectSetIconError extends Schema.TaggedErrorClass<ProjectSetIconError>()(
+  "ProjectSetIconError",
+  {
+    cwd: Schema.optional(TrimmedNonEmptyString),
+    failure: Schema.optional(ProjectSetIconFailure),
+    message: TrimmedNonEmptyString,
+    cause: Schema.optional(Schema.Defect()),
+  },
+) {
+  // @effect-diagnostics-next-line overriddenSchemaConstructor:off
+  constructor(props: {
+    readonly cwd: string;
+    readonly failure: ProjectSetIconFailure;
+    readonly message?: string;
+    readonly cause?: unknown;
+  }) {
+    super({
+      ...props,
+      message:
+        props.message ??
+        decodedProjectErrorMessage(props) ??
+        `Failed to set the project icon for '${props.cwd}'.`,
+    } as any);
+  }
+}

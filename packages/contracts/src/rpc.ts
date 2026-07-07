@@ -74,6 +74,9 @@ import {
   ProjectSearchEntriesError,
   ProjectSearchEntriesInput,
   ProjectSearchEntriesResult,
+  ProjectSetIconError,
+  ProjectSetIconInput,
+  ProjectSetIconResult,
   ProjectWriteFileError,
   ProjectWriteFileInput,
   ProjectWriteFileResult,
@@ -152,6 +155,7 @@ export const WS_METHODS = {
   projectsListEntries: "projects.listEntries",
   projectsReadFile: "projects.readFile",
   projectsSearchEntries: "projects.searchEntries",
+  projectsSetIcon: "projects.setIcon",
   projectsWriteFile: "projects.writeFile",
 
   // Shell methods
@@ -376,6 +380,12 @@ export const WsProjectsWriteFileRpc = Rpc.make(WS_METHODS.projectsWriteFile, {
   payload: ProjectWriteFileInput,
   success: ProjectWriteFileResult,
   error: Schema.Union([ProjectWriteFileError, EnvironmentAuthorizationError]),
+});
+
+export const WsProjectsSetIconRpc = Rpc.make(WS_METHODS.projectsSetIcon, {
+  payload: ProjectSetIconInput,
+  success: ProjectSetIconResult,
+  error: Schema.Union([ProjectSetIconError, EnvironmentAuthorizationError]),
 });
 
 export const WsShellOpenInEditorRpc = Rpc.make(WS_METHODS.shellOpenInEditor, {
@@ -702,6 +712,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsProjectsListEntriesRpc,
   WsProjectsReadFileRpc,
   WsProjectsSearchEntriesRpc,
+  WsProjectsSetIconRpc,
   WsProjectsWriteFileRpc,
   WsShellOpenInEditorRpc,
   WsFilesystemBrowseRpc,
