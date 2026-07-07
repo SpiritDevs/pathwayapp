@@ -7,6 +7,7 @@ import {
   type ProjectGroupingSettings,
 } from "./logicalProject";
 import type { Project } from "./types";
+import { legacyProjectCwdPreferenceKey } from "./uiStateStore";
 
 export type EnvironmentPresence = "local-only" | "remote-only" | "mixed";
 
@@ -23,6 +24,18 @@ export interface SidebarProjectSnapshot extends Project {
   memberProjects: readonly SidebarProjectGroupMember[];
   memberProjectRefs: readonly ScopedProjectRef[];
   remoteEnvironmentLabels: readonly string[];
+}
+
+export function projectExpansionPreferenceKeys(project: SidebarProjectSnapshot): string[] {
+  return [
+    project.projectKey,
+    ...project.memberProjects.map((member) => member.physicalProjectKey),
+    ...project.memberProjects.map((member) => legacyProjectCwdPreferenceKey(member.workspaceRoot)),
+  ];
+}
+
+export function projectPinPreferenceKeys(project: SidebarProjectSnapshot): string[] {
+  return projectExpansionPreferenceKeys(project);
 }
 
 export function buildPhysicalToLogicalProjectKeyMap(input: {
