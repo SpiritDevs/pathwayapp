@@ -1085,12 +1085,44 @@ export function GeneralSettingsPanel() {
 }
 
 export function EmailSettingsPanel() {
+  const settings = usePrimarySettings();
+  const updateSettings = useUpdatePrimarySettings();
+
   return (
     <SettingsPageContainer>
       <SettingsSection title="Email">
         {EMAIL_PROVIDER_PLACEHOLDERS.map((provider) => (
           <EmailProviderPlaceholderRow key={provider.label} provider={provider} />
         ))}
+      </SettingsSection>
+
+      <SettingsSection title="Local SMTP Server">
+        <SettingsRow
+          title="Enable Developer Email server"
+          description="Run a local SMTP inbox for testing application emails without sending real messages."
+          resetAction={
+            settings.enableDeveloperEmailServer !==
+            DEFAULT_UNIFIED_SETTINGS.enableDeveloperEmailServer ? (
+              <SettingResetButton
+                label="developer email server"
+                onClick={() =>
+                  updateSettings({
+                    enableDeveloperEmailServer: DEFAULT_UNIFIED_SETTINGS.enableDeveloperEmailServer,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.enableDeveloperEmailServer}
+              onCheckedChange={(checked) =>
+                updateSettings({ enableDeveloperEmailServer: Boolean(checked) })
+              }
+              aria-label="Enable Developer Email server"
+            />
+          }
+        />
       </SettingsSection>
     </SettingsPageContainer>
   );
