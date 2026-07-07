@@ -16,10 +16,21 @@ const LEGACY_PERSISTED_STATE_KEYS = [
   "codething:renderer-state:v1",
 ] as const;
 
+export interface SidebarProjectFolder {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  projectKeys: string[];
+}
+
 export interface PersistedUiState {
   projectExpandedById?: Record<string, boolean>;
   projectOrder?: string[];
   pinnedProjectIds?: string[];
+  projectFolders?: SidebarProjectFolder[];
+  pinnedFolderIds?: string[];
+  archivedProjectKeys?: string[];
   threadLastVisitedAtById?: Record<string, string>;
   collapsedProjectCwds?: string[];
   expandedProjectCwds?: string[];
@@ -32,6 +43,9 @@ export interface UiProjectState {
   projectExpandedById: Record<string, boolean>;
   projectOrder: string[];
   pinnedProjectIds: string[];
+  projectFolders: SidebarProjectFolder[];
+  pinnedFolderIds: string[];
+  archivedProjectKeys: string[];
 }
 
 export interface UiThreadState {
@@ -49,6 +63,9 @@ const initialState: UiState = {
   projectExpandedById: {},
   projectOrder: [],
   pinnedProjectIds: [],
+  projectFolders: [],
+  pinnedFolderIds: [],
+  archivedProjectKeys: [],
   threadLastVisitedAtById: {},
   threadChangedFilesExpandedById: {},
   defaultAdvertisedEndpointKey: null,
@@ -71,6 +88,32 @@ function sanitizeStringArray(value: unknown): string[] {
       value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0),
     ),
   ];
+}
+
+function sanitizeProjectFolders(value: unknown): SidebarProjectFolder[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const seenIds = new Set<string>();
+  const folders: SidebarProjectFolder[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    const { id, name, icon, color, projectKeys } = entry as Record<string, unknown>;
+    if (typeof id !== "string" || id.length === 0 || seenIds.has(id)) {
+      continue;
+    }
+    seenIds.add(id);
+    folders.push({
+      id,
+      name: typeof name === "string" && name.length > 0 ? name : "New folder",
+      icon: typeof icon === "string" && icon.length > 0 ? icon : "folder",
+      color: typeof color === "string" && color.length > 0 ? color : "default",
+      projectKeys: sanitizeStringArray(projectKeys),
+    });
+  }
+  return folders;
 }
 
 function sanitizeBooleanRecord(value: unknown): Record<string, boolean> {
@@ -127,6 +170,9 @@ export function parsePersistedState(parsed: PersistedUiState): UiState {
     projectExpandedById,
     projectOrder,
     pinnedProjectIds: sanitizeStringArray(parsed.pinnedProjectIds),
+    projectFolders: sanitizeProjectFolders(parsed.projectFolders),
+    pinnedFolderIds: sanitizeStringArray(parsed.pinnedFolderIds),
+    archivedProjectKeys: sanitizeStringArray(parsed.archivedProjectKeys),
     threadLastVisitedAtById: sanitizeTimestampRecord(parsed.threadLastVisitedAtById),
     threadChangedFilesExpandedById: sanitizePersistedThreadChangedFilesExpanded(
       parsed.threadChangedFilesExpandedById,
@@ -213,6 +259,9 @@ export function persistState(state: UiState): void {
         projectExpandedById,
         projectOrder: state.projectOrder,
         pinnedProjectIds: state.pinnedProjectIds,
+        projectFolders: state.projectFolders,
+        pinnedFolderIds: state.pinnedFolderIds,
+        archivedProjectKeys: state.archivedProjectKeys,
         threadLastVisitedAtById: state.threadLastVisitedAtById,
         defaultAdvertisedEndpointKey: state.defaultAdvertisedEndpointKey,
         threadChangedFilesExpandedById,
@@ -372,15 +421,178 @@ export function setProjectExpanded(
   };
 }
 
+function matchesAnyProjectKey(
+  projectKeys: readonly string[],
+  preferenceKeys: readonly string[],
+): boolean {
+  if (projectKeys.length === 0 || preferenceKeys.length === 0) {
+    return false;
+  }
+  const keySet = new Set(projectKeys);
+  return preferenceKeys.some((projectKey) => keySet.has(projectKey));
+}
+
 export function resolveProjectPinned(
   pinnedProjectIds: readonly string[],
   preferenceKeys: readonly string[],
 ): boolean {
-  if (pinnedProjectIds.length === 0 || preferenceKeys.length === 0) {
-    return false;
+  return matchesAnyProjectKey(pinnedProjectIds, preferenceKeys);
+}
+
+export function resolveProjectArchived(
+  archivedProjectKeys: readonly string[],
+  preferenceKeys: readonly string[],
+): boolean {
+  return matchesAnyProjectKey(archivedProjectKeys, preferenceKeys);
+}
+
+export function resolveProjectFolderId(
+  projectFolders: readonly SidebarProjectFolder[],
+  preferenceKeys: readonly string[],
+): string | null {
+  for (const folder of projectFolders) {
+    if (matchesAnyProjectKey(folder.projectKeys, preferenceKeys)) {
+      return folder.id;
+    }
   }
-  const pinnedProjects = new Set(pinnedProjectIds);
-  return preferenceKeys.some((projectId) => pinnedProjects.has(projectId));
+  return null;
+}
+
+export function addProjectFolder(state: UiState, folder: SidebarProjectFolder): UiState {
+  if (state.projectFolders.some((existing) => existing.id === folder.id)) {
+    return state;
+  }
+  return {
+    ...state,
+    projectFolders: [...state.projectFolders, { ...folder, projectKeys: [] }],
+  };
+}
+
+export function updateProjectFolder(
+  state: UiState,
+  folderId: string,
+  patch: Partial<Pick<SidebarProjectFolder, "name" | "icon" | "color">>,
+): UiState {
+  const folder = state.projectFolders.find((existing) => existing.id === folderId);
+  if (!folder) {
+    return state;
+  }
+  const name = patch.name?.trim();
+  const next: SidebarProjectFolder = {
+    ...folder,
+    ...(name !== undefined && name.length > 0 ? { name } : {}),
+    ...(patch.icon !== undefined ? { icon: patch.icon } : {}),
+    ...(patch.color !== undefined ? { color: patch.color } : {}),
+  };
+  if (next.name === folder.name && next.icon === folder.icon && next.color === folder.color) {
+    return state;
+  }
+  return {
+    ...state,
+    projectFolders: state.projectFolders.map((existing) =>
+      existing.id === folderId ? next : existing,
+    ),
+  };
+}
+
+export function removeProjectFolder(state: UiState, folderId: string): UiState {
+  if (!state.projectFolders.some((folder) => folder.id === folderId)) {
+    return state;
+  }
+  return {
+    ...state,
+    projectFolders: state.projectFolders.filter((folder) => folder.id !== folderId),
+    pinnedFolderIds: state.pinnedFolderIds.filter((id) => id !== folderId),
+  };
+}
+
+export function setFolderPinned(state: UiState, folderId: string, pinned: boolean): UiState {
+  const currentlyPinned = state.pinnedFolderIds.includes(folderId);
+  if (pinned === currentlyPinned) {
+    return state;
+  }
+  return {
+    ...state,
+    pinnedFolderIds: pinned
+      ? [...state.pinnedFolderIds, folderId]
+      : state.pinnedFolderIds.filter((id) => id !== folderId),
+  };
+}
+
+export function setProjectFolderMembership(
+  state: UiState,
+  projectKeys: string | readonly string[],
+  folderId: string | null,
+): UiState {
+  const keys = sanitizeStringArray(typeof projectKeys === "string" ? [projectKeys] : projectKeys);
+  if (keys.length === 0) {
+    return state;
+  }
+  if (folderId !== null && !state.projectFolders.some((folder) => folder.id === folderId)) {
+    return state;
+  }
+  const keySet = new Set(keys);
+  let changed = false;
+  const projectFolders = state.projectFolders.map((folder) => {
+    const withoutKeys = folder.projectKeys.filter((key) => !keySet.has(key));
+    if (folder.id === folderId) {
+      const alreadyExact =
+        withoutKeys.length + keys.length === folder.projectKeys.length &&
+        keys.every((key) => folder.projectKeys.includes(key));
+      if (alreadyExact) {
+        return folder;
+      }
+      changed = true;
+      return { ...folder, projectKeys: [...withoutKeys, ...keys] };
+    }
+    if (withoutKeys.length !== folder.projectKeys.length) {
+      changed = true;
+      return { ...folder, projectKeys: withoutKeys };
+    }
+    return folder;
+  });
+  if (!changed) {
+    return state;
+  }
+  return {
+    ...state,
+    projectFolders,
+  };
+}
+
+export function setProjectsArchived(
+  state: UiState,
+  projectKeys: string | readonly string[],
+  archived: boolean,
+): UiState {
+  const keys = sanitizeStringArray(typeof projectKeys === "string" ? [projectKeys] : projectKeys);
+  if (keys.length === 0) {
+    return state;
+  }
+  const archivedSet = new Set(state.archivedProjectKeys);
+  let changed = false;
+  for (const key of keys) {
+    if (archived) {
+      if (!archivedSet.has(key)) {
+        archivedSet.add(key);
+        changed = true;
+      }
+    } else if (archivedSet.delete(key)) {
+      changed = true;
+    }
+  }
+  if (!changed) {
+    return state;
+  }
+  return {
+    ...state,
+    archivedProjectKeys: archived
+      ? [
+          ...state.archivedProjectKeys,
+          ...keys.filter((key) => !state.archivedProjectKeys.includes(key)),
+        ]
+      : state.archivedProjectKeys.filter((key) => archivedSet.has(key)),
+  };
 }
 
 export function setProjectPinned(
@@ -473,6 +685,18 @@ interface UiStateStore extends UiState {
   setDefaultAdvertisedEndpointKey: (key: string | null) => void;
   setProjectExpanded: (projectIds: string | readonly string[], expanded: boolean) => void;
   setProjectPinned: (projectIds: string | readonly string[], pinned: boolean) => void;
+  addProjectFolder: (folder: SidebarProjectFolder) => void;
+  updateProjectFolder: (
+    folderId: string,
+    patch: Partial<Pick<SidebarProjectFolder, "name" | "icon" | "color">>,
+  ) => void;
+  removeProjectFolder: (folderId: string) => void;
+  setFolderPinned: (folderId: string, pinned: boolean) => void;
+  setProjectFolderMembership: (
+    projectKeys: string | readonly string[],
+    folderId: string | null,
+  ) => void;
+  setProjectsArchived: (projectKeys: string | readonly string[], archived: boolean) => void;
   reorderProjects: (
     currentProjectOrder: readonly string[],
     draggedProjectIds: readonly string[],
@@ -494,6 +718,15 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) => setProjectExpanded(state, projectIds, expanded)),
   setProjectPinned: (projectIds, pinned) =>
     set((state) => setProjectPinned(state, projectIds, pinned)),
+  addProjectFolder: (folder) => set((state) => addProjectFolder(state, folder)),
+  updateProjectFolder: (folderId, patch) =>
+    set((state) => updateProjectFolder(state, folderId, patch)),
+  removeProjectFolder: (folderId) => set((state) => removeProjectFolder(state, folderId)),
+  setFolderPinned: (folderId, pinned) => set((state) => setFolderPinned(state, folderId, pinned)),
+  setProjectFolderMembership: (projectKeys, folderId) =>
+    set((state) => setProjectFolderMembership(state, projectKeys, folderId)),
+  setProjectsArchived: (projectKeys, archived) =>
+    set((state) => setProjectsArchived(state, projectKeys, archived)),
   reorderProjects: (currentProjectOrder, draggedProjectIds, targetProjectIds) =>
     set((state) =>
       reorderProjects(state, currentProjectOrder, draggedProjectIds, targetProjectIds),

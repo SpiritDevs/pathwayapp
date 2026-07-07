@@ -1,16 +1,20 @@
 import {
   ArchiveIcon,
+  ArchiveRestoreIcon,
   ArrowLeftIcon,
   ArrowUpDownIcon,
   BotIcon,
   BriefcaseBusinessIcon,
   ChartNoAxesCombinedIcon,
+  CheckIcon,
   ChevronRightIcon,
   CloudIcon,
   EllipsisIcon,
   FolderIcon,
+  FolderInputIcon,
   FolderPlusIcon,
   FolderKanbanIcon,
+  FoldersIcon,
   GitBranchIcon,
   GitBranchPlusIcon,
   Globe2Icon,
@@ -19,6 +23,7 @@ import {
   ListTodoIcon,
   MailIcon,
   PinIcon,
+  PlusIcon,
   SearchIcon,
   SlackIcon,
   SquarePenIcon,
@@ -96,7 +101,7 @@ import { isElectron } from "../env";
 import { APP_STAGE_LABEL } from "../branding";
 import { useOpenPrLink } from "../lib/openPullRequestLink";
 import { isTerminalFocused } from "../lib/terminalFocus";
-import { isMacPlatform } from "../lib/utils";
+import { isMacPlatform, randomUUID } from "../lib/utils";
 import {
   readThreadShell,
   useProject,
@@ -113,10 +118,24 @@ import { useAtomCommand } from "../state/use-atom-command";
 import { previewEnvironment } from "../state/preview";
 import {
   legacyProjectCwdPreferenceKey,
+  resolveProjectArchived,
   resolveProjectExpanded,
+  resolveProjectFolderId,
   resolveProjectPinned,
+  type SidebarProjectFolder,
   useUiStateStore,
 } from "../uiStateStore";
+import {
+  buildSidebarFolderViews,
+  folderExpansionKey,
+  type SidebarFolderView,
+} from "../sidebarProjectFolders";
+import {
+  SidebarFolderDetailsSheet,
+  SidebarFolderGlyph,
+  SidebarRemoveFolderDialog,
+  type SidebarRemoveFolderTarget,
+} from "./sidebar/SidebarFolderDialogs";
 import {
   resolveShortcutCommand,
   shortcutLabelForCommand,
@@ -244,6 +263,8 @@ import type { SidebarThreadSummary } from "../types";
 import {
   buildPhysicalToLogicalProjectKeyMap,
   buildSidebarProjectSnapshots,
+  projectExpansionPreferenceKeys,
+  projectPinPreferenceKeys,
   type SidebarProjectGroupMember,
   type SidebarProjectSnapshot,
 } from "../sidebarProjectGrouping";
@@ -359,18 +380,6 @@ function formatProjectMemberActionLabel(
   return member.environmentLabel
     ? `${member.environmentLabel} — ${member.workspaceRoot}`
     : member.workspaceRoot;
-}
-
-function projectExpansionPreferenceKeys(project: SidebarProjectSnapshot): string[] {
-  return [
-    project.projectKey,
-    ...project.memberProjects.map((member) => member.physicalProjectKey),
-    ...project.memberProjects.map((member) => legacyProjectCwdPreferenceKey(member.workspaceRoot)),
-  ];
-}
-
-function projectPinPreferenceKeys(project: SidebarProjectSnapshot): string[] {
-  return projectExpansionPreferenceKeys(project);
 }
 
 function getSidebarThreadKey(thread: SidebarThreadSummary): string {
@@ -1664,7 +1673,238 @@ const SidebarThreadSection = memo(function SidebarThreadSection(props: SidebarTh
   );
 });
 
+interface SidebarFolderRowProps {
+  view: SidebarFolderView;
+  pinned: boolean;
+  onEditFolder: (folder: SidebarProjectFolder) => void;
+  onRemoveFolder: (target: SidebarRemoveFolderTarget) => void;
+  expandedThreadListsByProject: ReadonlySet<string>;
+  activeRouteProjectKey: string | null;
+  activeRouteThreadKey: string | null;
+  newThreadShortcutLabel: string | null;
+  handleNewThread: ReturnType<typeof useNewThreadHandler>;
+  archiveThread: ReturnType<typeof useThreadActions>["archiveThread"];
+  deleteThread: ReturnType<typeof useThreadActions>["deleteThread"];
+  threadJumpLabelByKey: ReadonlyMap<string, string>;
+  attachThreadListAutoAnimateRef: (node: HTMLElement | null) => void;
+  expandThreadListForProject: (projectKey: string) => void;
+  collapseThreadListForProject: (projectKey: string) => void;
+  dragInProgressRef: React.RefObject<boolean>;
+  suppressProjectClickAfterDragRef: React.RefObject<boolean>;
+  suppressProjectClickForContextMenuRef: React.RefObject<boolean>;
+}
+
+const SidebarFolderRow = memo(function SidebarFolderRow(props: SidebarFolderRowProps) {
+  const {
+    view,
+    pinned,
+    onEditFolder,
+    onRemoveFolder,
+    expandedThreadListsByProject,
+    activeRouteProjectKey,
+    activeRouteThreadKey,
+    newThreadShortcutLabel,
+    handleNewThread,
+    archiveThread,
+    deleteThread,
+    threadJumpLabelByKey,
+    attachThreadListAutoAnimateRef,
+    expandThreadListForProject,
+    collapseThreadListForProject,
+    dragInProgressRef,
+    suppressProjectClickAfterDragRef,
+    suppressProjectClickForContextMenuRef,
+  } = props;
+  const folder = view.folder;
+  const folderPreferenceKeys = useMemo(() => [folderExpansionKey(folder.id)], [folder.id]);
+  const folderExpanded = useUiStateStore((state) =>
+    resolveProjectExpanded(state.projectExpandedById, folderPreferenceKeys),
+  );
+  const setProjectExpanded = useUiStateStore((state) => state.setProjectExpanded);
+  const setFolderPinned = useUiStateStore((state) => state.setFolderPinned);
+  const setProjectsArchived = useUiStateStore((state) => state.setProjectsArchived);
+  const toggleFolderExpanded = useCallback(() => {
+    setProjectExpanded(folderPreferenceKeys, !folderExpanded);
+  }, [folderExpanded, folderPreferenceKeys, setProjectExpanded]);
+  const handleArchiveProjects = useCallback(() => {
+    if (view.projects.length === 0) {
+      return;
+    }
+    setProjectsArchived(view.projects.flatMap(projectPinPreferenceKeys), true);
+    toastManager.add({
+      type: "success",
+      title: `Archived ${view.projects.length} project${view.projects.length === 1 ? "" : "s"}`,
+    });
+  }, [setProjectsArchived, view.projects]);
+
+  return (
+    <SidebarMenuItem className="rounded-md">
+      <div className="group/folder-header relative">
+        <SidebarMenuButton
+          size="sm"
+          className="cursor-pointer gap-2 px-2 py-1.5 pr-8 text-left hover:bg-accent group-hover/folder-header:bg-accent group-hover/folder-header:text-sidebar-accent-foreground"
+          data-testid="sidebar-folder-row"
+          onClick={toggleFolderExpanded}
+        >
+          <ChevronRightIcon
+            className={`-ml-0.5 size-3.5 shrink-0 text-muted-foreground/70 transition-transform duration-150 ${
+              folderExpanded ? "rotate-90" : ""
+            }`}
+          />
+          <SidebarFolderGlyph
+            className="size-3.5 shrink-0 text-muted-foreground/80"
+            color={folder.color}
+            icon={folder.icon}
+          />
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            <span className="truncate text-xs font-medium text-foreground/90">{folder.name}</span>
+            {view.projects.length > 0 ? (
+              <span className="shrink-0 text-[10px] text-muted-foreground/60">
+                {view.projects.length}
+              </span>
+            ) : null}
+          </span>
+        </SidebarMenuButton>
+        <Menu>
+          <MenuTrigger
+            render={
+              <button
+                type="button"
+                aria-label={`Open folder menu for ${folder.name}`}
+                className={`${SIDEBAR_ICON_ACTION_BUTTON_CLASS} pointer-events-none absolute top-[calc(50%+1px)] right-1 -translate-y-1/2 opacity-0 transition-opacity duration-150 max-sm:pointer-events-auto max-sm:opacity-100 group-hover/folder-header:pointer-events-auto group-hover/folder-header:opacity-100 group-focus-within/folder-header:pointer-events-auto group-focus-within/folder-header:opacity-100`}
+              />
+            }
+          >
+            <EllipsisIcon className="size-3.5" />
+          </MenuTrigger>
+          <MenuPopup align="end" className="min-w-58" side="bottom">
+            <MenuItem onClick={() => setFolderPinned(folder.id, !pinned)}>
+              <PinIcon className="size-4" />
+              {pinned ? "Unpin folder" : "Pin folder"}
+            </MenuItem>
+            <MenuSeparator />
+            <MenuItem onClick={() => onEditFolder(folder)}>
+              <SquarePenIcon className="size-4" />
+              Edit details
+            </MenuItem>
+            <MenuItem disabled={view.projects.length === 0} onClick={handleArchiveProjects}>
+              <ArchiveIcon className="size-4" />
+              Archive projects
+            </MenuItem>
+            <MenuSeparator />
+            <MenuItem
+              variant="destructive"
+              onClick={() => onRemoveFolder({ folder, projects: view.projects })}
+            >
+              <TriangleAlertIcon className="size-4" />
+              Remove folder
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </div>
+      {folderExpanded ? (
+        <SidebarMenuSub className="my-0 mr-0.5 ml-3 w-[calc(100%-0.75rem)] translate-x-0 gap-0.5 px-1 py-0 sm:mr-1 sm:ml-3 sm:px-1.5">
+          {view.projects.length === 0 ? (
+            <SidebarMenuSubItem className="w-full">
+              <div className="flex h-6 w-full items-center px-2 text-left text-[10px] text-muted-foreground/60">
+                <span>No projects yet</span>
+              </div>
+            </SidebarMenuSubItem>
+          ) : (
+            view.projects.map((project) => (
+              <SidebarProjectListRow
+                key={project.projectKey}
+                project={project}
+                isThreadListExpanded={expandedThreadListsByProject.has(project.projectKey)}
+                activeRouteThreadKey={
+                  activeRouteProjectKey === project.projectKey ? activeRouteThreadKey : null
+                }
+                newThreadShortcutLabel={newThreadShortcutLabel}
+                handleNewThread={handleNewThread}
+                archiveThread={archiveThread}
+                deleteThread={deleteThread}
+                threadJumpLabelByKey={threadJumpLabelByKey}
+                attachThreadListAutoAnimateRef={attachThreadListAutoAnimateRef}
+                expandThreadListForProject={expandThreadListForProject}
+                collapseThreadListForProject={collapseThreadListForProject}
+                dragInProgressRef={dragInProgressRef}
+                suppressProjectClickAfterDragRef={suppressProjectClickAfterDragRef}
+                suppressProjectClickForContextMenuRef={suppressProjectClickForContextMenuRef}
+                isManualProjectSorting={false}
+                dragHandleProps={null}
+              />
+            ))
+          )}
+        </SidebarMenuSub>
+      ) : null}
+    </SidebarMenuItem>
+  );
+});
+
+const SidebarArchivedProjectsGroup = memo(function SidebarArchivedProjectsGroup(props: {
+  projects: readonly SidebarProjectSnapshot[];
+}) {
+  const { projects } = props;
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
+  const setProjectsArchived = useUiStateStore((state) => state.setProjectsArchived);
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-1.5 pl-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+        data-testid="sidebar-archived-projects-toggle"
+        onClick={() => setArchivedExpanded((current) => !current)}
+      >
+        <ChevronRightIcon
+          className={`size-3 transition-transform duration-150 ${archivedExpanded ? "rotate-90" : ""}`}
+        />
+        <span>Archived</span>
+        <span className="text-muted-foreground/40">{projects.length}</span>
+      </button>
+      {archivedExpanded ? (
+        <SidebarMenu className="mt-0.5">
+          {projects.map((project) => (
+            <SidebarMenuItem key={project.projectKey} className="rounded-md">
+              <div className="group/archived-project relative flex items-center gap-2 rounded-md px-2 py-1.5 pr-8">
+                <ProjectFavicon
+                  className="opacity-60"
+                  cwd={project.workspaceRoot}
+                  environmentId={project.environmentId}
+                />
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  {project.displayName}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        aria-label={`Unarchive ${project.displayName}`}
+                        className={`${SIDEBAR_ICON_ACTION_BUTTON_CLASS} absolute top-1/2 right-1 -translate-y-1/2 opacity-0 transition-opacity duration-150 max-sm:opacity-100 group-hover/archived-project:opacity-100 group-focus-within/archived-project:opacity-100`}
+                        onClick={() =>
+                          setProjectsArchived(projectPinPreferenceKeys(project), false)
+                        }
+                      />
+                    }
+                  >
+                    <ArchiveRestoreIcon className="size-3.5" />
+                  </TooltipTrigger>
+                  <TooltipPopup side="top">Unarchive project</TooltipPopup>
+                </Tooltip>
+              </div>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      ) : null}
+    </div>
+  );
+});
+
 interface SidebarPinnedSectionProps {
+  folders: readonly SidebarFolderView[];
+  onEditFolder: (folder: SidebarProjectFolder) => void;
+  onRemoveFolder: (target: SidebarRemoveFolderTarget) => void;
   projects: readonly SidebarProjectSnapshot[];
   threads: readonly SidebarThreadSummary[];
   activeRouteProjectKey: string | null;
@@ -1687,6 +1927,9 @@ interface SidebarPinnedSectionProps {
 
 const SidebarPinnedSection = memo(function SidebarPinnedSection(props: SidebarPinnedSectionProps) {
   const {
+    folders,
+    onEditFolder,
+    onRemoveFolder,
     projects,
     threads,
     activeRouteProjectKey,
@@ -1707,7 +1950,7 @@ const SidebarPinnedSection = memo(function SidebarPinnedSection(props: SidebarPi
     suppressProjectClickForContextMenuRef,
   } = props;
 
-  if (projects.length === 0 && threads.length === 0) {
+  if (projects.length === 0 && threads.length === 0 && folders.length === 0) {
     return null;
   }
 
@@ -1718,6 +1961,33 @@ const SidebarPinnedSection = memo(function SidebarPinnedSection(props: SidebarPi
           Pinned
         </span>
       </div>
+      {folders.length > 0 ? (
+        <SidebarMenu className="gap-0.5">
+          {folders.map((view) => (
+            <SidebarFolderRow
+              key={view.folder.id}
+              view={view}
+              pinned
+              onEditFolder={onEditFolder}
+              onRemoveFolder={onRemoveFolder}
+              expandedThreadListsByProject={expandedThreadListsByProject}
+              activeRouteProjectKey={activeRouteProjectKey}
+              activeRouteThreadKey={activeRouteThreadKey}
+              newThreadShortcutLabel={newThreadShortcutLabel}
+              handleNewThread={handleNewThread}
+              archiveThread={archiveThread}
+              deleteThread={deleteThread}
+              threadJumpLabelByKey={threadJumpLabelByKey}
+              attachThreadListAutoAnimateRef={attachThreadListAutoAnimateRef}
+              expandThreadListForProject={expandThreadListForProject}
+              collapseThreadListForProject={collapseThreadListForProject}
+              dragInProgressRef={dragInProgressRef}
+              suppressProjectClickAfterDragRef={suppressProjectClickAfterDragRef}
+              suppressProjectClickForContextMenuRef={suppressProjectClickForContextMenuRef}
+            />
+          ))}
+        </SidebarMenu>
+      ) : null}
       {projects.length > 0 ? (
         <SidebarMenu ref={attachProjectListAutoAnimateRef} className="gap-0.5">
           {projects.map((project) => (
@@ -1842,6 +2112,12 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
   const toggleProjectPinned = useCallback(() => {
     setProjectPinned(projectPinKeys, !projectPinned);
   }, [projectPinKeys, projectPinned, setProjectPinned]);
+  const projectFolders = useUiStateStore((state) => state.projectFolders);
+  const setProjectFolderMembership = useUiStateStore((state) => state.setProjectFolderMembership);
+  const projectFolderId = useMemo(
+    () => resolveProjectFolderId(projectFolders, projectPinKeys),
+    [projectFolders, projectPinKeys],
+  );
   const threadLastVisitedAts = useUiStateStore(
     useShallow((state) =>
       projectThreads.map(
@@ -2717,6 +2993,40 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
               icon: SquarePenIcon,
               onSelect: openProjectRenameDialog,
             })}
+            {projectFolders.length > 0 ? (
+              <MenuSub>
+                <MenuSubTrigger>
+                  <FolderInputIcon className="size-4" />
+                  Move to folder
+                </MenuSubTrigger>
+                <MenuSubPopup className="min-w-52">
+                  {projectFolders.map((folder) => (
+                    <MenuItem
+                      key={folder.id}
+                      onClick={() => setProjectFolderMembership(projectPinKeys, folder.id)}
+                    >
+                      <SidebarFolderGlyph
+                        className="size-4"
+                        color={folder.color}
+                        icon={folder.icon}
+                      />
+                      <span className="min-w-0 flex-1 truncate">{folder.name}</span>
+                      {folder.id === projectFolderId ? (
+                        <CheckIcon className="size-3.5 text-muted-foreground" />
+                      ) : null}
+                    </MenuItem>
+                  ))}
+                  {projectFolderId !== null ? (
+                    <>
+                      <MenuSeparator />
+                      <MenuItem onClick={() => setProjectFolderMembership(projectPinKeys, null)}>
+                        Remove from folder
+                      </MenuItem>
+                    </>
+                  ) : null}
+                </MenuSubPopup>
+              </MenuSub>
+            ) : null}
             {renderTargetedProjectMenuAction({
               key: "reveal",
               label: "Reveal in Finder",
@@ -3409,6 +3719,9 @@ interface SidebarProjectsContentProps {
   pinnedThreads: readonly SidebarThreadSummary[];
   chatThreads: readonly SidebarThreadSummary[];
   projectListProjects: readonly SidebarProjectSnapshot[];
+  folders: readonly SidebarFolderView[];
+  pinnedFolders: readonly SidebarFolderView[];
+  archivedProjects: readonly SidebarProjectSnapshot[];
   expandedThreadListsByProject: ReadonlySet<string>;
   activeRouteProjectKey: string | null;
   routeThreadKey: string | null;
@@ -3455,6 +3768,9 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
     pinnedThreads,
     chatThreads,
     projectListProjects,
+    folders,
+    pinnedFolders,
+    archivedProjects,
     expandedThreadListsByProject,
     activeRouteProjectKey,
     routeThreadKey,
@@ -3495,6 +3811,94 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
       updateSettings({ sidebarThreadPreviewCount: count });
     },
     [updateSettings],
+  );
+
+  const addProjectFolder = useUiStateStore((state) => state.addProjectFolder);
+  const updateProjectFolder = useUiStateStore((state) => state.updateProjectFolder);
+  const removeProjectFolder = useUiStateStore((state) => state.removeProjectFolder);
+  const deleteProject = useAtomCommand(projectEnvironment.delete, {
+    reportFailure: false,
+  });
+  const [folderDetailsTarget, setFolderDetailsTarget] = useState<SidebarProjectFolder | null>(null);
+  const [removeFolderTarget, setRemoveFolderTarget] = useState<SidebarRemoveFolderTarget | null>(
+    null,
+  );
+
+  const handleAddFolder = useCallback(() => {
+    const folder: SidebarProjectFolder = {
+      id: randomUUID(),
+      name: "New folder",
+      icon: "folder",
+      color: "default",
+      projectKeys: [],
+    };
+    addProjectFolder(folder);
+    setFolderDetailsTarget(folder);
+  }, [addProjectFolder]);
+
+  const handleEditFolder = useCallback((folder: SidebarProjectFolder) => {
+    setFolderDetailsTarget(folder);
+  }, []);
+
+  const handleSaveFolderDetails = useCallback(
+    (folderId: string, patch: { name: string; icon: string; color: string }) => {
+      updateProjectFolder(folderId, patch);
+    },
+    [updateProjectFolder],
+  );
+
+  const handleRemoveFolderRequest = useCallback((target: SidebarRemoveFolderTarget) => {
+    setRemoveFolderTarget(target);
+  }, []);
+
+  const handleRemoveFolderOnly = useCallback(
+    (folder: SidebarProjectFolder) => {
+      removeProjectFolder(folder.id);
+    },
+    [removeProjectFolder],
+  );
+
+  const handleRemoveFolderAndProjects = useCallback(
+    (target: SidebarRemoveFolderTarget) => {
+      void (async () => {
+        const members = target.projects.flatMap((project) => project.memberProjects);
+        const failedTitles: string[] = [];
+        for (const member of members) {
+          const result = await deleteProject({
+            environmentId: member.environmentId,
+            input: {
+              projectId: member.id,
+              force: true,
+            },
+          });
+          if (result._tag === "Failure") {
+            if (!isAtomCommandInterrupted(result)) {
+              failedTitles.push(member.title);
+            }
+            continue;
+          }
+          const memberProjectRef = scopeProjectRef(member.environmentId, member.id);
+          const draftStore = useComposerDraftStore.getState();
+          const projectDraftThread = draftStore.getDraftThreadByProjectRef(memberProjectRef);
+          if (projectDraftThread) {
+            draftStore.clearDraftThread(projectDraftThread.draftId);
+          }
+          draftStore.clearProjectDraftThreadId(memberProjectRef);
+        }
+        if (failedTitles.length > 0) {
+          toastManager.add(
+            stackedThreadToast({
+              type: "error",
+              title: "Could not remove some projects",
+              description: `Failed to remove ${failedTitles.join(", ")}. The folder was kept.`,
+            }),
+          );
+          return;
+        }
+        removeProjectFolder(target.folder.id);
+      })();
+    },
+    [deleteProject, removeProjectFolder],
   );
 
   return (
@@ -3562,6 +3966,9 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
         </SidebarGroup>
       ) : null}
       <SidebarPinnedSection
+        folders={pinnedFolders}
+        onEditFolder={handleEditFolder}
+        onRemoveFolder={handleRemoveFolderRequest}
         projects={pinnedProjects}
         threads={pinnedThreads}
         activeRouteProjectKey={activeRouteProjectKey}
@@ -3607,26 +4014,64 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
               onProjectGroupingModeChange={handleProjectGroupingModeChange}
               onThreadPreviewCountChange={handleThreadPreviewCountChange}
             />
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    aria-label="Add project"
-                    data-testid="sidebar-add-project-trigger"
-                    className="inline-flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-md px-[calc(--spacing(1)-1px)] text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
-                    onClick={openAddProject}
-                  />
-                }
-              >
-                <FolderPlusIcon className="size-3.5" />
-              </TooltipTrigger>
-              <TooltipPopup side="right">Add project</TooltipPopup>
-            </Tooltip>
+            <Menu>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <MenuTrigger
+                      aria-label="Add project or folder"
+                      data-testid="sidebar-add-project-trigger"
+                      className="inline-flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-md px-[calc(--spacing(1)-1px)] text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+                    />
+                  }
+                >
+                  <PlusIcon className="size-3.5" />
+                </TooltipTrigger>
+                <TooltipPopup side="right">Add project or folder</TooltipPopup>
+              </Tooltip>
+              <MenuPopup align="end" className="min-w-44" side="bottom">
+                <MenuItem data-testid="sidebar-add-project-menu-item" onClick={openAddProject}>
+                  <FolderPlusIcon className="size-4" />
+                  Add project
+                </MenuItem>
+                <MenuItem data-testid="sidebar-add-folder-menu-item" onClick={handleAddFolder}>
+                  <FoldersIcon className="size-4" />
+                  Add folder
+                </MenuItem>
+              </MenuPopup>
+            </Menu>
           </div>
         </div>
 
-        {projectListProjects.length === 0 ? (
+        {folders.length > 0 ? (
+          <SidebarMenu className="mb-0.5 gap-0.5">
+            {folders.map((view) => (
+              <SidebarFolderRow
+                key={view.folder.id}
+                view={view}
+                pinned={false}
+                onEditFolder={handleEditFolder}
+                onRemoveFolder={handleRemoveFolderRequest}
+                expandedThreadListsByProject={expandedThreadListsByProject}
+                activeRouteProjectKey={activeRouteProjectKey}
+                activeRouteThreadKey={routeThreadKey}
+                newThreadShortcutLabel={newThreadShortcutLabel}
+                handleNewThread={handleNewThread}
+                archiveThread={archiveThread}
+                deleteThread={deleteThread}
+                threadJumpLabelByKey={threadJumpLabelByKey}
+                attachThreadListAutoAnimateRef={attachThreadListAutoAnimateRef}
+                expandThreadListForProject={expandThreadListForProject}
+                collapseThreadListForProject={collapseThreadListForProject}
+                dragInProgressRef={dragInProgressRef}
+                suppressProjectClickAfterDragRef={suppressProjectClickAfterDragRef}
+                suppressProjectClickForContextMenuRef={suppressProjectClickForContextMenuRef}
+              />
+            ))}
+          </SidebarMenu>
+        ) : null}
+
+        {projectListProjects.length === 0 && folders.length === 0 ? (
           <SidebarMenu className="mt-1">
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -3712,7 +4157,31 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
             ))}
           </SidebarMenu>
         )}
+
+        {archivedProjects.length > 0 ? (
+          <SidebarArchivedProjectsGroup projects={archivedProjects} />
+        ) : null}
       </SidebarGroup>
+
+      <SidebarFolderDetailsSheet
+        folder={folderDetailsTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFolderDetailsTarget(null);
+          }
+        }}
+        onSave={handleSaveFolderDetails}
+      />
+      <SidebarRemoveFolderDialog
+        target={removeFolderTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRemoveFolderTarget(null);
+          }
+        }}
+        onRemoveFolderOnly={handleRemoveFolderOnly}
+        onRemoveFolderAndProjects={handleRemoveFolderAndProjects}
+      />
     </SidebarContent>
   );
 });
@@ -3723,6 +4192,9 @@ export default function Sidebar() {
   const projectExpandedById = useUiStateStore((store) => store.projectExpandedById);
   const projectOrder = useUiStateStore((store) => store.projectOrder);
   const pinnedProjectIds = useUiStateStore((store) => store.pinnedProjectIds);
+  const projectFolders = useUiStateStore((store) => store.projectFolders);
+  const pinnedFolderIds = useUiStateStore((store) => store.pinnedFolderIds);
+  const archivedProjectKeys = useUiStateStore((store) => store.archivedProjectKeys);
   const reorderProjects = useUiStateStore((store) => store.reorderProjects);
   const navigate = useNavigate();
   const pathname = useLocation({ select: (loc) => loc.pathname });
@@ -4078,13 +4550,49 @@ export default function Sidebar() {
       resolveProjectPinned(pinnedProjectIds, projectPinPreferenceKeys(project)),
     [pinnedProjectIds],
   );
+  const isSidebarProjectArchived = useCallback(
+    (project: SidebarProjectSnapshot) =>
+      resolveProjectArchived(archivedProjectKeys, projectPinPreferenceKeys(project)),
+    [archivedProjectKeys],
+  );
+  const visibleSortedProjects = useMemo(
+    () => sortedProjects.filter((project) => !isSidebarProjectArchived(project)),
+    [isSidebarProjectArchived, sortedProjects],
+  );
+  const archivedProjects = useMemo(
+    () => sortedProjects.filter(isSidebarProjectArchived),
+    [isSidebarProjectArchived, sortedProjects],
+  );
   const pinnedProjects = useMemo(
-    () => sortedProjects.filter(isSidebarProjectPinned),
-    [isSidebarProjectPinned, sortedProjects],
+    () => visibleSortedProjects.filter(isSidebarProjectPinned),
+    [isSidebarProjectPinned, visibleSortedProjects],
+  );
+  // Folder views are built from unpinned projects only: an individually
+  // pinned project shows in the Pinned section instead of inside its folder.
+  const { folderViews, folderedProjectKeys } = useMemo(
+    () =>
+      buildSidebarFolderViews({
+        folders: projectFolders,
+        projects: visibleSortedProjects.filter((project) => !isSidebarProjectPinned(project)),
+      }),
+    [isSidebarProjectPinned, projectFolders, visibleSortedProjects],
+  );
+  const pinnedFolderIdSet = useMemo(() => new Set(pinnedFolderIds), [pinnedFolderIds]);
+  const pinnedFolders = useMemo(
+    () => folderViews.filter((view) => pinnedFolderIdSet.has(view.folder.id)),
+    [folderViews, pinnedFolderIdSet],
+  );
+  const listFolders = useMemo(
+    () => folderViews.filter((view) => !pinnedFolderIdSet.has(view.folder.id)),
+    [folderViews, pinnedFolderIdSet],
   );
   const projectListProjects = useMemo(
-    () => sortedProjects.filter((project) => !isSidebarProjectPinned(project)),
-    [isSidebarProjectPinned, sortedProjects],
+    () =>
+      visibleSortedProjects.filter(
+        (project) =>
+          !isSidebarProjectPinned(project) && !folderedProjectKeys.has(project.projectKey),
+      ),
+    [folderedProjectKeys, isSidebarProjectPinned, visibleSortedProjects],
   );
   const isManualProjectSorting = sidebarProjectSortOrder === "manual";
   const visibleSidebarThreadKeys = useMemo(() => {
@@ -4122,10 +4630,18 @@ export default function Sidebar() {
         const renderedThreads = pinnedCollapsedThread ? [pinnedCollapsedThread] : previewThreads;
         return renderedThreads.map(getSidebarThreadKey);
       });
+    const getExpandedFolderProjects = (views: readonly SidebarFolderView[]) =>
+      views.flatMap((view) =>
+        resolveProjectExpanded(projectExpandedById, [folderExpansionKey(view.folder.id)])
+          ? view.projects
+          : [],
+      );
     return [
+      ...getProjectThreadKeys(getExpandedFolderProjects(pinnedFolders)),
       ...getProjectThreadKeys(pinnedProjects),
       ...pinnedThreads.map(getSidebarThreadKey),
       ...chatThreads.map(getSidebarThreadKey),
+      ...getProjectThreadKeys(getExpandedFolderProjects(listFolders)),
       ...getProjectThreadKeys(projectListProjects),
     ];
   }, [
@@ -4133,6 +4649,8 @@ export default function Sidebar() {
     sidebarThreadSortOrder,
     sidebarThreadPreviewCount,
     expandedThreadListsByProject,
+    listFolders,
+    pinnedFolders,
     pinnedProjects,
     pinnedThreads,
     projectListProjects,
@@ -4437,6 +4955,9 @@ export default function Sidebar() {
                   pinnedThreads={pinnedThreads}
                   chatThreads={chatThreads}
                   projectListProjects={projectListProjects}
+                  folders={listFolders}
+                  pinnedFolders={pinnedFolders}
+                  archivedProjects={archivedProjects}
                   expandedThreadListsByProject={expandedThreadListsByProject}
                   activeRouteProjectKey={activeRouteProjectKey}
                   routeThreadKey={routeThreadKey}

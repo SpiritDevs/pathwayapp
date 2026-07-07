@@ -2,6 +2,7 @@ import { ProjectId, ThreadId } from "@pathwayos/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import {
+  addProjectFolder,
   legacyProjectCwdPreferenceKey,
   markThreadUnread,
   markThreadVisited,
@@ -9,14 +10,22 @@ import {
   PERSISTED_STATE_KEY,
   type PersistedUiState,
   persistState,
+  removeProjectFolder,
   reorderProjects,
+  resolveProjectArchived,
   resolveProjectExpanded,
+  resolveProjectFolderId,
   resolveProjectPinned,
   setDefaultAdvertisedEndpointKey,
+  setFolderPinned,
   setProjectExpanded,
+  setProjectFolderMembership,
   setProjectPinned,
+  setProjectsArchived,
   setThreadChangedFilesExpanded,
+  type SidebarProjectFolder,
   type UiState,
+  updateProjectFolder,
 } from "./uiStateStore";
 
 function makeUiState(overrides: Partial<UiState> = {}): UiState {
@@ -24,9 +33,23 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     projectExpandedById: {},
     projectOrder: [],
     pinnedProjectIds: [],
+    projectFolders: [],
+    pinnedFolderIds: [],
+    archivedProjectKeys: [],
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
     defaultAdvertisedEndpointKey: null,
+    ...overrides,
+  };
+}
+
+function makeFolder(overrides: Partial<SidebarProjectFolder> = {}): SidebarProjectFolder {
+  return {
+    id: "folder-1",
+    name: "Client work",
+    icon: "folder",
+    color: "default",
+    projectKeys: [],
     ...overrides,
   };
 }
@@ -100,6 +123,78 @@ describe("uiStateStore pure functions", () => {
     expect(resolveProjectPinned(unpinned.pinnedProjectIds, [keys[0]!])).toBe(false);
   });
 
+  it("adds, updates, and removes project folders", () => {
+    const added = addProjectFolder(makeUiState(), makeFolder({ projectKeys: ["stale-key"] }));
+
+    expect(added.projectFolders).toEqual([makeFolder()]);
+    expect(addProjectFolder(added, makeFolder({ name: "Duplicate" }))).toBe(added);
+
+    const updated = updateProjectFolder(added, "folder-1", {
+      name: "  Renamed  ",
+      icon: "rocket",
+      color: "blue",
+    });
+
+    expect(updated.projectFolders).toEqual([
+      makeFolder({ name: "Renamed", icon: "rocket", color: "blue" }),
+    ]);
+    expect(updateProjectFolder(updated, "folder-1", { name: "   " })).toBe(updated);
+    expect(updateProjectFolder(updated, "missing", { name: "Nope" })).toBe(updated);
+
+    const pinned = setFolderPinned(updated, "folder-1", true);
+    const removed = removeProjectFolder(pinned, "folder-1");
+
+    expect(removed.projectFolders).toEqual([]);
+    expect(removed.pinnedFolderIds).toEqual([]);
+    expect(removeProjectFolder(removed, "folder-1")).toBe(removed);
+  });
+
+  it("moves projects between folders with every stable key", () => {
+    const keys = ["logical", "environment-a:/repo", "environment-b:/repo"];
+    const twoFolders = addProjectFolder(
+      addProjectFolder(makeUiState(), makeFolder()),
+      makeFolder({ id: "folder-2", name: "Archive-ready" }),
+    );
+
+    const inFirst = setProjectFolderMembership(twoFolders, keys, "folder-1");
+
+    expect(resolveProjectFolderId(inFirst.projectFolders, ["missing", keys[1]!])).toBe("folder-1");
+    expect(setProjectFolderMembership(inFirst, keys, "folder-1")).toBe(inFirst);
+
+    const inSecond = setProjectFolderMembership(inFirst, keys, "folder-2");
+
+    expect(resolveProjectFolderId(inSecond.projectFolders, keys)).toBe("folder-2");
+    expect(inSecond.projectFolders[0]!.projectKeys).toEqual([]);
+
+    const inNone = setProjectFolderMembership(inSecond, keys, null);
+
+    expect(resolveProjectFolderId(inNone.projectFolders, keys)).toBe(null);
+    expect(setProjectFolderMembership(inNone, keys, "missing-folder")).toBe(inNone);
+  });
+
+  it("pins and unpins folders by id", () => {
+    const state = addProjectFolder(makeUiState(), makeFolder());
+    const pinned = setFolderPinned(state, "folder-1", true);
+
+    expect(pinned.pinnedFolderIds).toEqual(["folder-1"]);
+    expect(setFolderPinned(pinned, "folder-1", true)).toBe(pinned);
+    expect(setFolderPinned(pinned, "folder-1", false).pinnedFolderIds).toEqual([]);
+  });
+
+  it("archives and unarchives every stable key belonging to a logical project", () => {
+    const keys = ["logical", "environment-a:/repo", "environment-b:/repo"];
+    const archived = setProjectsArchived(makeUiState(), keys, true);
+
+    expect(archived.archivedProjectKeys).toEqual(keys);
+    expect(resolveProjectArchived(archived.archivedProjectKeys, ["missing", keys[2]!])).toBe(true);
+    expect(setProjectsArchived(archived, keys, true)).toBe(archived);
+
+    const unarchived = setProjectsArchived(archived, keys, false);
+
+    expect(unarchived.archivedProjectKeys).toEqual([]);
+    expect(resolveProjectArchived(unarchived.archivedProjectKeys, keys)).toBe(false);
+  });
+
   it("reorders from the current atom-derived project order", () => {
     const project1 = ProjectId.make("project-1");
     const project2 = ProjectId.make("project-2");
@@ -170,6 +265,20 @@ describe("parsePersistedState", () => {
       },
       projectOrder: ["physical-b", "", "physical-a", "physical-b"],
       pinnedProjectIds: ["logical", "", "logical", "physical-a"],
+      projectFolders: [
+        {
+          id: "folder-1",
+          name: "",
+          icon: "",
+          color: "",
+          projectKeys: ["logical", "", "logical"],
+        },
+        { id: "folder-1", name: "Duplicate" },
+        { id: "" },
+        "not-a-folder",
+      ] as unknown as SidebarProjectFolder[],
+      pinnedFolderIds: ["folder-1", "", "folder-1"],
+      archivedProjectKeys: ["physical-b", "", "physical-b"],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
         invalid: "not-a-date",
@@ -189,6 +298,17 @@ describe("parsePersistedState", () => {
       },
       projectOrder: ["physical-b", "physical-a"],
       pinnedProjectIds: ["logical", "physical-a"],
+      projectFolders: [
+        {
+          id: "folder-1",
+          name: "New folder",
+          icon: "folder",
+          color: "default",
+          projectKeys: ["logical"],
+        },
+      ],
+      pinnedFolderIds: ["folder-1"],
+      archivedProjectKeys: ["physical-b"],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
       },
@@ -297,6 +417,9 @@ describe("uiStateStore persistence", () => {
       },
       projectOrder: ["physical-b", "physical-a"],
       pinnedProjectIds: ["logical"],
+      projectFolders: [],
+      pinnedFolderIds: [],
+      archivedProjectKeys: [],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
       },
