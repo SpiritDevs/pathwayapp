@@ -10,6 +10,7 @@ import * as PlatformError from "effect/PlatformError";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
+import { saveProjectIcon } from "../project/ProjectIconStore.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import { ASSET_ROUTE_PREFIX, issueAssetUrl, resolveAsset } from "./AssetAccess.ts";
 
@@ -236,6 +237,36 @@ describe("AssetAccess", () => {
           fallbackSuffix.slice(fallbackSeparatorIndex + 1),
         ),
       ).toEqual({ kind: "project-favicon-fallback" });
+    }).pipe(Effect.provide(testLayer)),
+  );
+
+  it.effect("prefers a stored custom project icon over workspace favicon discovery", () =>
+    Effect.gen(function* () {
+      const config = yield* ServerConfig.ServerConfig;
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "pathwayos-asset-custom-icon-",
+      });
+      yield* fileSystem.writeFileString(path.join(root, "favicon.svg"), "<svg />");
+
+      const pngBytes = new Uint8Array([137, 80, 78, 71]);
+      const saved = yield* saveProjectIcon({
+        projectIconsDir: config.projectIconsDir,
+        workspaceRoot: path.resolve(root),
+        fileName: "logo.png",
+        dataUrl: `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`,
+        maxBytes: 1024,
+      });
+
+      const result = yield* issueAssetUrl({
+        resource: { _tag: "project-favicon", cwd: root },
+      });
+      const suffix = result.relativeUrl.slice(`${ASSET_ROUTE_PREFIX}/`.length);
+      const separatorIndex = suffix.indexOf("/");
+      expect(
+        yield* resolveAsset(suffix.slice(0, separatorIndex), suffix.slice(separatorIndex + 1)),
+      ).toEqual({ kind: "file", path: saved.iconPath });
     }).pipe(Effect.provide(testLayer)),
   );
 

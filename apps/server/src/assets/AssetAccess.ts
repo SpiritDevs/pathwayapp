@@ -37,6 +37,7 @@ import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import { resolveAttachmentPathById } from "../attachmentStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
+import { resolveProjectIconPath } from "../project/ProjectIconStore.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 
 export const ASSET_ROUTE_PREFIX = "/api/assets";
@@ -82,6 +83,12 @@ const AssetClaimsSchema = Schema.Union([
     kind: Schema.Literal("project-favicon"),
     workspaceRoot: Schema.String,
     relativePath: Schema.NullOr(Schema.String),
+    expiresAt: Schema.Number,
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    kind: Schema.Literal("project-icon"),
+    workspaceRoot: Schema.String,
     expiresAt: Schema.Number,
   }),
 ]);
@@ -284,6 +291,21 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
             }),
         ),
       );
+      const config = yield* ServerConfig.ServerConfig;
+      const customIconPath = resolveProjectIconPath({
+        projectIconsDir: config.projectIconsDir,
+        workspaceRoot,
+      });
+      if (customIconPath) {
+        claims = {
+          version: 1,
+          kind: "project-icon",
+          workspaceRoot,
+          expiresAt,
+        };
+        fileName = path.basename(customIconPath);
+        break;
+      }
       const faviconResolver = yield* ProjectFaviconResolver.ProjectFaviconResolver;
       const faviconPath = yield* faviconResolver.resolvePath(workspaceRoot).pipe(
         Effect.mapError(
@@ -387,6 +409,29 @@ export const resolveAsset = Effect.fn("AssetAccess.resolveAsset")(function* (
     );
     return Option.isSome(info) && info.value.type === "File"
       ? ({ kind: "file", path: attachmentPath } satisfies ResolvedAsset)
+      : null;
+  }
+
+  if (claims.kind === "project-icon") {
+    const config = yield* ServerConfig.ServerConfig;
+    const iconPath = resolveProjectIconPath({
+      projectIconsDir: config.projectIconsDir,
+      workspaceRoot: claims.workspaceRoot,
+    });
+    if (!iconPath) return null;
+    const fileSystem = yield* FileSystem.FileSystem;
+    const info = yield* optionOnNotFound(fileSystem.stat(iconPath)).pipe(
+      Effect.tapError((cause) =>
+        Effect.logError("Failed to inspect project icon asset.", {
+          workspaceRoot: claims.workspaceRoot,
+          path: iconPath,
+          cause,
+        }),
+      ),
+      Effect.orElseSucceed(() => Option.none()),
+    );
+    return Option.isSome(info) && info.value.type === "File"
+      ? ({ kind: "file", path: iconPath } satisfies ResolvedAsset)
       : null;
   }
 

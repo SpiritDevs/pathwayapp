@@ -37,9 +37,11 @@ import {
   type ProjectEntriesFailure,
   type ProjectFileFailure,
   type ProjectFileOperation,
+  PROJECT_ICON_MAX_BYTES,
   ProjectListEntriesError,
   ProjectReadFileError,
   ProjectSearchEntriesError,
+  ProjectSetIconError,
   ProjectWriteFileError,
   RelayClientInstallFailedError,
   type RelayClientInstallProgressEvent,
@@ -82,6 +84,7 @@ import * as TerminalManager from "./terminal/Manager.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
+import { saveProjectIcon } from "./project/ProjectIconStore.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as WorkspaceEntries from "./workspace/WorkspaceEntries.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
@@ -302,6 +305,7 @@ const RPC_REQUIRED_SCOPE = new Map<string, AuthEnvironmentScope>([
   [WS_METHODS.projectsListEntries, AuthOrchestrationReadScope],
   [WS_METHODS.projectsReadFile, AuthOrchestrationReadScope],
   [WS_METHODS.projectsSearchEntries, AuthOrchestrationReadScope],
+  [WS_METHODS.projectsSetIcon, AuthOrchestrationOperateScope],
   [WS_METHODS.projectsWriteFile, AuthOrchestrationOperateScope],
   [WS_METHODS.shellOpenInEditor, AuthOrchestrationOperateScope],
   [WS_METHODS.filesystemBrowse, AuthOrchestrationReadScope],
@@ -1383,6 +1387,49 @@ const makeWsRpcLayer = (
                   }),
               ),
             ),
+            { "rpc.aggregate": "workspace" },
+          ),
+        [WS_METHODS.projectsSetIcon]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.projectsSetIcon,
+            Effect.gen(function* () {
+              const config = yield* ServerConfig.ServerConfig;
+              const workspacePaths = yield* WorkspacePaths.WorkspacePaths;
+              const workspaceRoot = yield* workspacePaths.normalizeWorkspaceRoot(input.cwd).pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ProjectSetIconError({
+                      cwd: input.cwd,
+                      failure: "workspace_root_not_found",
+                      cause,
+                    }),
+                ),
+              );
+              yield* saveProjectIcon({
+                projectIconsDir: config.projectIconsDir,
+                workspaceRoot,
+                fileName: input.fileName,
+                dataUrl: input.dataUrl,
+                maxBytes: PROJECT_ICON_MAX_BYTES,
+              }).pipe(
+                Effect.catchTags({
+                  ProjectIconInvalidImageError: (cause) =>
+                    new ProjectSetIconError({
+                      cwd: input.cwd,
+                      failure: "invalid_image",
+                      message: cause.message,
+                      cause,
+                    }),
+                  ProjectIconWriteError: (cause) =>
+                    new ProjectSetIconError({
+                      cwd: input.cwd,
+                      failure: "operation_failed",
+                      cause,
+                    }),
+                }),
+              );
+              return { cwd: input.cwd };
+            }),
             { "rpc.aggregate": "workspace" },
           ),
         [WS_METHODS.shellOpenInEditor]: (input) =>

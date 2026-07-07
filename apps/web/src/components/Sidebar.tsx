@@ -58,6 +58,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   type ContextMenuItem,
   DEFAULT_SERVER_SETTINGS,
+  PROJECT_ICON_MAX_BYTES,
   ProjectId,
   type ScopedThreadRef,
   type ResolvedKeybindingsConfig,
@@ -138,6 +139,9 @@ import {
   isEmailSurfacePathname,
   shouldShowSecondarySidebar,
 } from "../appNavRoutes";
+import { assetEnvironment } from "../state/assets";
+import { appAtomRegistry } from "../rpc/atomRegistry";
+import { readFileAsDataUrl } from "./ChatView.logic";
 import { projectEnvironment } from "../state/projects";
 import { useEnvironmentQuery } from "../state/query";
 import { threadEnvironment, useEnvironmentThread } from "../state/threads";
@@ -1806,6 +1810,9 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
   const updateProject = useAtomCommand(projectEnvironment.update, {
     reportFailure: false,
   });
+  const setProjectIcon = useAtomCommand(projectEnvironment.setIcon, {
+    reportFailure: false,
+  });
   const sidebarThreadPreviewCount = useClientSettings<SidebarThreadPreviewCount>(
     (settings) => settings.sidebarThreadPreviewCount,
   );
@@ -2527,6 +2534,58 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
     }
   }, []);
 
+  const submitProjectIcon = useCallback(
+    async (file: File) => {
+      if (!projectRenameTarget) {
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        toastManager.add({
+          type: "warning",
+          title: "Project icon must be an image",
+        });
+        return;
+      }
+      if (file.size > PROJECT_ICON_MAX_BYTES) {
+        toastManager.add({
+          type: "warning",
+          title: "Project icon is too large",
+          description: `Choose an image up to ${Math.floor(PROJECT_ICON_MAX_BYTES / (1024 * 1024))}MB.`,
+        });
+        return;
+      }
+
+      const { environmentId, workspaceRoot } = projectRenameTarget;
+      const dataUrl = await readFileAsDataUrl(file);
+      const result = await setProjectIcon({
+        environmentId,
+        input: {
+          cwd: workspaceRoot,
+          fileName: file.name,
+          dataUrl,
+        },
+      });
+      if (result._tag === "Success") {
+        appAtomRegistry.refresh(
+          assetEnvironment.createUrl({
+            environmentId,
+            input: { resource: { _tag: "project-favicon", cwd: workspaceRoot } },
+          }),
+        );
+      } else if (!isAtomCommandInterrupted(result)) {
+        const error = squashAtomCommandFailure(result);
+        toastManager.add(
+          stackedThreadToast({
+            type: "error",
+            title: "Failed to update project icon",
+            description: error instanceof Error ? error.message : "An error occurred.",
+          }),
+        );
+      }
+    },
+    [projectRenameTarget, setProjectIcon],
+  );
+
   const submitProjectRename = useCallback(async () => {
     if (!projectRenameTarget) {
       return;
@@ -2906,6 +2965,13 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
                         accept="image/*"
                         className="sr-only"
                         type="file"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) {
+                            void submitProjectIcon(file);
+                          }
+                        }}
                       />
                     </label>
                     <div className="min-w-0 flex-1">
