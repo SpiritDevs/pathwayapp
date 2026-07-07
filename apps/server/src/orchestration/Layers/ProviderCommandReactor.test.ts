@@ -466,6 +466,54 @@ describe("ProviderCommandReactor", () => {
     expect(thread?.session?.runtimeMode).toBe("approval-required");
   });
 
+  effectIt.effect(
+    "starts standalone chat threads in the chats directory with the chat session kind",
+    () =>
+      Effect.gen(function* () {
+        const harness = yield* Effect.promise(() => createHarness());
+        const now = "2026-01-01T00:00:00.000Z";
+
+        yield* harness.engine.dispatch({
+          type: "thread.create",
+          commandId: CommandId.make("cmd-chat-thread-create"),
+          threadId: ThreadId.make("thread-chat-1"),
+          projectId: null,
+          title: "Chat",
+          modelSelection: {
+            instanceId: ProviderInstanceId.make("codex"),
+            model: "gpt-5-codex",
+          },
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          runtimeMode: "approval-required",
+          branch: null,
+          worktreePath: null,
+          createdAt: now,
+        });
+
+        yield* harness.engine.dispatch({
+          type: "thread.turn.start",
+          commandId: CommandId.make("cmd-chat-turn-start-1"),
+          threadId: ThreadId.make("thread-chat-1"),
+          message: {
+            messageId: asMessageId("chat-user-message-1"),
+            role: "user",
+            text: "hello chat",
+            attachments: [],
+          },
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          runtimeMode: "approval-required",
+          createdAt: now,
+        });
+
+        yield* Effect.promise(() => waitFor(() => harness.startSession.mock.calls.length === 1));
+        expect(harness.startSession.mock.calls[0]?.[0]).toEqual(ThreadId.make("thread-chat-1"));
+        expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+          cwd: NodePath.join(harness.stateDir, "chats"),
+          sessionKind: "chat",
+        });
+      }),
+  );
+
   it("generates a thread title on the first turn", async () => {
     const harness = await createHarness();
     const now = "2026-01-01T00:00:00.000Z";

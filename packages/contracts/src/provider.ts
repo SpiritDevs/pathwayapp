@@ -50,12 +50,22 @@ export const ProviderSession = Schema.Struct({
 });
 export type ProviderSession = typeof ProviderSession.Type;
 
+/**
+ * How a session is used. "chat" sessions are standalone conversations that are
+ * not bound to a project workspace; providers steer the model away from acting
+ * on the computer unless the user explicitly asks. "workspace" (the default
+ * when omitted) is a normal project-bound coding session.
+ */
+export const ProviderSessionKind = Schema.Literals(["chat", "workspace"]);
+export type ProviderSessionKind = typeof ProviderSessionKind.Type;
+
 export const ProviderSessionStartInput = Schema.Struct({
   threadId: ThreadId,
   provider: Schema.optional(ProviderDriverKind),
   // See ProviderSession for the migration story.
   providerInstanceId: Schema.optional(ProviderInstanceId),
   cwd: Schema.optional(TrimmedNonEmptyString),
+  sessionKind: Schema.optional(ProviderSessionKind),
   modelSelection: Schema.optional(ModelSelection),
   resumeCursor: Schema.optional(Schema.Unknown),
   approvalPolicy: Schema.optional(ProviderApprovalPolicy),

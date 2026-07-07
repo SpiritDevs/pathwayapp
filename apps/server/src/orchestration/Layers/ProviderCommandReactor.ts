@@ -38,6 +38,7 @@ import {
   ProviderCommandReactor,
   type ProviderCommandReactorShape,
 } from "../Services/ProviderCommandReactor.ts";
+import { ServerConfig } from "../../config.ts";
 import { ServerSettingsService } from "../../serverSettings.ts";
 import { VcsStatusBroadcaster } from "../../vcs/VcsStatusBroadcaster.ts";
 import { GitWorkflowService } from "../../git/GitWorkflowService.ts";
@@ -196,6 +197,7 @@ const make = Effect.gen(function* () {
   const vcsStatusBroadcaster = yield* VcsStatusBroadcaster;
   const textGeneration = yield* TextGeneration;
   const serverSettingsService = yield* ServerSettingsService;
+  const serverConfig = yield* Effect.service(ServerConfig);
   const serverCommandId = (tag: string) =>
     crypto.randomUUIDv4.pipe(Effect.map((uuid) => CommandId.make(`server:${tag}:${uuid}`)));
   const serverEventId = () => crypto.randomUUIDv4.pipe(Effect.map(EventId.make));
@@ -466,10 +468,15 @@ const make = Effect.gen(function* () {
       }
     }
     const project = thread.projectId === null ? null : yield* resolveProject(thread.projectId);
-    const effectiveCwd = resolveThreadWorkspaceCwd({
-      thread,
-      projects: project ? [project] : [],
-    });
+    // Standalone chat threads have no project workspace. They run out of the
+    // dedicated chats scratch directory and are flagged so providers can steer
+    // the model toward conversation-only behavior.
+    const isChatThread = thread.projectId === null && thread.worktreePath === null;
+    const effectiveCwd =
+      resolveThreadWorkspaceCwd({
+        thread,
+        projects: project ? [project] : [],
+      }) ?? (isChatThread ? serverConfig.chatsDir : undefined);
 
     const startProviderSession = (input?: {
       readonly resumeCursor?: unknown;
@@ -480,6 +487,7 @@ const make = Effect.gen(function* () {
         ...(preferredProvider ? { provider: preferredProvider } : {}),
         providerInstanceId: desiredInstanceId,
         ...(effectiveCwd ? { cwd: effectiveCwd } : {}),
+        ...(isChatThread ? { sessionKind: "chat" as const } : {}),
         modelSelection: desiredModelSelection,
         ...(input?.resumeCursor !== undefined ? { resumeCursor: input.resumeCursor } : {}),
         runtimeMode: desiredRuntimeMode,
@@ -778,7 +786,7 @@ const make = Effect.gen(function* () {
         resolveThreadWorkspaceCwd({
           thread,
           projects: project ? [project] : [],
-        }) ?? process.cwd();
+        }) ?? (thread.projectId === null ? serverConfig.chatsDir : process.cwd());
       const generationInput = {
         messageText: message.text,
         ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),

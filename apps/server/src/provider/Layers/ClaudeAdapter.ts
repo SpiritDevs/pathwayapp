@@ -69,6 +69,7 @@ import * as Stream from "effect/Stream";
 
 import { resolveAttachmentPath } from "../../attachmentStore.ts";
 import { ServerConfig } from "../../config.ts";
+import { CHAT_CONVERSATION_INSTRUCTIONS } from "../ChatSessionInstructions.ts";
 import * as McpProviderSession from "../../mcp/McpProviderSession.ts";
 import { makeClaudeEnvironment } from "../Drivers/ClaudeHome.ts";
 import {
@@ -3444,7 +3445,10 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
         ...(input.cwd ? { cwd: input.cwd } : {}),
         ...(apiModelId ? { model: apiModelId } : {}),
         pathToClaudeCodeExecutable: claudeBinaryPath,
-        systemPrompt: { type: "preset", preset: "claude_code" },
+        systemPrompt:
+          input.sessionKind === "chat"
+            ? { type: "preset", preset: "claude_code", append: CHAT_CONVERSATION_INSTRUCTIONS }
+            : { type: "preset", preset: "claude_code" },
         settingSources: [...CLAUDE_SETTING_SOURCES],
         // `ultracode` is a Claude Code setting, not an API effort level. It is
         // normalized to `xhigh` above and paired with `settings.ultracode`.
