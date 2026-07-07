@@ -11,8 +11,10 @@ import {
   persistState,
   reorderProjects,
   resolveProjectExpanded,
+  resolveProjectPinned,
   setDefaultAdvertisedEndpointKey,
   setProjectExpanded,
+  setProjectPinned,
   setThreadChangedFilesExpanded,
   type UiState,
 } from "./uiStateStore";
@@ -21,6 +23,7 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
   return {
     projectExpandedById: {},
     projectOrder: [],
+    pinnedProjectIds: [],
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
     defaultAdvertisedEndpointKey: null,
@@ -79,6 +82,22 @@ describe("uiStateStore pure functions", () => {
       "environment-b:/repo": false,
     });
     expect(setProjectExpanded(next, keys, false)).toBe(next);
+  });
+
+  it("pins and unpins every stable key belonging to a logical project", () => {
+    const initialState = makeUiState();
+    const keys = ["logical", "environment-a:/repo", "environment-b:/repo"];
+
+    const pinned = setProjectPinned(initialState, keys, true);
+
+    expect(pinned.pinnedProjectIds).toEqual(keys);
+    expect(resolveProjectPinned(pinned.pinnedProjectIds, ["missing", keys[1]!])).toBe(true);
+    expect(setProjectPinned(pinned, keys, true)).toBe(pinned);
+
+    const unpinned = setProjectPinned(pinned, [keys[0]!, keys[2]!], false);
+
+    expect(unpinned.pinnedProjectIds).toEqual([keys[1]]);
+    expect(resolveProjectPinned(unpinned.pinnedProjectIds, [keys[0]!])).toBe(false);
   });
 
   it("reorders from the current atom-derived project order", () => {
@@ -150,6 +169,7 @@ describe("parsePersistedState", () => {
         invalid: "no" as unknown as boolean,
       },
       projectOrder: ["physical-b", "", "physical-a", "physical-b"],
+      pinnedProjectIds: ["logical", "", "logical", "physical-a"],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
         invalid: "not-a-date",
@@ -168,6 +188,7 @@ describe("parsePersistedState", () => {
         logical: false,
       },
       projectOrder: ["physical-b", "physical-a"],
+      pinnedProjectIds: ["logical", "physical-a"],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
       },
@@ -252,6 +273,7 @@ describe("uiStateStore persistence", () => {
         logical: false,
       },
       projectOrder: ["physical-b", "physical-a"],
+      pinnedProjectIds: ["logical"],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
       },
@@ -274,6 +296,7 @@ describe("uiStateStore persistence", () => {
         logical: false,
       },
       projectOrder: ["physical-b", "physical-a"],
+      pinnedProjectIds: ["logical"],
       threadLastVisitedAtById: {
         "environment:thread-1": "2026-02-25T12:35:00.000Z",
       },

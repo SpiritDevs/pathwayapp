@@ -19,6 +19,7 @@ const LEGACY_PERSISTED_STATE_KEYS = [
 export interface PersistedUiState {
   projectExpandedById?: Record<string, boolean>;
   projectOrder?: string[];
+  pinnedProjectIds?: string[];
   threadLastVisitedAtById?: Record<string, string>;
   collapsedProjectCwds?: string[];
   expandedProjectCwds?: string[];
@@ -30,6 +31,7 @@ export interface PersistedUiState {
 export interface UiProjectState {
   projectExpandedById: Record<string, boolean>;
   projectOrder: string[];
+  pinnedProjectIds: string[];
 }
 
 export interface UiThreadState {
@@ -46,6 +48,7 @@ export interface UiState extends UiProjectState, UiThreadState, UiEndpointState 
 const initialState: UiState = {
   projectExpandedById: {},
   projectOrder: [],
+  pinnedProjectIds: [],
   threadLastVisitedAtById: {},
   threadChangedFilesExpandedById: {},
   defaultAdvertisedEndpointKey: null,
@@ -123,6 +126,7 @@ export function parsePersistedState(parsed: PersistedUiState): UiState {
   return {
     projectExpandedById,
     projectOrder,
+    pinnedProjectIds: sanitizeStringArray(parsed.pinnedProjectIds),
     threadLastVisitedAtById: sanitizeTimestampRecord(parsed.threadLastVisitedAtById),
     threadChangedFilesExpandedById: sanitizePersistedThreadChangedFilesExpanded(
       parsed.threadChangedFilesExpandedById,
@@ -208,6 +212,7 @@ export function persistState(state: UiState): void {
       JSON.stringify({
         projectExpandedById,
         projectOrder: state.projectOrder,
+        pinnedProjectIds: state.pinnedProjectIds,
         threadLastVisitedAtById: state.threadLastVisitedAtById,
         defaultAdvertisedEndpointKey: state.defaultAdvertisedEndpointKey,
         threadChangedFilesExpandedById,
@@ -367,6 +372,56 @@ export function setProjectExpanded(
   };
 }
 
+export function resolveProjectPinned(
+  pinnedProjectIds: readonly string[],
+  preferenceKeys: readonly string[],
+): boolean {
+  if (pinnedProjectIds.length === 0 || preferenceKeys.length === 0) {
+    return false;
+  }
+  const pinnedProjects = new Set(pinnedProjectIds);
+  return preferenceKeys.some((projectId) => pinnedProjects.has(projectId));
+}
+
+export function setProjectPinned(
+  state: UiState,
+  projectIds: string | readonly string[],
+  pinned: boolean,
+): UiState {
+  const ids = typeof projectIds === "string" ? [projectIds] : projectIds;
+  const stableIds = sanitizeStringArray(ids);
+  if (stableIds.length === 0) {
+    return state;
+  }
+
+  const pinnedProjectIds = [...state.pinnedProjectIds];
+  const pinnedProjectIdSet = new Set(pinnedProjectIds);
+  let changed = false;
+  for (const projectId of stableIds) {
+    if (pinned) {
+      if (pinnedProjectIdSet.has(projectId)) {
+        continue;
+      }
+      pinnedProjectIdSet.add(projectId);
+      pinnedProjectIds.push(projectId);
+      changed = true;
+    } else if (pinnedProjectIdSet.delete(projectId)) {
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return state;
+  }
+
+  return {
+    ...state,
+    pinnedProjectIds: pinned
+      ? pinnedProjectIds
+      : pinnedProjectIds.filter((projectId) => pinnedProjectIdSet.has(projectId)),
+  };
+}
+
 export function reorderProjects(
   state: UiState,
   currentProjectOrder: readonly string[],
@@ -417,6 +472,7 @@ interface UiStateStore extends UiState {
   setThreadChangedFilesExpanded: (threadId: string, turnId: string, expanded: boolean) => void;
   setDefaultAdvertisedEndpointKey: (key: string | null) => void;
   setProjectExpanded: (projectIds: string | readonly string[], expanded: boolean) => void;
+  setProjectPinned: (projectIds: string | readonly string[], pinned: boolean) => void;
   reorderProjects: (
     currentProjectOrder: readonly string[],
     draggedProjectIds: readonly string[],
@@ -436,6 +492,8 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) => setDefaultAdvertisedEndpointKey(state, key)),
   setProjectExpanded: (projectIds, expanded) =>
     set((state) => setProjectExpanded(state, projectIds, expanded)),
+  setProjectPinned: (projectIds, pinned) =>
+    set((state) => setProjectPinned(state, projectIds, pinned)),
   reorderProjects: (currentProjectOrder, draggedProjectIds, targetProjectIds) =>
     set((state) =>
       reorderProjects(state, currentProjectOrder, draggedProjectIds, targetProjectIds),
