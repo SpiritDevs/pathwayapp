@@ -26,7 +26,9 @@ import {
   FolderIcon,
   FolderPlusIcon,
   LinkIcon,
+  ListTodoIcon,
   MessageSquareIcon,
+  SearchIcon,
   SettingsIcon,
   SquarePenIcon,
 } from "lucide-react";
@@ -55,6 +57,7 @@ import { useAtomCommand } from "../state/use-atom-command";
 import { useAtomQueryRunner } from "../state/use-atom-query-runner";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import { useProjects, useThreadShells } from "../state/entities";
+import { useIssues } from "../state/issueEntities";
 import {
   startNewThreadInProjectFromContext,
   startNewThreadFromContext,
@@ -116,6 +119,11 @@ import { stackedThreadToast, toastManager } from "./ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 import { ComposerHandleContext, useComposerHandleContext } from "../composerHandleContext";
 import type { ChatComposerHandle } from "./chat/ChatComposer";
+import {
+  IssueQuickCreateDialog,
+  openIssueQuickCreate,
+} from "./issues/IssueQuickCreateDialog";
+import { navigateToIssue } from "./issues/issuesView";
 
 const EMPTY_BROWSE_ENTRIES: FilesystemBrowseResult["entries"] = [];
 
@@ -411,6 +419,7 @@ export function CommandPalette({ children }: { children: ReactNode }) {
             clearOpenIntent={clearOpenIntent}
           />
         </CommandDialog>
+        <IssueQuickCreateDialog />
       </ComposerHandleContext>
     </OpenAddProjectCommandPaletteProvider>
   );
@@ -463,6 +472,7 @@ function OpenCommandPaletteDialog(props: {
     useHandleNewThread();
   const projects = useProjects();
   const threads = useThreadShells();
+  const issues = useIssues();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const [viewStack, setViewStack] = useState<CommandPaletteView[]>([]);
   const currentView = viewStack.at(-1) ?? null;
@@ -954,6 +964,45 @@ function OpenCommandPaletteDialog(props: {
       groups: [{ value: "projects", label: "Projects", items: projectThreadItems }],
     });
   }
+
+  actionItems.push({
+    kind: "action",
+    value: "action:create-issue",
+    searchTerms: ["create issue", "new issue", "task", "ticket"],
+    title: "Create issue",
+    icon: <ListTodoIcon className={ITEM_ICON_CLASS} />,
+    run: async () => {
+      openIssueQuickCreate();
+    },
+  });
+
+  actionItems.push({
+    kind: "submenu",
+    value: "action:go-to-issue",
+    searchTerms: ["go to issue", "find issue", "search issue", "ticket"],
+    title: "Go to issue",
+    icon: <SearchIcon className={ITEM_ICON_CLASS} />,
+    addonIcon: <ListTodoIcon className={ADDON_ICON_CLASS} />,
+    groups: [
+      {
+        value: "issues",
+        label: "Issues",
+        items: issues
+          .filter((issue) => issue.deletedAt === null)
+          .map((issue) => ({
+            kind: "action" as const,
+            value: `issue:${issue.environmentId}:${issue.id}`,
+            searchTerms: [issue.identifier, issue.title],
+            title: issue.title,
+            description: issue.identifier,
+            icon: <ListTodoIcon className={ITEM_ICON_CLASS} />,
+            run: async () => {
+              navigateToIssue(issue.identifier);
+            },
+          })),
+      },
+    ],
+  });
 
   actionItems.push({
     kind: "action",

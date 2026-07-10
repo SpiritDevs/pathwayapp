@@ -183,6 +183,7 @@ import {
 import { stackedThreadToast, toastManager } from "./ui/toast";
 import { formatRelativeTimeLabel } from "../timestampFormat";
 import { SettingsSidebarNav } from "./settings/SettingsSidebarNav";
+import { SavedViewsRail } from "./issues/SavedViewsRail";
 import { Kbd } from "./ui/kbd";
 import {
   getArm64IntelBuildWarningDescription,
@@ -4450,6 +4451,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (loc) => loc.pathname });
   const isOnSettings = pathname.startsWith("/settings");
+  const isOnIssues = pathname.startsWith("/issues");
   const showSecondarySidebar = shouldShowSecondarySidebar(pathname);
   const showChatSidebar = isChatSurfacePathname(pathname);
   const showEmailSidebar = isEmailSurfacePathname(pathname);
@@ -5210,6 +5212,8 @@ export default function Sidebar() {
 
             {isOnSettings ? (
               <SettingsSidebarNav pathname={pathname} />
+            ) : isOnIssues ? (
+              <SavedViewsRail />
             ) : showEmailSidebar ? (
               <>
                 <EmailSidebarContent
