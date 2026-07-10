@@ -14,6 +14,8 @@ import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { MobileWorkspaceTopbar } from "~/components/MobileWorkspaceTopbar";
 
 import { DisplayOptions } from "./DisplayOptions";
+import { IssuePeek } from "./detail/IssuePeek";
+import { useIssuePeekStore } from "./issuePeekStore";
 import { FilterBar } from "./FilterBar";
 import { openIssueQuickCreate } from "./IssueQuickCreateDialog";
 import { IssuesBoardView } from "./IssuesBoardView";
@@ -37,6 +39,7 @@ export function IssuesPage() {
   const setFilters = useIssuesUiStateStore((state) => state.setFilters);
   const setDisplay = useIssuesUiStateStore((state) => state.setDisplay);
   const selectView = useIssuesUiStateStore((state) => state.selectView);
+  const openPeek = useIssuePeekStore((state) => state.openPeek);
   const activeTeams = useMemo(() => teams.filter((item) => item.deletedAt === null), [teams]);
   const activeStates = useMemo(() => states.filter((item) => item.deletedAt === null), [states]);
   const activeActors = useMemo(() => actors.filter((item) => item.deletedAt === null), [actors]);
@@ -90,7 +93,8 @@ export function IssuesPage() {
           <Empty><EmptyMedia variant="icon"><InboxIcon /></EmptyMedia><EmptyHeader><EmptyTitle>Your issue workspace is clear</EmptyTitle><EmptyDescription>Create the first issue or save a view for the work you want to track.</EmptyDescription></EmptyHeader><EmptyContent><Button onClick={openIssueQuickCreate} disabled={!meta.online}><PlusIcon /> Create issue</Button></EmptyContent></Empty>
         ) : visibleIssues.length === 0 ? (
           <Empty><EmptyHeader><EmptyTitle>No matching issues</EmptyTitle><EmptyDescription>Try clearing one or more filters.</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => setFilters({})}>Clear filters</Button></EmptyContent></Empty>
-        ) : display.viewMode === "board" ? <IssuesBoardView issues={visibleIssues} display={display} lookup={lookup} readOnly={!meta.online} /> : <IssuesListView issues={visibleIssues} display={display} lookup={lookup} readOnly={!meta.online} onPeek={() => { /* W-B wires the issue peek panel. */ }} />}
+        ) : display.viewMode === "board" ? <IssuesBoardView issues={visibleIssues} display={display} lookup={lookup} readOnly={!meta.online} /> : <IssuesListView issues={visibleIssues} display={display} lookup={lookup} readOnly={!meta.online} onPeek={openPeek} />}
+        <IssuePeek />
       </div>
     </SidebarInset>
   );

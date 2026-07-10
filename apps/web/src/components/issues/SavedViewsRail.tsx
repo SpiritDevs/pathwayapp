@@ -1,5 +1,6 @@
 import type { IssueSavedView } from "@pathwayos/contracts";
-import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, EllipsisIcon, PinIcon, PlusIcon, SaveIcon, Trash2Icon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, EllipsisIcon, InboxIcon, PinIcon, PlusIcon, SaveIcon, Trash2Icon } from "lucide-react";
 import { useMemo } from "react";
 
 import { useIssuesUiStateStore } from "~/issuesUiStateStore";
@@ -90,6 +91,22 @@ export function SavedViewsRail() {
         {renderSection("Personal", personal)}
         {renderSection("Team", team)}
         {!sortedViews.length ? <p className="px-4 py-6 text-center text-xs text-muted-foreground">Save the current filters to create your first view.</p> : null}
+        <SidebarGroup className="mt-auto py-1">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="sm" className="text-[13px]" render={<Link to="/issues/triage" />}>
+                <InboxIcon className="size-3.5" />
+                <span>Triage</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="sm" className="text-[13px]" render={<Link to="/issues/trash" />}>
+                <Trash2Icon className="size-3.5" />
+                <span>Trash</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t">
         <Button size="sm" variant="outline" className="w-full" onClick={() => void save()} disabled={!meta.online || (selected !== null && !dirty)}>
