@@ -6,6 +6,8 @@ import {
   EnvironmentCloudEndpointUnavailableError,
   EnvironmentCloudLinkStateResult,
   EnvironmentCloudRelayConfigResult,
+  type EnvironmentConvexConfigRequest,
+  type EnvironmentManagedEndpointConfigRequest,
   EnvironmentHttpApi,
   EnvironmentHttpBadRequestError,
   EnvironmentHttpConflictError,
@@ -60,6 +62,7 @@ import * as ManagedEndpointRuntime from "./ManagedEndpointRuntime.ts";
 import {
   CLOUD_ENDPOINT_RUNTIME_CONFIG,
   CLOUD_LINKED_USER_ID,
+  CLOUD_LINKED_TENANT_ID,
   CLOUD_MINT_PUBLIC_KEY,
   encodeEndpointRuntimeConfigJson,
   PUBLISH_AGENT_ACTIVITY_SECRET,
@@ -300,8 +303,14 @@ function isAllowedEndpointOrigin(input: {
   return input.origin.localHttpPort === endpointRequestPort(url);
 }
 
-function providerKindMatchesRequestedLinkScopes(request: RelayLinkProofRequest): boolean {
-  return request.endpoint.providerKind === "cloudflare_tunnel";
+function providerKindMatchesRequestedLinkScopes(
+  request: RelayLinkProofRequest,
+  allowManual: boolean,
+): boolean {
+  return (
+    request.endpoint.providerKind === "cloudflare_tunnel" ||
+    (allowManual && request.endpoint.providerKind === "manual")
+  );
 }
 
 function hasExactScope(input: {
@@ -350,10 +359,11 @@ const makeCloudLinkProof = Effect.fn("environment.cloud.makeLinkProof")(function
   dependencies: CloudHttpDependencies,
   request: RelayLinkProofRequest,
   requestUrl: string,
+  allowManual = false,
 ) {
   const keyPair = yield* getOrCreateEnvironmentKeyPairFromSecretStore(dependencies.secrets);
   if (
-    !providerKindMatchesRequestedLinkScopes(request) ||
+    !providerKindMatchesRequestedLinkScopes(request, allowManual) ||
     !isAllowedEndpointOrigin({
       origin: request.origin,
       requestUrl,
@@ -380,7 +390,10 @@ const makeCloudLinkProof = Effect.fn("environment.cloud.makeLinkProof")(function
     environmentPublicKey: normalizePemForSignedPayload(keyPair.publicKey),
     endpoint: request.endpoint,
     origin: request.origin,
-    scopes: ["agent_activity_notifications", "managed_tunnels"],
+    scopes:
+      request.endpoint.providerKind === "cloudflare_tunnel"
+        ? ["agent_activity_notifications", "managed_tunnels"]
+        : ["agent_activity_notifications"],
   } satisfies RelayEnvironmentLinkProofPayload;
   return yield* signRelayJwt({
     privateKey: keyPair.privateKey,
@@ -420,6 +433,37 @@ const cloudLinkProofHandler = Effect.fn("environment.cloud.linkProof")(
   Effect.catchTag(
     "PlatformError",
     failEnvironmentCloudInternalError("Could not generate environment link proof."),
+  ),
+);
+
+const cloudConvexLinkProofHandler = Effect.fn("environment.cloud.convexLinkProof")(
+  function* (dependencies: CloudHttpDependencies, request: RelayLinkProofRequest) {
+    yield* requireEnvironmentScope(AuthRelayWriteScope);
+    const httpRequest = yield* HttpServerRequest.HttpServerRequest;
+    const requestUrl = requestAbsoluteUrl(httpRequest);
+    if (
+      requestUrl === null ||
+      hasForwardedAuthorityHeaders(httpRequest) ||
+      request.endpoint.providerKind !== "manual"
+    ) {
+      return yield* new EnvironmentHttpBadRequestError({
+        message: "Invalid Convex link origin.",
+      });
+    }
+    const proof = yield* makeCloudLinkProof(dependencies, request, requestUrl, true);
+    yield* appendCloudCredentialResponseHeaders;
+    return proof satisfies RelayEnvironmentLinkProof;
+  },
+  Effect.catchIf(EnvironmentAuth.isServerAuthInternalError, (error) =>
+    failEnvironmentCloudInternalError(error.message)(error),
+  ),
+  Effect.catchIf(
+    ServerSecretStore.isSecretStoreError,
+    failEnvironmentCloudInternalError("Could not read environment signing key."),
+  ),
+  Effect.catchTag(
+    "PlatformError",
+    failEnvironmentCloudInternalError("Could not read environment signing key."),
   ),
 );
 
@@ -483,6 +527,92 @@ const cloudRelayConfigHandler = Effect.fn("environment.cloud.relayConfig")(
   Effect.catchTag(
     "SchemaError",
     failEnvironmentCloudInternalError("Could not persist environment relay configuration."),
+  ),
+);
+
+const cloudConvexConfigHandler = Effect.fn("environment.cloud.convexConfig")(
+  function* (dependencies: CloudHttpDependencies, payload: EnvironmentConvexConfigRequest) {
+    yield* requireEnvironmentScope(AuthRelayWriteScope);
+    if (!isSecureRelayUrl(payload.connectUrl)) {
+      return yield* new EnvironmentHttpBadRequestError({
+        message: "Convex Connect URL must be a secure absolute HTTPS URL.",
+      });
+    }
+    if (
+      payload.cloudUserId.trim().length === 0 ||
+      payload.tenantId.trim().length === 0 ||
+      payload.environmentCredential.trim().length < 32
+    ) {
+      return yield* new EnvironmentHttpBadRequestError({
+        message: "Convex environment link configuration is incomplete.",
+      });
+    }
+    yield* validateLinkedCloudUser({
+      secrets: dependencies.secrets,
+      cloudUserId: payload.cloudUserId,
+    });
+    yield* validateCloudMintPublicKey(payload.cloudMintPublicKey);
+    yield* Effect.all(
+      [
+        dependencies.secrets.set(RELAY_URL_SECRET, stringToBytes(payload.connectUrl)),
+        dependencies.secrets.set(CLOUD_LINKED_USER_ID, stringToBytes(payload.cloudUserId)),
+        dependencies.secrets.set(CLOUD_LINKED_TENANT_ID, stringToBytes(payload.tenantId)),
+        dependencies.secrets.set(RELAY_ISSUER_SECRET, stringToBytes(payload.connectUrl)),
+        dependencies.secrets.set(CLOUD_MINT_PUBLIC_KEY, stringToBytes(payload.cloudMintPublicKey)),
+        dependencies.secrets.set(
+          RELAY_ENVIRONMENT_CREDENTIAL_SECRET,
+          stringToBytes(payload.environmentCredential),
+        ),
+      ],
+      { concurrency: 6 },
+    );
+    yield* setCliDesiredCloudLink(true);
+    return {
+      ok: true,
+      endpointRuntimeStatus: { status: "unchanged" },
+    } satisfies EnvironmentCloudRelayConfigResult;
+  },
+  Effect.catchIf(EnvironmentAuth.isServerAuthInternalError, (error) =>
+    failEnvironmentCloudInternalError(error.message)(error),
+  ),
+  Effect.catchIf(
+    ServerSecretStore.isSecretStoreError,
+    failEnvironmentCloudInternalError("Could not persist Convex environment configuration."),
+  ),
+);
+
+const cloudManagedEndpointConfigHandler = Effect.fn("environment.cloud.managedEndpointConfig")(
+  function* (
+    dependencies: CloudHttpDependencies,
+    payload: EnvironmentManagedEndpointConfigRequest,
+  ) {
+    yield* requireEnvironmentScope(AuthRelayWriteScope);
+    const endpointRuntimeStatus = yield* dependencies.endpointRuntime.applyConfig(
+      payload.endpointRuntime,
+    );
+    const ok =
+      endpointRuntimeStatus.status === "disabled" || endpointRuntimeStatus.status === "running";
+    if (!ok) {
+      return yield* new EnvironmentCloudEndpointUnavailableError({
+        message: "Managed endpoint runtime could not be started.",
+        endpointRuntimeStatus,
+      });
+    }
+    if (payload.endpointRuntime === null) {
+      yield* dependencies.secrets.remove(CLOUD_ENDPOINT_RUNTIME_CONFIG);
+    } else {
+      const encoded = yield* encodeEndpointRuntimeConfigJson(payload.endpointRuntime);
+      yield* dependencies.secrets.set(CLOUD_ENDPOINT_RUNTIME_CONFIG, stringToBytes(encoded));
+    }
+    return { ok, endpointRuntimeStatus } satisfies EnvironmentCloudRelayConfigResult;
+  },
+  Effect.catchIf(
+    ServerSecretStore.isSecretStoreError,
+    failEnvironmentCloudInternalError("Could not persist managed endpoint configuration."),
+  ),
+  Effect.catchTag(
+    "SchemaError",
+    failEnvironmentCloudInternalError("Could not persist managed endpoint configuration."),
   ),
 );
 
@@ -609,9 +739,10 @@ export const reconcileDesiredCloudLink = Effect.fn("environment.cloud.reconcileD
 const readCloudLinkState = Effect.fn("environment.cloud.readLinkState")(function* (
   dependencies: CloudHttpDependencies,
 ) {
-  const [cloudUserId, relayUrl, relayIssuer, publishAgentActivity] = yield* Effect.all(
+  const [cloudUserId, tenantId, relayUrl, relayIssuer, publishAgentActivity] = yield* Effect.all(
     [
       dependencies.secrets.get(CLOUD_LINKED_USER_ID),
+      dependencies.secrets.get(CLOUD_LINKED_TENANT_ID),
       dependencies.secrets.get(RELAY_URL_SECRET),
       dependencies.secrets.get(RELAY_ISSUER_SECRET),
       dependencies.secrets.get(PUBLISH_AGENT_ACTIVITY_SECRET),
@@ -621,6 +752,7 @@ const readCloudLinkState = Effect.fn("environment.cloud.readLinkState")(function
   return {
     linked: Option.isSome(cloudUserId),
     cloudUserId: Option.isSome(cloudUserId) ? bytesToString(cloudUserId.value) : null,
+    tenantId: Option.isSome(tenantId) ? bytesToString(tenantId.value) : null,
     relayUrl: Option.isSome(relayUrl) ? bytesToString(relayUrl.value) : null,
     relayIssuer: Option.isSome(relayIssuer) ? bytesToString(relayIssuer.value) : null,
     publishAgentActivity: Option.isSome(publishAgentActivity)
@@ -647,6 +779,7 @@ const cloudUnlinkHandler = Effect.fn("environment.cloud.unlink")(
     yield* Effect.all(
       [
         dependencies.secrets.remove(CLOUD_LINKED_USER_ID),
+        dependencies.secrets.remove(CLOUD_LINKED_TENANT_ID),
         dependencies.secrets.remove(RELAY_URL_SECRET),
         dependencies.secrets.remove(RELAY_ISSUER_SECRET),
         dependencies.secrets.remove(RELAY_ENVIRONMENT_CREDENTIAL_SECRET),
@@ -654,7 +787,7 @@ const cloudUnlinkHandler = Effect.fn("environment.cloud.unlink")(
         dependencies.secrets.remove(CLOUD_ENDPOINT_RUNTIME_CONFIG),
         dependencies.secrets.remove(PUBLISH_AGENT_ACTIVITY_SECRET),
       ],
-      { concurrency: 7 },
+      { concurrency: 8 },
     );
     yield* setCliDesiredCloudLink(false);
     return { ok: true, endpointRuntimeStatus } satisfies EnvironmentCloudRelayConfigResult;
@@ -929,7 +1062,14 @@ export const connectHttpApiLayer = HttpApiBuilder.group(
     const dependencies = yield* cloudHttpDependencies;
     return handlers
       .handle("linkProof", ({ payload }) => cloudLinkProofHandler(dependencies, payload))
+      .handle("convexLinkProof", ({ payload }) =>
+        cloudConvexLinkProofHandler(dependencies, payload),
+      )
       .handle("relayConfig", ({ payload }) => cloudRelayConfigHandler(dependencies, payload))
+      .handle("convexConfig", ({ payload }) => cloudConvexConfigHandler(dependencies, payload))
+      .handle("managedEndpointConfig", ({ payload }) =>
+        cloudManagedEndpointConfigHandler(dependencies, payload),
+      )
       .handle("linkState", () => cloudLinkStateHandler(dependencies))
       .handle("unlink", () => cloudUnlinkHandler(dependencies))
       .handle("preferences", ({ payload }) => cloudPreferencesHandler(dependencies, payload))

@@ -145,6 +145,28 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:server:process-resource-history",
       tag: WS_METHODS.serverGetProcessResourceHistory,
     }),
+    emailSandboxRuntimeStatus: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:email-sandbox:runtime-status",
+      tag: WS_METHODS.emailSandboxGetRuntimeStatus,
+      staleTimeMs: 2_000,
+      refreshIntervalMs: 5_000,
+    }),
+    emailSandboxProjectSources: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:email-sandbox:project-sources",
+      tag: WS_METHODS.emailSandboxListProjectSources,
+      staleTimeMs: 2_000,
+    }),
+    emailSandboxMessages: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:email-sandbox:messages",
+      tag: WS_METHODS.emailSandboxListMessages,
+      staleTimeMs: 2_000,
+      refreshIntervalMs: 5_000,
+    }),
+    emailSandboxMessage: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:email-sandbox:message",
+      tag: WS_METHODS.emailSandboxGetMessage,
+      staleTimeMs: 2_000,
+    }),
     configProjection,
     welcome: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:server:welcome",
@@ -185,6 +207,46 @@ export function createServerEnvironmentAtoms<R, E>(
       tag: WS_METHODS.serverUpdateSettings,
       scheduler: configScheduler,
       concurrency: configConcurrency,
+    }),
+    setEmailSandboxProjectCapture: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:email-sandbox:set-project-capture",
+      tag: WS_METHODS.emailSandboxSetProjectCapture,
+      concurrency: {
+        mode: "latest",
+        key: ({ environmentId, input }) => `${environmentId}:${input.projectId}`,
+      },
+    }),
+    clearEmailSandboxLocalCache: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:email-sandbox:clear-local-cache",
+      tag: WS_METHODS.emailSandboxClearLocalCache,
+      concurrency: {
+        mode: "singleFlight",
+        key: ({ environmentId, input }) => `${environmentId}:${input.projectId ?? "all"}`,
+      },
+    }),
+    markEmailSandboxMessageRead: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:email-sandbox:mark-message-read",
+      tag: WS_METHODS.emailSandboxMarkRead,
+      concurrency: {
+        mode: "latest",
+        key: ({ environmentId, input }) => `${environmentId}:${input.messageId}`,
+      },
+    }),
+    deleteEmailSandboxMessage: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:email-sandbox:delete-message",
+      tag: WS_METHODS.emailSandboxDeleteMessage,
+      concurrency: {
+        mode: "singleFlight",
+        key: ({ environmentId, input }) => `${environmentId}:${input.messageId}`,
+      },
+    }),
+    getEmailSandboxAttachment: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:email-sandbox:get-attachment",
+      tag: WS_METHODS.emailSandboxGetAttachment,
+      concurrency: {
+        mode: "singleFlight",
+        key: ({ environmentId, input }) => `${environmentId}:${input.attachmentId}`,
+      },
     }),
     signalProcess: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:server:signal-process",

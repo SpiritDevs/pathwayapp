@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import {
   CloudPublicConfigMissingError,
   hasTracingPublicConfig,
+  hasConvexPublicConfig,
   resolveCloudPublicConfig,
   resolveRelayClerkTokenOptions,
 } from "./publicConfig";
@@ -31,6 +32,9 @@ describe("resolveCloudPublicConfig", () => {
       relay: {
         url: null,
       },
+      convex: {
+        url: null,
+      },
       observability: {
         tracesUrl: null,
         tracesDataset: null,
@@ -44,6 +48,7 @@ describe("resolveCloudPublicConfig", () => {
       resolveCloudPublicConfig({
         clerk: { publishableKey: "  pk_test_example  ", jwtTemplate: "  pathwayos-relay  " },
         relay: { url: " https://relay.example.test/// " },
+        convex: { url: " https://example.convex.cloud/// " },
         observability: {
           tracesUrl: " https://api.axiom.co/v1/traces ",
           tracesDataset: " mobile-traces ",
@@ -57,6 +62,9 @@ describe("resolveCloudPublicConfig", () => {
       },
       relay: {
         url: "https://relay.example.test",
+      },
+      convex: {
+        url: "https://example.convex.cloud",
       },
       observability: {
         tracesUrl: "https://api.axiom.co/v1/traces",
@@ -80,12 +88,36 @@ describe("resolveCloudPublicConfig", () => {
       relay: {
         url: null,
       },
+      convex: {
+        url: null,
+      },
       observability: {
         tracesUrl: null,
         tracesDataset: null,
         tracesToken: null,
       },
     });
+  });
+
+  it("configures Convex independently from the Connect HTTP backend", () => {
+    const config = resolveCloudPublicConfig({
+      clerk: { publishableKey: "pk_test_example" },
+      convex: { url: "https://example.convex.cloud" },
+    });
+
+    expect(config.relay.url).toBeNull();
+    expect(config.convex.url).toBe("https://example.convex.cloud");
+    expect(hasConvexPublicConfig(config)).toBe(true);
+  });
+
+  it("rejects an insecure Convex URL", () => {
+    const config = resolveCloudPublicConfig({
+      clerk: { publishableKey: "pk_test_example" },
+      convex: { url: "http://example.convex.cloud" },
+    });
+
+    expect(config.convex.url).toBeNull();
+    expect(hasConvexPublicConfig(config)).toBe(false);
   });
 
   it("rejects an insecure traces URL", () => {

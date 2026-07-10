@@ -2,7 +2,8 @@
 
 pathwayOS Connect uses one Clerk application for web, desktop, and mobile authentication. The relay accepts
 Clerk JWTs only when they are generated from the `pathwayos-relay` template with the shared
-`pathwayos-relay` audience.
+`pathwayos-relay` audience. For deploying the Convex backend itself, see
+[pathwayOS Connect Convex Deployment](./convex-deployment.md).
 
 ## Application Keys
 
@@ -14,6 +15,7 @@ PATHWAYOS_CLERK_PUBLISHABLE_KEY=<publishable key>
 PATHWAYOS_CLERK_JWT_TEMPLATE=<JWT template name>
 PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID=<public OAuth application client ID>
 PATHWAYOS_CONNECT_URL=https://connect.example.com
+PATHWAYOS_CONVEX_URL=https://example.convex.cloud
 ```
 
 The shared client loader projects these canonical values into framework-specific `VITE_*` and
@@ -28,19 +30,25 @@ Configuration precedence is:
 2. Repository-root `.env.local`.
 3. Repository-root `.env`.
 
-The Clerk publishable key, JWT template name, CLI OAuth client ID, and Connect URL are public
+The Clerk publishable key, JWT template name, CLI OAuth client ID, Connect URL, and Convex URL are public
 identifiers, not secrets.
+
+For Convex-native deployments, `PATHWAYOS_CONNECT_URL` is the HTTP Actions origin (normally
+`https://<deployment>.convex.site`) and `PATHWAYOS_CONVEX_URL` is the realtime origin
+(`https://<deployment>.convex.cloud`). Signing in or enabling Convex synchronization never creates a
+Cloudflare Tunnel. The environment owner must explicitly enable **Remote access via Cloudflare** for
+each linked environment in Connections settings.
 Web, desktop, mobile, and bundled server builds statically inject the values they consume during
 their build step. A built artifact does not need an environment file at runtime. CI release builds
 should set `PATHWAYOS_CLERK_PUBLISHABLE_KEY`, `PATHWAYOS_CLERK_JWT_TEMPLATE`,
-`PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID`, and `PATHWAYOS_CONNECT_URL` before building. EAS preview and
-production builds only need the Clerk publishable key, JWT template name, and Connect URL in their EAS
-environment.
+`PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID`, `PATHWAYOS_CONNECT_URL`, and `PATHWAYOS_CONVEX_URL` before
+building. EAS preview and production builds only need the Clerk publishable key, JWT template name,
+Connect URL, and Convex URL in their EAS environment.
 
-When any client-facing public value is absent, cloud UI is omitted. When the CLI public values are
-absent, the `pathwayos connect` CLI command group is omitted. The bundled server still accepts runtime
-overrides for self-hosted or operator-managed
-deployments.
+Client capabilities are gated independently: Clerk account screens require the publishable key,
+Connect requires its URL and JWT template, and Convex requires its URL and the Clerk key. When the CLI
+public values are absent, the `pathwayos connect` CLI command group is omitted. The bundled server still
+accepts runtime overrides for self-hosted or operator-managed deployments.
 
 For a hosted relay deployment, copy `infra/relay/.env.example` to `infra/relay/.env`. The relay
 deployment reads `RELAY_DOMAIN`, `RELAY_API_ZONE_NAME`, `RELAY_TUNNEL_ZONE_NAME`,

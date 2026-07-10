@@ -10,6 +10,7 @@ export const SIGN_UP_ROUTE = "/register";
 export const FORGOT_PASSWORD_ROUTE = "/forgot-password";
 export const RESET_PASSWORD_TASK_ROUTE = "/session-tasks/reset-password";
 export const AUTH_COMPLETE_ROUTE = "/";
+export const INVITATION_ACCEPT_ROUTE = "/invitations/accept";
 export const FREE_PLAN_LABEL = "Free";
 export const DESKTOP_CLERK_ALLOWED_REDIRECT_ORIGINS = [
   "pathwayos://app",
@@ -66,5 +67,7 @@ export function isAuthRoutePathname(pathname: string): boolean {
 }
 
 export function isPublicSessionRoutePathname(pathname: string): boolean {
-  return pathname === "/pair" || isAuthRoutePathname(pathname);
+  return (
+    pathname === "/pair" || pathname === INVITATION_ACCEPT_ROUTE || isAuthRoutePathname(pathname)
+  );
 }

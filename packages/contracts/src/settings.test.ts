@@ -3,7 +3,6 @@ import * as Schema from "effect/Schema";
 
 import { ProviderInstanceId } from "./providerInstance.ts";
 import {
-  ClientSettingsPatch,
   ClientSettingsSchema,
   DEFAULT_SERVER_SETTINGS,
   ServerSettings,
@@ -11,7 +10,6 @@ import {
 } from "./settings.ts";
 
 const decodeClientSettings = Schema.decodeUnknownSync(ClientSettingsSchema);
-const decodeClientSettingsPatch = Schema.decodeUnknownSync(ClientSettingsPatch);
 const decodeServerSettings = Schema.decodeUnknownSync(ServerSettings);
 const decodeServerSettingsPatch = Schema.decodeUnknownSync(ServerSettingsPatch);
 const encodeServerSettings = Schema.encodeSync(ServerSettings);
@@ -33,15 +31,27 @@ describe("ClientSettings word wrap", () => {
   });
 });
 
-describe("ClientSettings developer email server", () => {
+describe("ServerSettings developer email server", () => {
   it("defaults the developer email server off", () => {
-    expect(decodeClientSettings({}).enableDeveloperEmailServer).toBe(false);
+    expect(decodeServerSettings({}).enableDeveloperEmailServer).toBe(false);
   });
 
   it("accepts developer email server updates", () => {
     expect(
-      decodeClientSettingsPatch({ enableDeveloperEmailServer: true }).enableDeveloperEmailServer,
+      decodeServerSettingsPatch({ enableDeveloperEmailServer: true }).enableDeveloperEmailServer,
     ).toBe(true);
+  });
+
+  it("uses the agreed email sandbox defaults", () => {
+    expect(decodeServerSettings({}).emailSandbox).toEqual({
+      createForNewProjects: true,
+      captureByDefault: true,
+      agentAccessByDefault: true,
+      syncAttachments: true,
+      attachmentMaxBytes: 10 * 1024 * 1024,
+      retentionDays: 14,
+      retentionMaxMessages: 500,
+    });
   });
 });
 

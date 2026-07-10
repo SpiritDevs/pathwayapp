@@ -1,5 +1,6 @@
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
 import { SidebarInset } from "./ui/sidebar";
+import { MobileWorkspaceTopbar } from "./MobileWorkspaceTopbar";
 
 export function AppPlaceholderView({
   title,
@@ -11,6 +12,7 @@ export function AppPlaceholderView({
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
+        <MobileWorkspaceTopbar title={title} />
         <Empty className="flex-1">
           <div className="w-full max-w-lg px-8 py-12">
             <EmptyHeader className="max-w-none">

@@ -114,7 +114,7 @@ import {
 import { useUiStateStore } from "~/uiStateStore";
 import { resolveServerConfigVersionMismatch } from "~/versionSkew";
 import { usePrimaryCloudLinkState } from "~/cloud/primaryCloudLinkState";
-import { hasCloudPublicConfig } from "~/cloud/publicConfig";
+import { hasCloudPublicConfig, hasConvexPublicConfig } from "~/cloud/publicConfig";
 import {
   linkPrimaryEnvironment as linkPrimaryEnvironmentAtom,
   unlinkPrimaryEnvironment as unlinkPrimaryEnvironmentAtom,
@@ -140,6 +140,7 @@ import {
 } from "~/state/environments";
 import { relayEnvironmentDiscovery } from "~/state/relay";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { ConvexCloudLinkRow } from "./ConvexCloudLinkRow";
 
 const DEFAULT_TAILSCALE_SERVE_PORT = 443;
 const EMPTY_ADVERTISED_ENDPOINTS: ReadonlyArray<AdvertisedEndpoint> = [];
@@ -1784,7 +1785,7 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
 }
 
 function CloudLinkRow({ canManageRelay }: { readonly canManageRelay: boolean }) {
-  return hasCloudPublicConfig() ? <ConfiguredCloudLinkRow canManageRelay={canManageRelay} /> : null;
+  return hasConvexPublicConfig() ? <ConvexCloudLinkRow canManageRelay={canManageRelay} /> : null;
 }
 
 function EmptyRemoteEnvironments({ cloudEnabled = true }: { readonly cloudEnabled?: boolean }) {

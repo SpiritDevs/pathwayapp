@@ -5,6 +5,7 @@ import * as Result from "effect/Result";
 
 import {
   makeCloudCliOAuthConfig,
+  makeConvexUrlConfig,
   makeRelayUrlConfig,
   resolveRelayClientTracingConfig,
 } from "./publicConfig.ts";
@@ -61,6 +62,27 @@ it.effect("rejects an insecure runtime relay URL override", () =>
 
 it.effect("rejects an injected relay URL with a non-origin path", () =>
   makeRelayUrlConfig("https://embedded.example.test/path").pipe(provideEnv({}), Effect.flip),
+);
+
+it.effect("normalizes the canonical Convex URL", () =>
+  Effect.gen(function* () {
+    const convexUrl = yield* makeConvexUrlConfig("https://embedded.convex.cloud///").pipe(
+      provideEnv({ PATHWAYOS_CONVEX_URL: "https://runtime.convex.cloud///" }),
+    );
+
+    assert.equal(convexUrl, "https://runtime.convex.cloud");
+  }),
+);
+
+it.effect("requires a Convex URL when the server bundle has no injected value", () =>
+  makeConvexUrlConfig("").pipe(provideEnv({}), Effect.flip),
+);
+
+it.effect("rejects an insecure Convex URL", () =>
+  makeConvexUrlConfig("https://embedded.convex.cloud").pipe(
+    provideEnv({ PATHWAYOS_CONVEX_URL: "http://runtime.convex.cloud" }),
+    Effect.flip,
+  ),
 );
 
 it.effect("derives direct Clerk OAuth endpoints from statically injected public config", () =>

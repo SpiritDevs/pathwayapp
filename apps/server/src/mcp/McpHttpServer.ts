@@ -12,6 +12,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstab
 import packageJson from "../../package.json" with { type: "json" };
 import * as McpInvocationContext from "./McpInvocationContext.ts";
 import * as McpSessionRegistry from "./McpSessionRegistry.ts";
+import * as AgentEmailSandbox from "./AgentEmailSandbox.ts";
 import * as PreviewAutomationBroker from "./PreviewAutomationBroker.ts";
 import {
   PreviewSnapshotToolkitHandlersLive,
@@ -22,6 +23,8 @@ import {
   PreviewSnapshotToolkit,
   PreviewStandardToolkit,
 } from "./toolkits/preview/tools.ts";
+import { EmailToolkitHandlersLive } from "./toolkits/email/handlers.ts";
+import { EmailToolkit } from "./toolkits/email/tools.ts";
 
 const unauthorized = HttpServerResponse.jsonUnsafe(
   {
@@ -208,10 +211,20 @@ export const PreviewToolkitRegistrationLive = Layer.mergeAll(
   PreviewSnapshotRegistrationLive,
 );
 
+export const EmailToolkitRegistrationLive = McpServer.toolkit(EmailToolkit).pipe(
+  Layer.provide(EmailToolkitHandlersLive),
+  Layer.provide(AgentEmailSandbox.layer),
+);
+
+export const PathwayToolkitRegistrationLive = Layer.mergeAll(
+  PreviewToolkitRegistrationLive,
+  EmailToolkitRegistrationLive,
+);
+
 const McpTransportLive = McpServer.layerHttp({
   name: "pathwayOS",
   version: packageJson.version,
   path: "/mcp",
 }).pipe(Layer.provide(McpAuthMiddlewareLive));
 
-export const layer = PreviewToolkitRegistrationLive.pipe(Layer.provideMerge(McpTransportLive));
+export const layer = PathwayToolkitRegistrationLive.pipe(Layer.provideMerge(McpTransportLive));

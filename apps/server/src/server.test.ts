@@ -86,6 +86,7 @@ import { makeManualOnlyProviderMaintenanceCapabilities } from "./provider/provid
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
+import * as EmailSandboxCoordinator from "./emailSandbox/EmailSandboxCoordinator.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
@@ -347,6 +348,7 @@ const buildAppUnderTest = (options?: {
     >;
     relayClient?: Partial<RelayClient.RelayClient["Service"]>;
     cloudCliTokenManager?: Partial<CloudCliTokenManager.CloudCliTokenManager["Service"]>;
+    emailSandbox?: Partial<EmailSandboxCoordinator.EmailSandboxCoordinator["Service"]>;
   };
 }) =>
   Effect.gen(function* () {
@@ -756,6 +758,25 @@ const buildAppUnderTest = (options?: {
         }),
       ),
       Layer.provide(
+        Layer.mock(EmailSandboxCoordinator.EmailSandboxCoordinator)({
+          status: Effect.die("unused email sandbox status"),
+          reconcile: Effect.die("unused email sandbox reconcile"),
+          listProjectSources: () => Effect.succeed([]),
+          setProjectCapture: () => Effect.die("unused email sandbox project configuration"),
+          clearLocalCache: () =>
+            Effect.succeed({
+              clearedMessages: 0,
+              retainedUnsyncedMessages: 0,
+              reclaimedBytes: 0,
+            }),
+          listMessages: () => Effect.succeed({ messages: [], nextCursor: null }),
+          getMessage: () => Effect.die("unused email sandbox message"),
+          markRead: () => Effect.die("unused email sandbox mark read"),
+          appendAgentAudit: () => Effect.void,
+          ...options?.layers?.emailSandbox,
+        }),
+      ),
+      Layer.provide(
         Layer.mock(ServerEnvironment.ServerEnvironment)({
           getEnvironmentId: Effect.succeed(testEnvironmentDescriptor.environmentId),
           getDescriptor: Effect.succeed(testEnvironmentDescriptor),
@@ -800,6 +821,7 @@ const buildAppUnderTest = (options?: {
           ...options?.layers?.cloudCliTokenManager,
         }),
       ),
+      Layer.provide(SqlitePersistenceMemory),
       Layer.provideMerge(makeAuthTestLayer()),
       Layer.provideMerge(ServerSecretStore.layer),
       Layer.provide(workspaceAndProjectServicesLayer),

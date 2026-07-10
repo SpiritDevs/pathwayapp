@@ -23,7 +23,12 @@ import {
   SIGN_UP_ROUTE,
 } from "./authRoutes";
 import { ManagedRelayAuthProvider } from "./cloud/managedAuth";
-import { hasCloudPublicConfig, resolveCloudPublicConfig } from "./cloud/publicConfig";
+import { ConvexAuthProvider } from "./cloud/ConvexAuthProvider";
+import {
+  hasCloudPublicConfig,
+  hasConvexPublicConfig,
+  resolveCloudPublicConfig,
+} from "./cloud/publicConfig";
 import { getRouter } from "./router";
 import { syncDocumentWindowControlsOverlayClass } from "./lib/windowControlsOverlay";
 import { AppRoot } from "./AppRoot";
@@ -40,6 +45,7 @@ if (isElectron) {
 const cloudPublicConfig = resolveCloudPublicConfig();
 const clerkPublishableKey = cloudPublicConfig.clerkPublishableKey;
 const relayCloudConfigured = hasCloudPublicConfig();
+const convexCloudConfigured = hasConvexPublicConfig();
 const clerkRouteConfig = {
   afterSignOutUrl: getClerkRouteUrl(SIGN_IN_ROUTE, isElectron),
   signInFallbackRedirectUrl: getClerkRouteUrl(AUTH_COMPLETE_ROUTE, isElectron),
@@ -67,6 +73,12 @@ const relayAwareApp = relayCloudConfigured ? (
 ) : (
   app
 );
+const cloudAwareApp =
+  convexCloudConfigured && cloudPublicConfig.convexUrl ? (
+    <ConvexAuthProvider url={cloudPublicConfig.convexUrl}>{relayAwareApp}</ConvexAuthProvider>
+  ) : (
+    relayAwareApp
+  );
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -78,11 +90,11 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
           {...clerkRouteConfig}
           {...desktopClerkRoutingConfig}
         >
-          {relayAwareApp}
+          {cloudAwareApp}
         </ElectronClerkProvider>
       ) : (
         <ClerkProvider publishableKey={clerkPublishableKey} {...clerkRouteConfig}>
-          {relayAwareApp}
+          {cloudAwareApp}
         </ClerkProvider>
       )
     ) : (

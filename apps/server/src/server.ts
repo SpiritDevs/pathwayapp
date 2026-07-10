@@ -79,6 +79,14 @@ import { serverRelayBrokerTracingLayer } from "./cloud/relayTracing.ts";
 import * as CloudManagedEndpointRuntime from "./cloud/ManagedEndpointRuntime.ts";
 import * as CloudCliTokenManager from "./cloud/CliTokenManager.ts";
 import * as CloudCliState from "./cloud/CliState.ts";
+import * as CloudSyncState from "./cloudSync/CloudSyncState.ts";
+import * as CloudSyncWorker from "./cloudSync/CloudSyncWorker.ts";
+import * as EmailSandboxCoordinator from "./emailSandbox/EmailSandboxCoordinator.ts";
+import * as EmailSandboxSyncWorker from "./emailSandbox/EmailSandboxSyncWorker.ts";
+import * as EmailSandboxStore from "./emailSandbox/EmailSandboxStore.ts";
+import * as MailpitRuntime from "./emailSandbox/MailpitRuntime.ts";
+import * as MailpitTool from "./emailSandbox/MailpitTool.ts";
+import * as ProjectSmtpRouter from "./emailSandbox/ProjectSmtpRouter.ts";
 import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
 import * as TraceDiagnostics from "./diagnostics/TraceDiagnostics.ts";
@@ -279,12 +287,29 @@ const CloudManagedEndpointRuntimeLive = Layer.mergeAll(
   ),
 );
 
+const MailpitToolLive = Layer.unwrap(
+  Effect.gen(function* () {
+    const config = yield* ServerConfig.ServerConfig;
+    return MailpitTool.layer({ baseDir: config.emailSandboxDir });
+  }),
+);
+
+const MailpitRuntimeLive = MailpitRuntime.layer().pipe(Layer.provide(MailpitToolLive));
+const EmailSandboxStoreLive = EmailSandboxStore.layer;
+const ProjectSmtpRouterLive = ProjectSmtpRouter.layer.pipe(Layer.provide(EmailSandboxStoreLive));
+const EmailSandboxLive = EmailSandboxCoordinator.layer.pipe(
+  Layer.provide(MailpitRuntimeLive),
+  Layer.provide(ProjectSmtpRouterLive),
+  Layer.provide(EmailSandboxStoreLive),
+  Layer.provide(NetService.layer),
+);
+
 const ProviderRuntimeLayerLive = ProviderSessionReaperLive.pipe(
   Layer.provideMerge(ProviderLayerLive),
   Layer.provideMerge(OrchestrationLayerLive),
 );
 
-const RuntimeCoreDependenciesLive = ReactorLayerLive.pipe(
+const RuntimeCoreBaseLive = ReactorLayerLive.pipe(
   // Core Services
   Layer.provideMerge(CheckpointingLayerLive),
   Layer.provideMerge(SourceControlProviderRegistryLayerLive),
@@ -326,6 +351,23 @@ const RuntimeCoreDependenciesLive = ReactorLayerLive.pipe(
       CloudManagedEndpointRuntimeLive,
     ),
   ),
+);
+
+const CloudSyncWorkerLive = CloudSyncWorker.layer.pipe(
+  Layer.provide(CloudSyncState.layer.pipe(Layer.provide(PersistenceLayerLive))),
+  Layer.provide(RuntimeCoreBaseLive),
+);
+
+const EmailSandboxSyncWorkerLive = EmailSandboxSyncWorker.layer.pipe(
+  Layer.provide(EmailSandboxStoreLive),
+  Layer.provide(RuntimeCoreBaseLive),
+);
+
+const RuntimeCoreDependenciesLive = Layer.mergeAll(
+  RuntimeCoreBaseLive,
+  CloudSyncWorkerLive,
+  EmailSandboxLive.pipe(Layer.provide(RuntimeCoreBaseLive)),
+  EmailSandboxSyncWorkerLive,
 );
 
 const RuntimeDependenciesLive = RuntimeCoreDependenciesLive.pipe(

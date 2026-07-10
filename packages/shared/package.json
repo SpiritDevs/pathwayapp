@@ -111,6 +111,10 @@
       "types": "./src/relayUrl.ts",
       "import": "./src/relayUrl.ts"
     },
+    "./convexUrl": {
+      "types": "./src/convexUrl.ts",
+      "import": "./src/convexUrl.ts"
+    },
     "./relayJwt": {
       "types": "./src/relayJwt.ts",
       "import": "./src/relayJwt.ts"
@@ -154,6 +158,10 @@
     "./relayClient": {
       "types": "./src/relayClient.ts",
       "import": "./src/relayClient.ts"
+    },
+    "./managedTool": {
+      "types": "./src/managedTool.ts",
+      "import": "./src/managedTool.ts"
     },
     "./relayTracing": {
       "types": "./src/relayTracing.ts",

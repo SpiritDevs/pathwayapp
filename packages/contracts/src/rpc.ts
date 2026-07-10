@@ -4,6 +4,24 @@ import * as RpcGroup from "effect/unstable/rpc/RpcGroup";
 
 import { ExternalLauncherError, LaunchEditorInput } from "./editor.ts";
 import {
+  EmailAttachmentGetInput,
+  EmailAttachmentPayload,
+  EmailSandboxClearLocalInput,
+  EmailSandboxClearLocalResult,
+  EmailSandboxError,
+  EmailSandboxListProjectSourcesInput,
+  EmailMessageDeleteInput,
+  EmailMessageDeleteResult,
+  EmailMessageDetail,
+  EmailMessageGetInput,
+  EmailMessageListInput,
+  EmailMessageListResult,
+  EmailMessageMarkReadInput,
+  EmailSandboxProjectSource,
+  EmailSandboxRuntimeStatus,
+  EmailSandboxSetProjectCaptureInput,
+} from "./emailSandbox.ts";
+import {
   AuthAccessStreamError,
   AuthAccessStreamEvent,
   EnvironmentAuthorizationError,
@@ -222,6 +240,17 @@ export const WS_METHODS = {
   cloudGetRelayClientStatus: "cloud.getRelayClientStatus",
   cloudInstallRelayClient: "cloud.installRelayClient",
 
+  // Local email sandbox methods
+  emailSandboxGetRuntimeStatus: "emailSandbox.getRuntimeStatus",
+  emailSandboxListProjectSources: "emailSandbox.listProjectSources",
+  emailSandboxSetProjectCapture: "emailSandbox.setProjectCapture",
+  emailSandboxClearLocalCache: "emailSandbox.clearLocalCache",
+  emailSandboxListMessages: "emailSandbox.listMessages",
+  emailSandboxGetMessage: "emailSandbox.getMessage",
+  emailSandboxMarkRead: "emailSandbox.markRead",
+  emailSandboxDeleteMessage: "emailSandbox.deleteMessage",
+  emailSandboxGetAttachment: "emailSandbox.getAttachment",
+
   // Source control methods
   sourceControlLookupRepository: "sourceControl.lookupRepository",
   sourceControlCloneRepository: "sourceControl.cloneRepository",
@@ -332,6 +361,66 @@ export const WsCloudInstallRelayClientRpc = Rpc.make(WS_METHODS.cloudInstallRela
   success: RelayClientInstallProgressEventSchema,
   error: Schema.Union([RelayClientInstallFailedError, EnvironmentAuthorizationError]),
   stream: true,
+});
+
+export const WsEmailSandboxGetRuntimeStatusRpc = Rpc.make(WS_METHODS.emailSandboxGetRuntimeStatus, {
+  payload: Schema.Struct({}),
+  success: EmailSandboxRuntimeStatus,
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsEmailSandboxListProjectSourcesRpc = Rpc.make(
+  WS_METHODS.emailSandboxListProjectSources,
+  {
+    payload: EmailSandboxListProjectSourcesInput,
+    success: Schema.Array(EmailSandboxProjectSource),
+    error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+  },
+);
+
+export const WsEmailSandboxSetProjectCaptureRpc = Rpc.make(
+  WS_METHODS.emailSandboxSetProjectCapture,
+  {
+    payload: EmailSandboxSetProjectCaptureInput,
+    success: EmailSandboxProjectSource,
+    error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+  },
+);
+
+export const WsEmailSandboxClearLocalCacheRpc = Rpc.make(WS_METHODS.emailSandboxClearLocalCache, {
+  payload: EmailSandboxClearLocalInput,
+  success: EmailSandboxClearLocalResult,
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsEmailSandboxListMessagesRpc = Rpc.make(WS_METHODS.emailSandboxListMessages, {
+  payload: EmailMessageListInput,
+  success: EmailMessageListResult,
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsEmailSandboxGetMessageRpc = Rpc.make(WS_METHODS.emailSandboxGetMessage, {
+  payload: EmailMessageGetInput,
+  success: EmailMessageDetail,
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsEmailSandboxMarkReadRpc = Rpc.make(WS_METHODS.emailSandboxMarkRead, {
+  payload: EmailMessageMarkReadInput,
+  success: EmailMessageDetail,
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsEmailSandboxDeleteMessageRpc = Rpc.make(WS_METHODS.emailSandboxDeleteMessage, {
+  payload: EmailMessageDeleteInput,
+  success: EmailMessageDeleteResult,
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsEmailSandboxGetAttachmentRpc = Rpc.make(WS_METHODS.emailSandboxGetAttachment, {
+  payload: EmailAttachmentGetInput,
+  success: Schema.NullOr(EmailAttachmentPayload),
+  error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
 });
 
 export const WsSourceControlLookupRepositoryRpc = Rpc.make(
@@ -706,6 +795,15 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerSignalProcessRpc,
   WsCloudGetRelayClientStatusRpc,
   WsCloudInstallRelayClientRpc,
+  WsEmailSandboxGetRuntimeStatusRpc,
+  WsEmailSandboxListProjectSourcesRpc,
+  WsEmailSandboxSetProjectCaptureRpc,
+  WsEmailSandboxClearLocalCacheRpc,
+  WsEmailSandboxListMessagesRpc,
+  WsEmailSandboxGetMessageRpc,
+  WsEmailSandboxMarkReadRpc,
+  WsEmailSandboxDeleteMessageRpc,
+  WsEmailSandboxGetAttachmentRpc,
   WsSourceControlLookupRepositoryRpc,
   WsSourceControlCloneRepositoryRpc,
   WsSourceControlPublishRepositoryRpc,

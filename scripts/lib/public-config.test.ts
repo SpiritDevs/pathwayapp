@@ -25,6 +25,9 @@ describe("loadRepoEnv", () => {
     expect(env.PATHWAYOS_CLERK_JWT_TEMPLATE).toBeUndefined();
     expect(env.VITE_CLERK_JWT_TEMPLATE).toBeUndefined();
     expect(env.EXPO_PUBLIC_CLERK_JWT_TEMPLATE).toBeUndefined();
+    expect(env.PATHWAYOS_CONVEX_URL).toBeUndefined();
+    expect(env.VITE_PATHWAYOS_CONVEX_URL).toBeUndefined();
+    expect(env.EXPO_PUBLIC_CONVEX_URL).toBeUndefined();
     expect(env.PATHWAYOS_CONNECT_URL).toBeUndefined();
     expect(env.PATHWAYOS_RELAY_URL).toBeUndefined();
     expect(env.VITE_PATHWAYOS_CONNECT_URL).toBeUndefined();
@@ -47,11 +50,11 @@ describe("loadRepoEnv", () => {
     const repoRoot = makeTemporaryDirectory();
     NodeFS.writeFileSync(
       NodePath.join(repoRoot, ".env"),
-      "PATHWAYOS_CLERK_PUBLISHABLE_KEY=pk_root\nPATHWAYOS_CLERK_JWT_TEMPLATE=template_root\nPATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID=oauth_root\nPATHWAYOS_RELAY_URL=https://root.example.test\n",
+      "PATHWAYOS_CLERK_PUBLISHABLE_KEY=pk_root\nPATHWAYOS_CLERK_JWT_TEMPLATE=template_root\nPATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID=oauth_root\nPATHWAYOS_CONVEX_URL=https://root.convex.cloud\nPATHWAYOS_RELAY_URL=https://root.example.test\n",
     );
     NodeFS.writeFileSync(
       NodePath.join(repoRoot, ".env.local"),
-      "PATHWAYOS_CLERK_PUBLISHABLE_KEY=pk_local\nPATHWAYOS_CLERK_JWT_TEMPLATE=template_local\nPATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID=oauth_local\nPATHWAYOS_RELAY_URL=https://local.example.test\n",
+      "PATHWAYOS_CLERK_PUBLISHABLE_KEY=pk_local\nPATHWAYOS_CLERK_JWT_TEMPLATE=template_local\nPATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID=oauth_local\nPATHWAYOS_CONVEX_URL=https://local.convex.cloud\nPATHWAYOS_RELAY_URL=https://local.example.test\n",
     );
 
     expect(loadRepoEnv({ baseEnv: {}, repoRoot }).PATHWAYOS_RELAY_URL).toBe(
@@ -63,6 +66,7 @@ describe("loadRepoEnv", () => {
           PATHWAYOS_CLERK_PUBLISHABLE_KEY: "pk_ci",
           PATHWAYOS_CLERK_JWT_TEMPLATE: "template_ci",
           PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID: "oauth_ci",
+          PATHWAYOS_CONVEX_URL: "https://ci.convex.cloud",
           PATHWAYOS_RELAY_URL: "https://ci.example.test",
         },
         repoRoot,
@@ -75,6 +79,9 @@ describe("loadRepoEnv", () => {
       PATHWAYOS_CLERK_JWT_TEMPLATE: "template_ci",
       VITE_CLERK_JWT_TEMPLATE: "template_ci",
       EXPO_PUBLIC_CLERK_JWT_TEMPLATE: "template_ci",
+      PATHWAYOS_CONVEX_URL: "https://ci.convex.cloud",
+      VITE_PATHWAYOS_CONVEX_URL: "https://ci.convex.cloud",
+      EXPO_PUBLIC_CONVEX_URL: "https://ci.convex.cloud",
       PATHWAYOS_CONNECT_URL: "https://ci.example.test",
       PATHWAYOS_RELAY_URL: "https://ci.example.test",
       VITE_PATHWAYOS_CONNECT_URL: "https://ci.example.test",
@@ -115,6 +122,7 @@ describe("loadRepoEnv", () => {
       clerkPublishableKey: "pk_legacy",
       clerkJwtTemplate: "template_legacy",
       clerkCliOAuthClientId: "oauth_canonical",
+      convexUrl: undefined,
       relayUrl: "https://connect.example.test",
       mobileOtlpTracesUrl: "https://api.axiom.co/v1/traces",
       mobileOtlpTracesDataset: "mobile-traces",
@@ -122,6 +130,21 @@ describe("loadRepoEnv", () => {
       relayClientOtlpTracesUrl: undefined,
       relayClientOtlpTracesDataset: undefined,
       relayClientOtlpTracesToken: undefined,
+    });
+  });
+
+  it("projects the canonical Convex URL to web and Expo aliases", () => {
+    expect(
+      loadRepoEnv({
+        baseEnv: {
+          PATHWAYOS_CONVEX_URL: "https://example.convex.cloud",
+        },
+        repoRoot: makeTemporaryDirectory(),
+      }),
+    ).toEqual({
+      PATHWAYOS_CONVEX_URL: "https://example.convex.cloud",
+      VITE_PATHWAYOS_CONVEX_URL: "https://example.convex.cloud",
+      EXPO_PUBLIC_CONVEX_URL: "https://example.convex.cloud",
     });
   });
 

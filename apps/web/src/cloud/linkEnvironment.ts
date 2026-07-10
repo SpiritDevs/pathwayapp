@@ -63,7 +63,7 @@ const relayClientRpcError = (message: string) => (cause: unknown) =>
     cause,
   });
 
-function ensureRelayClientAvailable(
+export function ensureRelayClientAvailable(
   environmentId: EnvironmentId,
 ): Effect.Effect<void, CloudEnvironmentLinkError, EnvironmentRegistry> {
   return Effect.gen(function* () {
@@ -115,6 +115,84 @@ function ensureRelayClientAvailable(
       });
     }
   });
+}
+
+export function createPrimaryConvexLinkProof(input: {
+  readonly target: CloudLinkTarget;
+  readonly challenge: string;
+  readonly relayIssuer: string;
+}): Effect.Effect<string, CloudEnvironmentLinkError, HttpClient.HttpClient> {
+  return Effect.gen(function* () {
+    const environmentClient = yield* makeEnvironmentHttpApiClient(input.target.httpBaseUrl);
+    return yield* environmentClient.connect
+      .convexLinkProof({
+        headers: {},
+        payload: {
+          challenge: input.challenge,
+          relayIssuer: input.relayIssuer,
+          endpoint: {
+            httpBaseUrl: input.target.httpBaseUrl,
+            wsBaseUrl: input.target.wsBaseUrl,
+            providerKind: "manual",
+          },
+          origin: endpointOrigin(input.target.httpBaseUrl),
+        },
+      })
+      .pipe(Effect.mapError(environmentApiError("Could not obtain environment link proof.")));
+  }).pipe(Effect.provide(primaryEnvironmentHttpLayer));
+}
+
+export function installPrimaryConvexConfig(input: {
+  readonly target: CloudLinkTarget;
+  readonly connectUrl: string;
+  readonly cloudUserId: string;
+  readonly tenantId: string;
+  readonly environmentCredential: string;
+  readonly cloudMintPublicKey: string;
+}): Effect.Effect<void, CloudEnvironmentLinkError, HttpClient.HttpClient> {
+  return Effect.gen(function* () {
+    const environmentClient = yield* makeEnvironmentHttpApiClient(input.target.httpBaseUrl);
+    yield* environmentClient.connect
+      .convexConfig({
+        headers: {},
+        payload: {
+          connectUrl: input.connectUrl,
+          cloudUserId: input.cloudUserId,
+          tenantId: input.tenantId,
+          environmentCredential: input.environmentCredential,
+          cloudMintPublicKey: input.cloudMintPublicKey,
+        },
+      })
+      .pipe(Effect.mapError(environmentApiError("Could not configure Convex synchronization.")));
+  }).pipe(Effect.provide(primaryEnvironmentHttpLayer));
+}
+
+export function applyPrimaryManagedEndpointConfig(input: {
+  readonly target: CloudLinkTarget;
+  readonly endpointRuntime:
+    | import("@pathwayos/contracts/relay").RelayManagedEndpointRuntimeConfig
+    | null;
+}): Effect.Effect<void, CloudEnvironmentLinkError, HttpClient.HttpClient> {
+  return Effect.gen(function* () {
+    const environmentClient = yield* makeEnvironmentHttpApiClient(input.target.httpBaseUrl);
+    yield* environmentClient.connect
+      .managedEndpointConfig({
+        headers: {},
+        payload: { endpointRuntime: input.endpointRuntime },
+      })
+      .pipe(Effect.mapError(environmentApiError("Could not update managed remote access.")));
+  }).pipe(Effect.provide(primaryEnvironmentHttpLayer));
+}
+
+export function clearPrimaryConvexConfig(input: {
+  readonly target: CloudLinkTarget;
+}): Effect.Effect<void, CloudEnvironmentLinkError, HttpClient.HttpClient> {
+  return Effect.gen(function* () {
+    const environmentClient = yield* makeEnvironmentHttpApiClient(input.target.httpBaseUrl);
+    yield* environmentClient.connect
+      .unlink({ headers: {} })
+      .pipe(Effect.mapError(environmentApiError("Could not unlink the environment from cloud.")));
+  }).pipe(Effect.provide(primaryEnvironmentHttpLayer));
 }
 
 const isEnvironmentCloudApiError = Schema.is(

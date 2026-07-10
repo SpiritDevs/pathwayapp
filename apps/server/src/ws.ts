@@ -96,6 +96,7 @@ import * as ReviewService from "./review/ReviewService.ts";
 import * as ProjectSetupScriptRunner from "./project/ProjectSetupScriptRunner.ts";
 import * as RepositoryIdentityResolver from "./project/RepositoryIdentityResolver.ts";
 import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
+import * as EmailSandboxCoordinator from "./emailSandbox/EmailSandboxCoordinator.ts";
 import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
 import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
@@ -292,6 +293,15 @@ const RPC_REQUIRED_SCOPE = new Map<string, AuthEnvironmentScope>([
   [WS_METHODS.serverRemoveKeybinding, AuthOrchestrationOperateScope],
   [WS_METHODS.serverGetSettings, AuthOrchestrationReadScope],
   [WS_METHODS.serverUpdateSettings, AuthOrchestrationOperateScope],
+  [WS_METHODS.emailSandboxGetRuntimeStatus, AuthOrchestrationReadScope],
+  [WS_METHODS.emailSandboxListProjectSources, AuthOrchestrationReadScope],
+  [WS_METHODS.emailSandboxSetProjectCapture, AuthOrchestrationOperateScope],
+  [WS_METHODS.emailSandboxClearLocalCache, AuthOrchestrationOperateScope],
+  [WS_METHODS.emailSandboxListMessages, AuthOrchestrationReadScope],
+  [WS_METHODS.emailSandboxGetMessage, AuthOrchestrationReadScope],
+  [WS_METHODS.emailSandboxMarkRead, AuthOrchestrationOperateScope],
+  [WS_METHODS.emailSandboxDeleteMessage, AuthOrchestrationOperateScope],
+  [WS_METHODS.emailSandboxGetAttachment, AuthOrchestrationReadScope],
   [WS_METHODS.serverDiscoverSourceControl, AuthOrchestrationReadScope],
   [WS_METHODS.serverGetTraceDiagnostics, AuthOrchestrationReadScope],
   [WS_METHODS.serverGetProcessDiagnostics, AuthOrchestrationReadScope],
@@ -414,6 +424,7 @@ const makeWsRpcLayer = (
       const config = yield* ServerConfig.ServerConfig;
       const lifecycleEvents = yield* ServerLifecycleEvents.ServerLifecycleEvents;
       const serverSettings = yield* ServerSettings.ServerSettingsService;
+      const emailSandbox = yield* EmailSandboxCoordinator.EmailSandboxCoordinator;
       const startup = yield* ServerRuntimeStartup.ServerRuntimeStartup;
       const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
       const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
@@ -1231,6 +1242,65 @@ const makeWsRpcLayer = (
             {
               "rpc.aggregate": "server",
             },
+          ),
+        [WS_METHODS.emailSandboxGetRuntimeStatus]: (_input) =>
+          observeRpcEffect(WS_METHODS.emailSandboxGetRuntimeStatus, emailSandbox.status, {
+            "rpc.aggregate": "email-sandbox",
+          }),
+        [WS_METHODS.emailSandboxListProjectSources]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxListProjectSources,
+            emailSandbox.listProjectSources(input.projectId),
+            { "rpc.aggregate": "email-sandbox" },
+          ),
+        [WS_METHODS.emailSandboxSetProjectCapture]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxSetProjectCapture,
+            emailSandbox.setProjectCapture(input),
+            { "rpc.aggregate": "email-sandbox" },
+          ),
+        [WS_METHODS.emailSandboxClearLocalCache]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxClearLocalCache,
+            emailSandbox.clearLocalCache(input.projectId),
+            { "rpc.aggregate": "email-sandbox" },
+          ),
+        [WS_METHODS.emailSandboxListMessages]: (input) =>
+          observeRpcEffect(WS_METHODS.emailSandboxListMessages, emailSandbox.listMessages(input), {
+            "rpc.aggregate": "email-sandbox",
+          }),
+        [WS_METHODS.emailSandboxGetMessage]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxGetMessage,
+            emailSandbox.getMessage(input.messageId),
+            { "rpc.aggregate": "email-sandbox" },
+          ),
+        [WS_METHODS.emailSandboxMarkRead]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxMarkRead,
+            emailSandbox.markRead(input.messageId, input.read),
+            { "rpc.aggregate": "email-sandbox" },
+          ),
+        [WS_METHODS.emailSandboxDeleteMessage]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxDeleteMessage,
+            emailSandbox.deleteMessage(input.messageId),
+            { "rpc.aggregate": "email-sandbox" },
+          ),
+        [WS_METHODS.emailSandboxGetAttachment]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.emailSandboxGetAttachment,
+            emailSandbox.getAttachment(input.attachmentId).pipe(
+              Effect.map((content) =>
+                content === null
+                  ? null
+                  : {
+                      attachment: content.attachment,
+                      contentBase64: Buffer.from(content.bytes).toString("base64"),
+                    },
+              ),
+            ),
+            { "rpc.aggregate": "email-sandbox" },
           ),
         [WS_METHODS.serverDiscoverSourceControl]: (_input) =>
           observeRpcEffect(

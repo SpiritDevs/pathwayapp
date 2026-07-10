@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { normalizeSecureConvexUrl } from "@pathwayos/shared/convexUrl";
 import { relayClerkTokenOptions } from "@pathwayos/shared/relayAuth";
 import { normalizeSecureRelayUrl } from "@pathwayos/shared/relayUrl";
 import * as Schema from "effect/Schema";
@@ -20,6 +21,9 @@ export interface CloudPublicConfig {
     readonly jwtTemplate: string | null;
   };
   readonly relay: {
+    readonly url: string | null;
+  };
+  readonly convex: {
     readonly url: string | null;
   };
   readonly observability: {
@@ -65,6 +69,9 @@ export function resolveCloudPublicConfig(extra: ExpoExtra = Constants.expoConfig
     relay: {
       url: normalizeSecureRelayUrl(trimNonEmpty(extra?.relay?.url) ?? ""),
     },
+    convex: {
+      url: normalizeSecureConvexUrl(trimNonEmpty(extra?.convex?.url) ?? ""),
+    },
     observability: {
       tracesUrl: normalizeSecureUrl(extra?.observability?.tracesUrl),
       tracesDataset: trimNonEmpty(extra?.observability?.tracesDataset),
@@ -76,6 +83,12 @@ export function resolveCloudPublicConfig(extra: ExpoExtra = Constants.expoConfig
 export function hasCloudPublicConfig(): boolean {
   const config = resolveCloudPublicConfig();
   return Boolean(config.clerk.publishableKey && config.clerk.jwtTemplate && config.relay.url);
+}
+
+export function hasConvexPublicConfig(
+  config: CloudPublicConfig = resolveCloudPublicConfig(),
+): boolean {
+  return Boolean(config.clerk.publishableKey && config.convex.url);
 }
 
 type Configured<T> = {

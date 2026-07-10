@@ -2,9 +2,11 @@ import {
   createAtomCommandScheduler,
   createRuntimeCommand,
 } from "@pathwayos/client-runtime/state/runtime";
+import { EnvironmentId } from "@pathwayos/contracts";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import {
+  ensureRelayClientAvailable,
   linkPrimaryEnvironmentToCloud,
   type CloudLinkTarget,
   unlinkPrimaryEnvironmentFromCloud,
@@ -39,4 +41,12 @@ export const updatePrimaryEnvironmentPreferences = createRuntimeCommand(connecti
   concurrency: cloudLinkConcurrency,
   execute: (input: { readonly target: CloudLinkTarget; readonly publishAgentActivity: boolean }) =>
     updatePrimaryCloudPreferences(input),
+});
+
+export const prepareManagedEndpointRuntime = createRuntimeCommand(connectionAtomRuntime, {
+  label: "web:cloud:prepare-managed-endpoint-runtime",
+  scheduler: cloudLinkScheduler,
+  concurrency: cloudLinkConcurrency,
+  execute: (input: { readonly target: CloudLinkTarget }) =>
+    ensureRelayClientAvailable(EnvironmentId.make(input.target.environmentId)),
 });

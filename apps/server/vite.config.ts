@@ -42,6 +42,7 @@ export default mergeConfig(
         js: "#!/usr/bin/env node\n",
       },
       define: {
+        __PATHWAYOS_BUILD_CONVEX_URL__: JSON.stringify(repoEnv.PATHWAYOS_CONVEX_URL?.trim() ?? ""),
         __PATHWAYOS_BUILD_RELAY_URL__: JSON.stringify(
           repoEnv.PATHWAYOS_CONNECT_URL?.trim() || repoEnv.PATHWAYOS_RELAY_URL?.trim() || "",
         ),

@@ -2,6 +2,19 @@
   "name": "@pathwayos/connect-convex",
   "private": true,
   "type": "module",
+  "exports": {
+    "./client-api": {
+      "types": "./src/clientApi.ts",
+      "import": "./src/clientApi.ts"
+    },
+    "./api": {
+      "types": "./convex/_generated/api.d.ts",
+      "import": "./convex/_generated/api.js"
+    },
+    "./dataModel": {
+      "types": "./convex/_generated/dataModel.d.ts"
+    }
+  },
   "scripts": {
     "codegen": "convex codegen",
     "deploy": "convex deploy",
@@ -13,7 +26,9 @@
     "@pathwayos/contracts": "workspace:*",
     "@pathwayos/shared": "workspace:*",
     "convex": "^1.42.0",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "jose": "catalog:",
+    "sqids": "^0.3.0"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",

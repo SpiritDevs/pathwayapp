@@ -39,6 +39,7 @@ import {
   RelayEnvironmentLinkProof,
   RelayEnvironmentMintResponse,
   RelayLinkProofRequest,
+  RelayManagedEndpointRuntimeConfig,
 } from "./relay.ts";
 
 const OptionalBearerHeaders = Schema.Struct({
@@ -311,9 +312,25 @@ export const EnvironmentCloudRelayConfigResult = Schema.Struct({
 });
 export type EnvironmentCloudRelayConfigResult = typeof EnvironmentCloudRelayConfigResult.Type;
 
+export const EnvironmentConvexConfigRequest = Schema.Struct({
+  connectUrl: Schema.String,
+  cloudUserId: Schema.String,
+  tenantId: Schema.String,
+  environmentCredential: Schema.String,
+  cloudMintPublicKey: Schema.String,
+});
+export type EnvironmentConvexConfigRequest = typeof EnvironmentConvexConfigRequest.Type;
+
+export const EnvironmentManagedEndpointConfigRequest = Schema.Struct({
+  endpointRuntime: Schema.NullOr(RelayManagedEndpointRuntimeConfig),
+});
+export type EnvironmentManagedEndpointConfigRequest =
+  typeof EnvironmentManagedEndpointConfigRequest.Type;
+
 export const EnvironmentCloudLinkStateResult = Schema.Struct({
   linked: Schema.Boolean,
   cloudUserId: Schema.NullOr(Schema.String),
+  tenantId: Schema.NullOr(Schema.String),
   relayUrl: Schema.NullOr(Schema.String),
   relayIssuer: Schema.NullOr(Schema.String),
   publishAgentActivity: Schema.Boolean,
@@ -449,9 +466,33 @@ export class EnvironmentConnectHttpApi extends HttpApiGroup.make("connect")
     }).middleware(EnvironmentAuthenticatedAuth),
   )
   .add(
+    HttpApiEndpoint.post("convexLinkProof", "/api/connect/convex-link-proof", {
+      headers: OptionalBearerHeaders,
+      payload: RelayLinkProofRequest,
+      success: RelayEnvironmentLinkProof,
+      error: EnvironmentHttpCloudErrors,
+    }).middleware(EnvironmentAuthenticatedAuth),
+  )
+  .add(
     HttpApiEndpoint.post("relayConfig", "/api/connect/relay-config", {
       headers: OptionalBearerHeaders,
       payload: RelayEnvironmentConfigRequest,
+      success: EnvironmentCloudRelayConfigResult,
+      error: [...EnvironmentHttpCloudErrors, EnvironmentCloudEndpointUnavailableError],
+    }).middleware(EnvironmentAuthenticatedAuth),
+  )
+  .add(
+    HttpApiEndpoint.post("convexConfig", "/api/connect/convex-config", {
+      headers: OptionalBearerHeaders,
+      payload: EnvironmentConvexConfigRequest,
+      success: EnvironmentCloudRelayConfigResult,
+      error: EnvironmentHttpCloudErrors,
+    }).middleware(EnvironmentAuthenticatedAuth),
+  )
+  .add(
+    HttpApiEndpoint.post("managedEndpointConfig", "/api/connect/managed-endpoint-config", {
+      headers: OptionalBearerHeaders,
+      payload: EnvironmentManagedEndpointConfigRequest,
       success: EnvironmentCloudRelayConfigResult,
       error: [...EnvironmentHttpCloudErrors, EnvironmentCloudEndpointUnavailableError],
     }).middleware(EnvironmentAuthenticatedAuth),

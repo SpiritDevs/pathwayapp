@@ -3,6 +3,7 @@
 - [Getting started](./getting-started/quick-start.md)
 - [Architecture](./architecture/overview.md)
 - [pathwayOS Connect](./cloud/pathwayos-connect-clerk.md)
+- [pathwayOS Connect Convex deployment](./cloud/convex-deployment.md)
 - [Integrations](./integrations/source-control-providers.md)
 - [Mobile](./mobile/app.md)
 - [Operations](./operations/ci.md)

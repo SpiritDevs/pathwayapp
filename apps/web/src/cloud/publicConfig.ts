@@ -1,4 +1,5 @@
 import { relayClerkTokenOptions } from "@pathwayos/shared/relayAuth";
+import { normalizeSecureConvexUrl } from "@pathwayos/shared/convexUrl";
 import { normalizeSecureRelayUrl } from "@pathwayos/shared/relayUrl";
 import * as Schema from "effect/Schema";
 
@@ -16,6 +17,7 @@ export class CloudPublicConfigMissingError extends Schema.TaggedErrorClass<Cloud
 export interface CloudPublicConfig {
   readonly clerkPublishableKey: string | null;
   readonly clerkJwtTemplate: string | null;
+  readonly convexUrl: string | null;
   readonly relayUrl: string | null;
   readonly relayTracing: {
     readonly tracesUrl: string | null;
@@ -51,6 +53,9 @@ export function resolveCloudPublicConfig(): CloudPublicConfig {
       import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined,
     ),
     clerkJwtTemplate: trimNonEmpty(import.meta.env.VITE_CLERK_JWT_TEMPLATE as string | undefined),
+    convexUrl: normalizeSecureConvexUrl(
+      trimNonEmpty(import.meta.env.VITE_PATHWAYOS_CONVEX_URL as string | undefined) ?? "",
+    ),
     relayUrl: normalizeSecureRelayUrl(configuredConnectUrl()),
     relayTracing: {
       tracesUrl: normalizeSecureUrl(
@@ -83,6 +88,11 @@ export function hasCloudPublicConfig(): boolean {
 export function hasClerkPublicConfig(): boolean {
   const config = resolveCloudPublicConfig();
   return Boolean(config.clerkPublishableKey);
+}
+
+export function hasConvexPublicConfig(): boolean {
+  const config = resolveCloudPublicConfig();
+  return Boolean(config.clerkPublishableKey && config.convexUrl);
 }
 
 export function resolveRelayClerkTokenOptions() {

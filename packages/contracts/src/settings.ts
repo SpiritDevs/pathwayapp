@@ -47,9 +47,6 @@ export const ClientSettingsSchema = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed([])),
   ),
   diffIgnoreWhitespace: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
-  enableDeveloperEmailServer: Schema.Boolean.pipe(
-    Schema.withDecodingDefault(Effect.succeed(false)),
-  ),
   // Model favorites. Historically keyed by provider kind, now
   // widened to `ProviderInstanceId` so users can favorite a specific model
   // on a custom provider instance (e.g. "Codex Personal · gpt-5") without
@@ -366,8 +363,32 @@ export type ObservabilitySettings = typeof ObservabilitySettings.Type;
 
 export const DEFAULT_AUTOMATIC_GIT_FETCH_INTERVAL = Duration.seconds(30);
 
+export const EmailSandboxSettings = Schema.Struct({
+  createForNewProjects: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  captureByDefault: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  agentAccessByDefault: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  syncAttachments: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  attachmentMaxBytes: Schema.Int.pipe(
+    Schema.check(Schema.isBetween({ minimum: 1, maximum: 25 * 1024 * 1024 })),
+    Schema.withDecodingDefault(Effect.succeed(10 * 1024 * 1024)),
+  ),
+  retentionDays: Schema.Int.pipe(
+    Schema.check(Schema.isBetween({ minimum: 1, maximum: 365 })),
+    Schema.withDecodingDefault(Effect.succeed(14)),
+  ),
+  retentionMaxMessages: Schema.Int.pipe(
+    Schema.check(Schema.isBetween({ minimum: 1, maximum: 10_000 })),
+    Schema.withDecodingDefault(Effect.succeed(500)),
+  ),
+});
+export type EmailSandboxSettings = typeof EmailSandboxSettings.Type;
+
 export const ServerSettings = Schema.Struct({
   enableAssistantStreaming: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  enableDeveloperEmailServer: Schema.Boolean.pipe(
+    Schema.withDecodingDefault(Effect.succeed(false)),
+  ),
+  emailSandbox: EmailSandboxSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   enableProviderUpdateChecks: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   automaticGitFetchInterval: Schema.DurationFromMillis.pipe(
     Schema.withDecodingDefault(
@@ -507,6 +528,18 @@ const OpenCodeSettingsPatch = Schema.Struct({
 export const ServerSettingsPatch = Schema.Struct({
   // Server settings
   enableAssistantStreaming: Schema.optionalKey(Schema.Boolean),
+  enableDeveloperEmailServer: Schema.optionalKey(Schema.Boolean),
+  emailSandbox: Schema.optionalKey(
+    Schema.Struct({
+      createForNewProjects: Schema.optionalKey(Schema.Boolean),
+      captureByDefault: Schema.optionalKey(Schema.Boolean),
+      agentAccessByDefault: Schema.optionalKey(Schema.Boolean),
+      syncAttachments: Schema.optionalKey(Schema.Boolean),
+      attachmentMaxBytes: Schema.optionalKey(Schema.Int),
+      retentionDays: Schema.optionalKey(Schema.Int),
+      retentionMaxMessages: Schema.optionalKey(Schema.Int),
+    }),
+  ),
   enableProviderUpdateChecks: Schema.optionalKey(Schema.Boolean),
   automaticGitFetchInterval: Schema.optionalKey(Schema.DurationFromMillis),
   defaultThreadEnvMode: Schema.optionalKey(ThreadEnvMode),
@@ -541,7 +574,6 @@ export const ClientSettingsPatch = Schema.Struct({
   confirmThreadArchive: Schema.optionalKey(Schema.Boolean),
   confirmThreadDelete: Schema.optionalKey(Schema.Boolean),
   diffIgnoreWhitespace: Schema.optionalKey(Schema.Boolean),
-  enableDeveloperEmailServer: Schema.optionalKey(Schema.Boolean),
   favorites: Schema.optionalKey(
     Schema.Array(
       Schema.Struct({

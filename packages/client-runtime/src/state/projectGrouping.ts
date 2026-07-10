@@ -60,6 +60,24 @@ function deriveRepositoryRelativeProjectPath(
   return normalizedProjectPath.slice(rootPrefix.length).replaceAll("\\", "/");
 }
 
+/**
+ * Durable project identity for cloud-backed data.
+ *
+ * This deliberately ignores sidebar grouping preferences so presentation
+ * changes cannot split or merge synced records.
+ */
+export function deriveCloudProjectKey(
+  project: Pick<EnvironmentProject, "environmentId" | "workspaceRoot" | "repositoryIdentity">,
+): string {
+  const canonicalKey = project.repositoryIdentity?.canonicalKey?.trim();
+  if (!canonicalKey) {
+    return derivePhysicalProjectKey(project);
+  }
+
+  const relativeProjectPath = deriveRepositoryRelativeProjectPath(project);
+  return relativeProjectPath ? `${canonicalKey}::${relativeProjectPath}` : canonicalKey;
+}
+
 export function derivePhysicalProjectKeyFromPath(environmentId: string, cwd: string): string {
   return `${environmentId}:${normalizeProjectPathForComparison(cwd)}`;
 }

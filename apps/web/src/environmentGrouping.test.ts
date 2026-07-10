@@ -2,6 +2,7 @@ import { EnvironmentId, ProjectId, ProviderInstanceId } from "@pathwayos/contrac
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  deriveCloudProjectKey,
   deriveLogicalProjectKey,
   deriveLogicalProjectKeyFromSettings,
   derivePhysicalProjectKey,
@@ -43,6 +44,24 @@ function makeProject(overrides: Partial<Project> = {}): Project {
 }
 
 describe("environment grouping", () => {
+  it("keeps cloud identity stable across sidebar grouping modes", () => {
+    const project = makeProject({
+      workspaceRoot: "/tmp/shared-repo/apps/web",
+      repositoryIdentity: {
+        ...repositoryIdentity,
+        rootPath: "/tmp/shared-repo",
+      },
+    });
+
+    expect(deriveCloudProjectKey(project)).toBe(`${repositoryIdentity.canonicalKey}::apps/web`);
+    expect(
+      deriveLogicalProjectKeyFromSettings(project, {
+        sidebarProjectGroupingMode: "separate",
+        sidebarProjectGroupingOverrides: {},
+      }),
+    ).not.toBe(deriveCloudProjectKey(project));
+  });
+
   it("groups matching repository identities across environments", () => {
     const primary = makeProject({ repositoryIdentity });
     const remote = makeProject({

@@ -45,6 +45,8 @@ export interface ServerDerivedPaths {
   readonly serverRuntimeStatePath: string;
   readonly secretsDir: string;
   readonly chatsDir: string;
+  readonly emailSandboxDir: string;
+  readonly mailpitDatabasePath: string;
 }
 
 /**
@@ -101,6 +103,7 @@ export const deriveServerPaths = Effect.fn(function* (
   const logsDir = join(stateDir, "logs");
   const providerLogsDir = join(logsDir, "provider");
   const providerStatusCacheDir = join(baseDir, "caches");
+  const emailSandboxDir = join(stateDir, "email-sandbox");
   return {
     stateDir,
     dbPath,
@@ -121,6 +124,8 @@ export const deriveServerPaths = Effect.fn(function* (
     serverRuntimeStatePath: join(stateDir, "server-runtime.json"),
     secretsDir: join(stateDir, "secrets"),
     chatsDir: join(stateDir, "chats"),
+    emailSandboxDir,
+    mailpitDatabasePath: join(emailSandboxDir, "mailpit.db"),
   };
 });
 
@@ -143,6 +148,7 @@ export const ensureServerDirectories = Effect.fn(function* (derivedPaths: Server
       fs.makeDirectory(path.dirname(derivedPaths.anonymousIdPath), { recursive: true }),
       fs.makeDirectory(path.dirname(derivedPaths.serverRuntimeStatePath), { recursive: true }),
       fs.makeDirectory(derivedPaths.chatsDir, { recursive: true }),
+      fs.makeDirectory(derivedPaths.emailSandboxDir, { recursive: true }),
     ],
     { concurrency: "unbounded" },
   );

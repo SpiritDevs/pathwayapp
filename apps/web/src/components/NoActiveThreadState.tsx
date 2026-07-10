@@ -124,6 +124,7 @@ import { ProjectFavicon } from "./ProjectFavicon";
 import { RightPanelResizeHandle } from "./preview/RightPanelResizeHandle";
 import { buildDraftThreadRouteParams } from "../threadRoutes";
 import { markDraftForAutoSubmit } from "../lib/draftAutoSubmit";
+import { MobileWorkspaceTopbar } from "./MobileWorkspaceTopbar";
 
 const pendingConnectionCards = [
   {
@@ -935,7 +936,7 @@ function NoActiveThreadPanelControls({
   onToggleRightPanel: () => void;
 }) {
   return (
-    <div className="workspace-titlebar-controls z-50 gap-1 [-webkit-app-region:no-drag]">
+    <div className="workspace-titlebar-controls z-50 hidden gap-1 [-webkit-app-region:no-drag] md:flex">
       <PanelLayoutControls
         terminalAvailable
         terminalOpen={terminalOpen}
@@ -1133,7 +1134,7 @@ function usePendingRightPanelMaxWidth(): number {
   );
 }
 
-function PendingRightToolsPanel({ open }: { open: boolean }) {
+function PendingRightToolsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const maxWidth = usePendingRightPanelMaxWidth();
   const { width, handlers } = useResizableWidth({
     storageKey: PENDING_RIGHT_PANEL_WIDTH_STORAGE_KEY,
@@ -1219,6 +1220,17 @@ function PendingRightToolsPanel({ open }: { open: boolean }) {
       aria-hidden={!open}
     >
       {open ? <RightPanelResizeHandle handlers={resizeHandlers} /> : null}
+      {open ? (
+        <Button
+          className="absolute right-3 top-3 z-10"
+          size="icon-sm"
+          variant="ghost"
+          aria-label="Close right panel"
+          onClick={onClose}
+        >
+          <XIcon />
+        </Button>
+      ) : null}
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         <div className="w-full max-w-xl">
           <div className="mb-5 text-center">
@@ -1365,13 +1377,28 @@ export function NoActiveThreadState() {
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground">
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
+        <MobileWorkspaceTopbar
+          title="Agents"
+          actions={
+            <PanelLayoutControls
+              terminalAvailable
+              terminalOpen={terminalOpen}
+              terminalShortcutLabel={null}
+              rightPanelAvailable
+              rightPanelOpen={rightPanelOpen}
+              rightPanelShortcutLabel={null}
+              onToggleTerminal={() => setTerminalOpen((open) => !open)}
+              onToggleRightPanel={() => setRightPanelOpen((open) => !open)}
+            />
+          }
+        />
         <NoActiveThreadPanelControls
           terminalOpen={terminalOpen}
           rightPanelOpen={rightPanelOpen}
           onToggleTerminal={() => setTerminalOpen((open) => !open)}
           onToggleRightPanel={() => setRightPanelOpen((open) => !open)}
         />
-        <PendingRightToolsPanel open={rightPanelOpen} />
+        <PendingRightToolsPanel open={rightPanelOpen} onClose={() => setRightPanelOpen(false)} />
         <Empty className="flex-1 px-6">
           <div className="w-full max-w-[46rem]">
             <EmptyHeader className="max-w-none">

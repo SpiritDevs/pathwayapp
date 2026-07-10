@@ -68,7 +68,7 @@ The native lint task runs SwiftLint for Swift plus ktlint and detekt for Kotlin.
 CI uses Expo fingerprinting with the `preview:dev` profile to reuse an existing compatible build when possible, or start a new internal EAS build when native runtime inputs change. Production and default local builds continue to use the `appVersion` runtime policy.
 
 For preview or production EAS environments, set `PATHWAYOS_CLERK_PUBLISHABLE_KEY`,
-`PATHWAYOS_CLERK_JWT_TEMPLATE`, and `PATHWAYOS_CONNECT_URL`
+`PATHWAYOS_CLERK_JWT_TEMPLATE`, `PATHWAYOS_CONNECT_URL`, and `PATHWAYOS_CONVEX_URL`
 as EAS environment variables. Expo config maps the canonical values into the mobile build.
 
 Create a PR preview dev-client build manually:

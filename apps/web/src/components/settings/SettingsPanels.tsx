@@ -102,6 +102,7 @@ import {
 } from "./settingsLayout";
 import { ProjectFavicon } from "../ProjectFavicon";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { EmailSandboxSettings } from "./EmailSandboxSettings";
 
 const THEME_OPTIONS = [
   {
@@ -1124,6 +1125,16 @@ export function EmailSettingsPanel() {
           }
         />
       </SettingsSection>
+
+      <EmailSandboxSettings
+        enabled={settings.enableDeveloperEmailServer}
+        settings={settings.emailSandbox}
+        onUpdate={(patch) =>
+          updateSettings({
+            emailSandbox: { ...settings.emailSandbox, ...patch },
+          })
+        }
+      />
     </SettingsPageContainer>
   );
 }

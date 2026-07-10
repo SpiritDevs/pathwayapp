@@ -18,6 +18,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Spinner } from "~/components/ui/spinner";
+import { consumePendingInvitation } from "~/invitationRouting";
 
 type AuthFormStatus = "idle" | "submitting";
 type LoadedSignInResource = NonNullable<ReturnType<typeof useSignIn>["signIn"]>;
@@ -213,6 +214,16 @@ export function PathwayOSSignInForm() {
     }
 
     await setActiveResource({ session: createdSessionId });
+    const pendingInvitationPath = consumePendingInvitation();
+    if (pendingInvitationPath) {
+      const token = new URL(pendingInvitationPath, window.location.origin).searchParams.get(
+        "token",
+      );
+      if (token) {
+        void navigate({ to: "/invitations/accept", search: { token }, replace: true });
+        return;
+      }
+    }
     void navigate({ to: AUTH_COMPLETE_ROUTE, replace: true });
   }
 
@@ -461,6 +472,16 @@ export function PathwayOSRegisterForm() {
     }
 
     await setActiveResource({ session: createdSessionId });
+    const pendingInvitationPath = consumePendingInvitation();
+    if (pendingInvitationPath) {
+      const token = new URL(pendingInvitationPath, window.location.origin).searchParams.get(
+        "token",
+      );
+      if (token) {
+        void navigate({ to: "/invitations/accept", search: { token }, replace: true });
+        return;
+      }
+    }
     void navigate({ to: AUTH_COMPLETE_ROUTE, replace: true });
   }
 
@@ -728,6 +749,16 @@ export function PathwayOSForgotPasswordForm() {
 
       if (result.status === "complete" && result.createdSessionId) {
         await setActive({ session: result.createdSessionId });
+        const pendingInvitationPath = consumePendingInvitation();
+        if (pendingInvitationPath) {
+          const token = new URL(pendingInvitationPath, window.location.origin).searchParams.get(
+            "token",
+          );
+          if (token) {
+            void navigate({ to: "/invitations/accept", search: { token }, replace: true });
+            return;
+          }
+        }
         void navigate({ to: AUTH_COMPLETE_ROUTE, replace: true });
         return;
       }

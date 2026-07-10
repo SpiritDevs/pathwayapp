@@ -202,6 +202,7 @@ describe("web cloud link environment client", () => {
         Response.json({
           linked: true,
           cloudUserId: "user-1",
+          tenantId: "tenant-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
           publishAgentActivity: false,
@@ -215,6 +216,7 @@ describe("web cloud link environment client", () => {
         Option.some({
           linked: true,
           cloudUserId: "user-1",
+          tenantId: "tenant-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
           publishAgentActivity: false,
@@ -232,6 +234,7 @@ describe("web cloud link environment client", () => {
         Response.json({
           linked: true,
           cloudUserId: "user-1",
+          tenantId: "tenant-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
           publishAgentActivity: false,
@@ -259,6 +262,7 @@ describe("web cloud link environment client", () => {
         Response.json({
           linked: true,
           cloudUserId: "user-1",
+          tenantId: "tenant-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
           publishAgentActivity: true,
@@ -308,6 +312,7 @@ describe("web cloud link environment client", () => {
             endpointRuntime: null,
             relayIssuer: "https://relay.example.test",
             cloudUserId: "user-1",
+            tenantId: "tenant-1",
             environmentCredential: "environment-credential",
             cloudMintPublicKey: "public-key",
           }),

@@ -136,6 +136,7 @@ import { BranchToolbar } from "./BranchToolbar";
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import PlanSidebar from "./PlanSidebar";
 import ThreadTerminalDrawer from "./ThreadTerminalDrawer";
+import { MobileWorkspaceTopbar } from "./MobileWorkspaceTopbar";
 import { ChevronDownIcon, TriangleAlertIcon, WifiOffIcon } from "lucide-react";
 import { cn, randomHex } from "~/lib/utils";
 import { COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS } from "~/workspaceTitlebar";
@@ -4785,7 +4786,7 @@ function ChatViewContent(props: ChatViewProps) {
     />
   );
   const panelLayoutControls = (
-    <div className="workspace-titlebar-controls z-50 gap-1 [-webkit-app-region:no-drag]">
+    <div className="workspace-titlebar-controls z-50 hidden gap-1 [-webkit-app-region:no-drag] md:flex">
       {rightPanelOpen && !shouldUsePlanSidebarSheet ? (
         <RightPanelMaximizeControl
           maximized={rightPanelMaximized}
@@ -4875,11 +4876,12 @@ function ChatViewContent(props: ChatViewProps) {
         )}
         data-chat-column-maximized-away={rightPanelMaximized ? "true" : "false"}
       >
+        <MobileWorkspaceTopbar title={activeThread.title} actions={panelToggleControls} />
         {/* Top bar */}
         <header
           data-chat-header
           className={cn(
-            "border-b border-border transition-[padding-left] duration-200 ease-linear motion-reduce:transition-none",
+            "hidden border-b border-border transition-[padding-left] duration-200 ease-linear motion-reduce:transition-none md:flex",
             isElectron
               ? cn(
                   "workspace-topbar drag-region relative px-3 sm:px-5",

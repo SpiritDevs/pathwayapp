@@ -4,6 +4,8 @@ import {
   CloudPublicConfigMissingError,
   hasClerkPublicConfig,
   hasCloudPublicConfig,
+  hasConvexPublicConfig,
+  resolveCloudPublicConfig,
   resolveRelayClerkTokenOptions,
 } from "./publicConfig.ts";
 
@@ -19,10 +21,31 @@ describe("hasCloudPublicConfig", () => {
     vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_example");
     vi.stubEnv("VITE_CLERK_JWT_TEMPLATE", "");
     vi.stubEnv("VITE_PATHWAYOS_CONNECT_URL", "");
+    vi.stubEnv("VITE_PATHWAYOS_CONVEX_URL", "");
     vi.stubEnv("VITE_PATHWAYOS_RELAY_URL", "");
 
     expect(hasClerkPublicConfig()).toBe(true);
     expect(hasCloudPublicConfig()).toBe(false);
+  });
+
+  it("configures Convex independently from the Connect HTTP backend", () => {
+    vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_example");
+    vi.stubEnv("VITE_CLERK_JWT_TEMPLATE", "");
+    vi.stubEnv("VITE_PATHWAYOS_CONNECT_URL", "");
+    vi.stubEnv("VITE_PATHWAYOS_RELAY_URL", "");
+    vi.stubEnv("VITE_PATHWAYOS_CONVEX_URL", "https://example.convex.cloud///");
+
+    expect(hasCloudPublicConfig()).toBe(false);
+    expect(hasConvexPublicConfig()).toBe(true);
+    expect(resolveCloudPublicConfig().convexUrl).toBe("https://example.convex.cloud");
+  });
+
+  it("rejects an insecure Convex URL", () => {
+    vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_example");
+    vi.stubEnv("VITE_PATHWAYOS_CONVEX_URL", "http://example.convex.cloud");
+
+    expect(hasConvexPublicConfig()).toBe(false);
+    expect(resolveCloudPublicConfig().convexUrl).toBeNull();
   });
 
   it("requires both public cloud values", () => {

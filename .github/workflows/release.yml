@@ -262,6 +262,8 @@ jobs:
       PATHWAYOS_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       PATHWAYOS_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      PATHWAYOS_CONNECT_URL: ${{ vars.PATHWAYOS_CONNECT_URL }}
+      PATHWAYOS_CONVEX_URL: ${{ vars.PATHWAYOS_CONVEX_URL }}
       PATHWAYOS_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
     strategy:
       fail-fast: false
@@ -553,6 +555,8 @@ jobs:
       PATHWAYOS_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       PATHWAYOS_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      PATHWAYOS_CONNECT_URL: ${{ vars.PATHWAYOS_CONNECT_URL }}
+      PATHWAYOS_CONVEX_URL: ${{ vars.PATHWAYOS_CONVEX_URL }}
       PATHWAYOS_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
     steps:
       - name: Checkout
@@ -723,6 +727,8 @@ jobs:
     env:
       PATHWAYOS_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       PATHWAYOS_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
+      PATHWAYOS_CONNECT_URL: ${{ vars.PATHWAYOS_CONNECT_URL }}
+      PATHWAYOS_CONVEX_URL: ${{ vars.PATHWAYOS_CONVEX_URL }}
       PATHWAYOS_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -806,6 +812,8 @@ jobs:
               --build-env "APP_VERSION=${{ needs.preflight.outputs.version }}" \
               --build-env "PATHWAYOS_CLERK_PUBLISHABLE_KEY=${PATHWAYOS_CLERK_PUBLISHABLE_KEY:-}" \
               --build-env "PATHWAYOS_CLERK_JWT_TEMPLATE=${PATHWAYOS_CLERK_JWT_TEMPLATE:-}" \
+              --build-env "PATHWAYOS_CONNECT_URL=${PATHWAYOS_CONNECT_URL:-}" \
+              --build-env "PATHWAYOS_CONVEX_URL=${PATHWAYOS_CONVEX_URL:-}" \
               --build-env "PATHWAYOS_RELAY_URL=${PATHWAYOS_RELAY_URL:-}" \
               --build-env "PATHWAYOS_RELAY_CLIENT_OTLP_TRACES_URL=${PATHWAYOS_RELAY_CLIENT_OTLP_TRACES_URL:-}" \
               --build-env "PATHWAYOS_RELAY_CLIENT_OTLP_TRACES_DATASET=${PATHWAYOS_RELAY_CLIENT_OTLP_TRACES_DATASET:-}" \

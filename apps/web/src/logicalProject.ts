@@ -1,4 +1,5 @@
 export {
+  deriveCloudProjectKey,
   deriveLogicalProjectKey,
   deriveLogicalProjectKeyFromRef,
   deriveLogicalProjectKeyFromSettings,

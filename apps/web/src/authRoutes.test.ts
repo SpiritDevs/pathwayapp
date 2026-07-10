@@ -26,6 +26,7 @@ describe("auth route detection", () => {
     expect(isPublicSessionRoutePathname("/forgot-password")).toBe(true);
     expect(isPublicSessionRoutePathname("/session-tasks/reset-password")).toBe(true);
     expect(isPublicSessionRoutePathname("/pair")).toBe(true);
+    expect(isPublicSessionRoutePathname("/invitations/accept")).toBe(true);
     expect(isPublicSessionRoutePathname("/")).toBe(false);
     expect(isPublicSessionRoutePathname("/settings/general")).toBe(false);
   });

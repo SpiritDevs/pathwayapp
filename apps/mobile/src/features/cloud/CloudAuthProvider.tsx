@@ -18,6 +18,7 @@ import {
   unregisterAgentAwarenessDeviceForCurrentUser,
 } from "../agent-awareness/remoteRegistration";
 import { resolveCloudPublicConfig, resolveRelayClerkTokenOptions } from "./publicConfig";
+import { ConvexAuthProvider } from "./ConvexAuthProvider";
 
 function resetManagedRelayTokenCache() {
   return settleAsyncResult(() =>
@@ -155,6 +156,7 @@ export function CloudAuthProvider(props: { readonly children: ReactNode }) {
   const config = resolveCloudPublicConfig();
   const publishableKey = config.clerk.publishableKey;
   const relayUrl = config.relay.url;
+  const convexUrl = config.convex.url;
 
   useEffect(() => {
     if (!publishableKey || !relayUrl) {
@@ -162,13 +164,24 @@ export function CloudAuthProvider(props: { readonly children: ReactNode }) {
     }
   }, [publishableKey, relayUrl]);
 
-  if (!publishableKey || !relayUrl) {
+  if (!publishableKey) {
     return props.children;
   }
 
+  const relayAwareChildren = relayUrl ? (
+    <CloudAuthBridge>{props.children}</CloudAuthBridge>
+  ) : (
+    props.children
+  );
+  const cloudAwareChildren = convexUrl ? (
+    <ConvexAuthProvider url={convexUrl}>{relayAwareChildren}</ConvexAuthProvider>
+  ) : (
+    relayAwareChildren
+  );
+
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <CloudAuthBridge>{props.children}</CloudAuthBridge>
+      {cloudAwareChildren}
     </ClerkProvider>
   );
 }

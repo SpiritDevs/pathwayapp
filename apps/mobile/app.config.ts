@@ -162,6 +162,9 @@ const config: ExpoConfig = {
     relay: {
       url: repoEnv.PATHWAYOS_CONNECT_URL ?? repoEnv.PATHWAYOS_RELAY_URL ?? null,
     },
+    convex: {
+      url: repoEnv.PATHWAYOS_CONVEX_URL ?? null,
+    },
     clerk: {
       publishableKey: repoEnv.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? null,
       jwtTemplate: repoEnv.EXPO_PUBLIC_CLERK_JWT_TEMPLATE ?? null,

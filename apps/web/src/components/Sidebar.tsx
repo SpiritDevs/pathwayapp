@@ -41,6 +41,9 @@ import {
   ThreadWorktreeIndicator,
 } from "./ThreadStatusIndicators";
 import { ProjectFavicon } from "./ProjectFavicon";
+import { EmailMailboxNav } from "../email/EmailMailboxNav";
+import { EmailSourceTabs } from "../email/EmailSourceTabs";
+import { emailSourceAtom } from "../email/emailSourceAtom";
 import { useAtomValue } from "@effect/atom-react";
 import { autoAnimate } from "@formkit/auto-animate";
 import React, { useCallback, useEffect, memo, useMemo, useRef, useState } from "react";
@@ -279,6 +282,12 @@ import {
   type SidebarProjectSnapshot,
 } from "../sidebarProjectGrouping";
 import { SidebarProviderUpdatePill } from "./sidebar/SidebarProviderUpdatePill";
+import { useCloudWorkspace } from "../cloud/CloudWorkspaceProvider";
+import {
+  isCloudWorkspaceEntity,
+  mergeCloudWorkspace,
+  resolveCloudThreadRoute,
+} from "../cloud/cloudWorkspaceModel";
 const SIDEBAR_SORT_LABELS: Record<SidebarProjectSortOrder, string> = {
   updated_at: "Last user message",
   created_at: "Created at",
@@ -324,7 +333,7 @@ const APP_NAV_ITEMS: readonly {
     isActive: (pathname) => pathname === "/email",
   },
   {
-    title: "Chat",
+    title: "Agents",
     icon: BotIcon,
     to: "/chat",
     isActive: isChatSurfacePathname,
@@ -518,6 +527,8 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
   } = props;
   const threadRef = scopeThreadRef(thread.environmentId, thread.id);
   const threadKey = scopedThreadKey(threadRef);
+  const isCloudThread = isCloudWorkspaceEntity(thread);
+  const cloudThreadRoute = isCloudThread ? resolveCloudThreadRoute(thread) : threadRef;
   const lastVisitedAt = useUiStateStore((state) => state.threadLastVisitedAtById[threadKey]);
   const isSelected = useThreadSelectionStore((state) => state.selectedThreadKeys.has(threadKey));
   const runningTerminalIds = useThreadRunningTerminalIds({
@@ -621,9 +632,18 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
   );
   const handleRowClick = useCallback(
     (event: React.MouseEvent) => {
-      handleThreadClick(event, threadRef, orderedProjectThreadKeys);
+      if (cloudThreadRoute === null) {
+        event.preventDefault();
+        toastManager.add({
+          type: "warning",
+          title: "Source environment unavailable",
+          description: "Connect this chat's source environment before opening or controlling it.",
+        });
+        return;
+      }
+      handleThreadClick(event, cloudThreadRoute, orderedProjectThreadKeys);
     },
-    [handleThreadClick, orderedProjectThreadKeys, threadRef],
+    [cloudThreadRoute, handleThreadClick, orderedProjectThreadKeys],
   );
   const handleRowDoubleClick = useCallback(
     (event: React.MouseEvent) => {
@@ -647,9 +667,17 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
     (event: React.KeyboardEvent) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      navigateToThread(threadRef);
+      if (cloudThreadRoute === null) {
+        toastManager.add({
+          type: "warning",
+          title: "Source environment unavailable",
+          description: "Connect this chat's source environment before opening or controlling it.",
+        });
+        return;
+      }
+      navigateToThread(cloudThreadRoute);
     },
-    [navigateToThread, threadRef],
+    [cloudThreadRoute, navigateToThread],
   );
   const handleRowContextMenu = useCallback(
     (event: React.MouseEvent) => {
@@ -864,6 +892,25 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
               </TooltipPopup>
             </Tooltip>
           )}
+          {isCloudThread ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span
+                    aria-label="Synced from source environment"
+                    className="inline-flex shrink-0 text-muted-foreground/55"
+                  />
+                }
+              >
+                <CloudIcon className="size-3" />
+              </TooltipTrigger>
+              <TooltipPopup side="top">
+                {thread.sourceAvailable
+                  ? "Synced · opens on its source environment"
+                  : "Synced · source environment is not connected"}
+              </TooltipPopup>
+            </Tooltip>
+          ) : null}
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           {discoveredPorts.length > 0 && (
@@ -2116,7 +2163,22 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const setProjectExpanded = useUiStateStore((state) => state.setProjectExpanded);
-  const sidebarThreads = useThreadShellsForProjectRefs(project.memberProjectRefs);
+  const localSidebarThreads = useThreadShellsForProjectRefs(project.memberProjectRefs);
+  const cloudWorkspace = useCloudWorkspace();
+  const sidebarThreads = useMemo(() => {
+    const projectKeys = new Set(project.memberProjectRefs.map(scopedProjectKey));
+    const cloudThreads = cloudWorkspace.threads.filter(
+      (thread) =>
+        thread.projectId !== null &&
+        projectKeys.has(scopedProjectKey(scopeProjectRef(thread.environmentId, thread.projectId))),
+    );
+    return mergeCloudWorkspace({
+      localProjects: [],
+      localThreads: localSidebarThreads,
+      cloudProjects: [],
+      cloudThreads,
+    }).threads;
+  }, [cloudWorkspace.threads, localSidebarThreads, project.memberProjectRefs]);
   const sidebarThreadByKey = useMemo(
     () =>
       new Map(
@@ -2974,6 +3036,7 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
       </MenuSub>
     );
   };
+  const hasCloudMember = project.memberProjects.some(isCloudWorkspaceEntity);
 
   return (
     <>
@@ -3034,15 +3097,17 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
         {/* Environment badge – visible by default, crossfades with the
             "new thread" button on hover using the same pointer-events +
             opacity pattern as the thread row archive/timestamp swap. */}
-        {project.environmentPresence === "remote-only" && (
+        {(project.environmentPresence === "remote-only" || hasCloudMember) && (
           <Tooltip>
             <TooltipTrigger
               render={
                 <span
                   aria-label={
-                    project.environmentPresence === "remote-only"
-                      ? "Remote project"
-                      : "Available in multiple environments"
+                    hasCloudMember
+                      ? "Synced cloud project"
+                      : project.environmentPresence === "remote-only"
+                        ? "Remote project"
+                        : "Available in multiple environments"
                   }
                   className="pointer-events-none absolute top-1 right-1.5 inline-flex size-5 items-center justify-center rounded-md text-muted-foreground/60 transition-opacity duration-150 max-sm:right-7 group-hover/project-header:opacity-0 group-focus-within/project-header:opacity-0 max-sm:group-hover/project-header:opacity-100 max-sm:group-focus-within/project-header:opacity-100"
                 />
@@ -3051,7 +3116,9 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
               <CloudIcon className="size-3" />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              Remote environment: {project.remoteEnvironmentLabels.join(", ")}
+              {hasCloudMember
+                ? "Synced project · commands route to the source environment"
+                : `Remote environment: ${project.remoteEnvironmentLabels.join(", ")}`}
             </TooltipPopup>
           </Tooltip>
         )}
@@ -3663,8 +3730,15 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
   );
 });
 
-const SidebarAppNavRail = memo(function SidebarAppNavRail({ pathname }: { pathname: string }) {
+export const SidebarAppNavRail = memo(function SidebarAppNavRail({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
   const navigate = useNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
   const isSettingsRoute = pathname.startsWith("/settings");
 
   return (
@@ -3688,6 +3762,8 @@ const SidebarAppNavRail = memo(function SidebarAppNavRail({ pathname }: { pathna
               onClick={() => {
                 if (item.to) {
                   markAppNavRouteSidebarMotionInstant();
+                  if (isMobile) setOpenMobile(false);
+                  onNavigate?.();
                   void navigate({ to: item.to });
                 }
               }}
@@ -3796,42 +3872,57 @@ const EmailSidebarContent = memo(function EmailSidebarContent({
   commandPaletteShortcutLabel: string | null;
   onCreateNewEmail: () => void;
 }) {
+  const emailSource = useAtomValue(emailSourceAtom);
   return (
     <SidebarContent className="gap-0">
       <SidebarGroup className="px-2 pt-2 pb-1">
-        <SidebarMenu className="gap-1.5">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="sm"
-              className="gap-2 px-2 py-1.5 text-foreground hover:bg-accent focus-visible:ring-0"
-              data-testid="new-email-sidebar-button"
-              onClick={onCreateNewEmail}
-            >
-              <SquarePenIcon className="size-3.5 text-muted-foreground/80" />
-              <span className="flex-1 truncate text-left text-xs font-medium">New Email</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <CommandDialogTrigger
-              render={
+        <EmailSourceTabs />
+      </SidebarGroup>
+      {emailSource === "account" ? (
+        <SidebarGroup className="px-2 py-1">
+          <p className="px-2 py-1.5 text-xs leading-5 text-muted-foreground">
+            No email account connected yet.
+          </p>
+        </SidebarGroup>
+      ) : (
+        <>
+          <SidebarGroup className="px-2 pt-1 pb-1">
+            <SidebarMenu className="gap-1.5">
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   size="sm"
-                  className="gap-2 px-2 py-1.5 text-muted-foreground/70 hover:bg-accent hover:text-foreground focus-visible:ring-0"
-                  data-testid="command-palette-trigger"
-                />
-              }
-            >
-              <SearchIcon className="size-3.5 text-muted-foreground/70" />
-              <span className="flex-1 truncate text-left text-xs">Search</span>
-              {commandPaletteShortcutLabel ? (
-                <Kbd className="h-4 min-w-0 rounded-sm px-1.5 text-[10px]">
-                  {commandPaletteShortcutLabel}
-                </Kbd>
-              ) : null}
-            </CommandDialogTrigger>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroup>
+                  className="gap-2 px-2 py-1.5 text-foreground hover:bg-accent focus-visible:ring-0"
+                  data-testid="new-email-sidebar-button"
+                  onClick={onCreateNewEmail}
+                >
+                  <SquarePenIcon className="size-3.5 text-muted-foreground/80" />
+                  <span className="flex-1 truncate text-left text-xs font-medium">New Email</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <CommandDialogTrigger
+                  render={
+                    <SidebarMenuButton
+                      size="sm"
+                      className="gap-2 px-2 py-1.5 text-muted-foreground/70 hover:bg-accent hover:text-foreground focus-visible:ring-0"
+                      data-testid="command-palette-trigger"
+                    />
+                  }
+                >
+                  <SearchIcon className="size-3.5 text-muted-foreground/70" />
+                  <span className="flex-1 truncate text-left text-xs">Search</span>
+                  {commandPaletteShortcutLabel ? (
+                    <Kbd className="h-4 min-w-0 rounded-sm px-1.5 text-[10px]">
+                      {commandPaletteShortcutLabel}
+                    </Kbd>
+                  ) : null}
+                </CommandDialogTrigger>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+          <EmailMailboxNav />
+        </>
+      )}
     </SidebarContent>
   );
 });
@@ -4333,8 +4424,21 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
 });
 
 export default function Sidebar() {
-  const projects = useProjects();
-  const sidebarThreads = useThreadShells();
+  const localProjects = useProjects();
+  const localSidebarThreads = useThreadShells();
+  const cloudWorkspace = useCloudWorkspace();
+  const mergedWorkspace = useMemo(
+    () =>
+      mergeCloudWorkspace({
+        localProjects,
+        localThreads: localSidebarThreads,
+        cloudProjects: cloudWorkspace.projects,
+        cloudThreads: cloudWorkspace.threads,
+      }),
+    [cloudWorkspace.projects, cloudWorkspace.threads, localProjects, localSidebarThreads],
+  );
+  const projects = mergedWorkspace.projects;
+  const sidebarThreads = mergedWorkspace.threads;
   const projectExpandedById = useUiStateStore((store) => store.projectExpandedById);
   const projectOrder = useUiStateStore((store) => store.projectOrder);
   const pinnedProjectIds = useUiStateStore((store) => store.pinnedProjectIds);
@@ -5099,7 +5203,7 @@ export default function Sidebar() {
       <div className="flex min-h-0 flex-1">
         <SidebarAppNavRail pathname={pathname} />
         {showSecondarySidebar ? (
-          <div className="flex min-w-0 flex-1 flex-col group-data-[state=collapsed]:hidden">
+          <div className="flex min-w-60 flex-1 flex-col group-data-[state=collapsed]:hidden md:min-w-0">
             {showChatSidebar || showEmailSidebar ? (
               <SidebarChromeHeader isElectron={isElectron} />
             ) : null}

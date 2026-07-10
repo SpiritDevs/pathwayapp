@@ -1,6 +1,6 @@
 # Email Sandbox Convex Sync Plan
 
-Status: Draft plan
+Status: Implementation complete and validated locally; only the live deployed cross-device smoke test remains (2026-07-10)
 
 Goal: Build a first-party pathwayOS email sandbox that captures local test email with Mailpit, syncs the sandbox inbox across the same user's pathwayOS installs with Convex, stores attachment bytes in UploadThing, and exposes safe project-aware email testing tools to agents.
 
@@ -509,6 +509,54 @@ Validation:
 3. Should project-bound sandbox creation happen on project creation, or lazily the first time the user opens project settings?
 4. Should synced history clear be soft-delete first, with delayed UploadThing deletion, to allow undo?
 5. Should attachment sync be disabled by default for very early builds until UploadThing usage limits are visible in the UI?
+
+## Approved Implementation Decisions
+
+The implementation proceeds with these resolved product constraints:
+
+- SMTP capture is loopback-only and does not require a username or password in the first release.
+- Message capture is capped at 25 MB. Synced attachments are individually capped at 10 MB.
+- Raw MIME is retained locally and may sync through the same private blob boundary when it is within the message cap.
+- New projects may create a sandbox automatically; both creation and capture defaults remain user-configurable.
+- Agent body and attachment inspection defaults on, with a separate per-project override and an audit record for every agent read.
+- Synced history deletion is a soft-delete first. Private blob deletion is asynchronous and records deletion state before metadata is removed.
+- Attachment sync defaults on and exposes skipped/failed states rather than silently dropping bytes.
+- Retention defaults to 14 days or 500 messages per sandbox, whichever limit is reached first.
+- Email remains creator-private even when its logical project is visible to a team.
+- Remote environment control remains environment-owner-only.
+- Existing local chats are recorded as local-only at the cloud cutover. Only post-cutover work can become cloud-owned.
+- Cloud threads record their source environment; commands must return to that source rather than being applied by an arbitrary replica.
+- The local orchestration log is the offline queue. Convex acknowledgements advance monotonically only after the exact batch is accepted.
+- Cloudflare tunnel provisioning is explicit per environment and is not implied by signing in or enabling data sync.
+
+## Implementation Ledger
+
+- [x] Cross-app email sandbox, cloud sync, runtime status, message, attachment, and RPC contracts.
+- [x] Convex URL/auth provider wiring for web, Electron, mobile, release builds, and local configuration.
+- [x] Convex tenant, personal workspace, team membership, role, invitation, preference, and authorization foundation.
+- [x] Convex schema for cloud projects, replicas, source-owned threads/events, blob state, email sandboxes, sources, messages, bodies, and attachments.
+- [x] Stable repository-derived logical project keys shared with sidebar grouping.
+- [x] Fresh-cutover state that records all pre-existing thread IDs as local-only.
+- [x] Managed Mailpit binary installer/runtime with pinned checksums, loopback binding, persistent storage, health checks, and restart supervision.
+- [x] Web settings runtime/source controls and the `/email` local inbox/detail experience.
+- [x] Complete local SMTP router/importer persistence and wire all server RPC handlers.
+- [x] Complete Convex batch ingestion, reactive client APIs, private UploadThing URLs, retention, and Resend invitation delivery.
+- [x] Complete Convex-native owner-only environment/tunnel control and remove new-client dependence on the legacy relay control plane.
+- [x] Add read-only project-scoped agent tools and access audit records.
+- [x] Complete repository-wide checks and deployment configuration documentation (`docs/cloud/convex-deployment.md`, including a post-deploy smoke-test checklist).
+- [x] Polish the `/email` inbox UI: unread indicators, relative timestamps, HTML/plain-text body toggle, sync-state dots, collapsible advanced filters, mobile list/detail switching, and a per-project "copy env" snippet in settings.
+- [x] Add mailbox navigation to the email sidebar (Inbox/Unread/Attachments, project labels, sync-status tags) sharing filter state with the inbox view.
+
+Validation completed so far:
+
+- [x] Focused local SMTP, Mailpit runtime, email sync worker, and agent tool tests.
+- [x] Focused Convex tenancy, invitation, UploadThing signing, and control-plane tests.
+- [x] Web typecheck, production build, and focused cloud/team/email tests.
+- [x] Mobile native static lint task.
+- [x] Repository-wide `vp check` (warnings only; no errors).
+- [x] Final repository-wide `vp run typecheck` rerun after the last integration fix (all 16 packages pass, 2026-07-10).
+- [x] Focused server email sandbox/cloud-sync/agent-tool tests (20) and web email/cloud tests (28) pass.
+- [ ] Live deployed cross-device Convex, UploadThing, Resend, and Cloudflare smoke test (checklist: `docs/cloud/convex-deployment.md` → Post-Deploy Smoke Test; requires a deployed Convex instance and two signed-in installs).
 
 ## Completion Criteria
 

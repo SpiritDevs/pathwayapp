@@ -56,7 +56,7 @@ function SidebarControl() {
 
   return (
     <div
-      className="pointer-events-none fixed left-[var(--workspace-sidebar-control-left)] top-[var(--workspace-controls-top)] z-50 flex h-[var(--workspace-topbar-height)] items-center transition-[left] duration-200 ease-linear"
+      className="pointer-events-none fixed left-[var(--workspace-sidebar-control-left)] top-[var(--workspace-controls-top)] z-50 hidden h-[var(--workspace-topbar-height)] items-center transition-[left] duration-200 ease-linear md:flex"
       data-sidebar-control=""
     >
       <Tooltip>
@@ -144,7 +144,9 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
       <Sidebar
         side="left"
         collapsible="icon"
-        className="border-r border-border bg-card text-foreground"
+        className={`border-r border-border bg-card text-foreground ${
+          showResizableSecondarySidebar ? "max-md:min-w-[302px]" : ""
+        }`}
         resizable={
           showResizableSecondarySidebar
             ? {

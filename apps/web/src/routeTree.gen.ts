@@ -33,7 +33,9 @@ import { Route as SettingsEmailRouteImport } from './routes/settings.email'
 import { Route as SettingsDiagnosticsRouteImport } from './routes/settings.diagnostics'
 import { Route as SettingsConnectionsRouteImport } from './routes/settings.connections'
 import { Route as SettingsArchivedRouteImport } from './routes/settings.archived'
+import { Route as SettingsAccountRouteImport } from './routes/settings.account'
 import { Route as SessionTasksResetPasswordRouteImport } from './routes/session-tasks.reset-password'
+import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
 import { Route as WorkspaceChatDraftDraftIdRouteImport } from './routes/_workspace-chat.draft.$draftId'
 import { Route as WorkspaceChatEnvironmentIdThreadIdRouteImport } from './routes/_workspace-chat.$environmentId.$threadId'
 
@@ -156,12 +158,22 @@ const SettingsArchivedRoute = SettingsArchivedRouteImport.update({
   path: '/archived',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsAccountRoute = SettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SessionTasksResetPasswordRoute =
   SessionTasksResetPasswordRouteImport.update({
     id: '/session-tasks/reset-password',
     path: '/session-tasks/reset-password',
     getParentRoute: () => rootRouteImport,
   } as any)
+const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
+  id: '/invitations/accept',
+  path: '/invitations/accept',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceChatDraftDraftIdRoute =
   WorkspaceChatDraftDraftIdRouteImport.update({
     id: '/draft/$draftId',
@@ -190,7 +202,9 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/slack': typeof SlackRoute
   '/tracker': typeof TrackerRoute
+  '/invitations/accept': typeof InvitationsAcceptRoute
   '/session-tasks/reset-password': typeof SessionTasksResetPasswordRoute
+  '/settings/account': typeof SettingsAccountRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/diagnostics': typeof SettingsDiagnosticsRoute
@@ -217,7 +231,9 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/slack': typeof SlackRoute
   '/tracker': typeof TrackerRoute
+  '/invitations/accept': typeof InvitationsAcceptRoute
   '/session-tasks/reset-password': typeof SessionTasksResetPasswordRoute
+  '/settings/account': typeof SettingsAccountRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/diagnostics': typeof SettingsDiagnosticsRoute
@@ -247,7 +263,9 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/slack': typeof SlackRoute
   '/tracker': typeof TrackerRoute
+  '/invitations/accept': typeof InvitationsAcceptRoute
   '/session-tasks/reset-password': typeof SessionTasksResetPasswordRoute
+  '/settings/account': typeof SettingsAccountRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/diagnostics': typeof SettingsDiagnosticsRoute
@@ -278,7 +296,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/slack'
     | '/tracker'
+    | '/invitations/accept'
     | '/session-tasks/reset-password'
+    | '/settings/account'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/diagnostics'
@@ -305,7 +325,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/slack'
     | '/tracker'
+    | '/invitations/accept'
     | '/session-tasks/reset-password'
+    | '/settings/account'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/diagnostics'
@@ -334,7 +356,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/slack'
     | '/tracker'
+    | '/invitations/accept'
     | '/session-tasks/reset-password'
+    | '/settings/account'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/diagnostics'
@@ -364,6 +388,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   SlackRoute: typeof SlackRoute
   TrackerRoute: typeof TrackerRoute
+  InvitationsAcceptRoute: typeof InvitationsAcceptRoute
   SessionTasksResetPasswordRoute: typeof SessionTasksResetPasswordRoute
 }
 
@@ -537,11 +562,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsArchivedRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/account': {
+      id: '/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof SettingsAccountRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/session-tasks/reset-password': {
       id: '/session-tasks/reset-password'
       path: '/session-tasks/reset-password'
       fullPath: '/session-tasks/reset-password'
       preLoaderRoute: typeof SessionTasksResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations/accept': {
+      id: '/invitations/accept'
+      path: '/invitations/accept'
+      fullPath: '/invitations/accept'
+      preLoaderRoute: typeof InvitationsAcceptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_workspace-chat/draft/$draftId': {
@@ -579,6 +618,7 @@ const WorkspaceChatRouteWithChildren = WorkspaceChatRoute._addFileChildren(
 )
 
 interface SettingsRouteChildren {
+  SettingsAccountRoute: typeof SettingsAccountRoute
   SettingsArchivedRoute: typeof SettingsArchivedRoute
   SettingsConnectionsRoute: typeof SettingsConnectionsRoute
   SettingsDiagnosticsRoute: typeof SettingsDiagnosticsRoute
@@ -591,6 +631,7 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccountRoute: SettingsAccountRoute,
   SettingsArchivedRoute: SettingsArchivedRoute,
   SettingsConnectionsRoute: SettingsConnectionsRoute,
   SettingsDiagnosticsRoute: SettingsDiagnosticsRoute,
@@ -621,6 +662,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   SlackRoute: SlackRoute,
   TrackerRoute: TrackerRoute,
+  InvitationsAcceptRoute: InvitationsAcceptRoute,
   SessionTasksResetPasswordRoute: SessionTasksResetPasswordRoute,
 }
 export const routeTree = rootRouteImport

@@ -8,6 +8,7 @@ export interface PathwayOSPublicConfig {
   readonly clerkPublishableKey: string | undefined;
   readonly clerkJwtTemplate: string | undefined;
   readonly clerkCliOAuthClientId: string | undefined;
+  readonly convexUrl: string | undefined;
   readonly relayUrl: string | undefined;
   readonly mobileOtlpTracesUrl: string | undefined;
   readonly mobileOtlpTracesDataset: string | undefined;
@@ -55,6 +56,13 @@ export function loadRepoEnv({
     ...(config.clerkCliOAuthClientId
       ? {
           PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID: config.clerkCliOAuthClientId,
+        }
+      : {}),
+    ...(config.convexUrl
+      ? {
+          PATHWAYOS_CONVEX_URL: config.convexUrl,
+          VITE_PATHWAYOS_CONVEX_URL: config.convexUrl,
+          EXPO_PUBLIC_CONVEX_URL: config.convexUrl,
         }
       : {}),
     ...(config.relayUrl
@@ -119,6 +127,12 @@ export function resolvePublicConfig(...sources: readonly Environment[]): Pathway
       "EXPO_PUBLIC_CLERK_JWT_TEMPLATE",
     ),
     clerkCliOAuthClientId: firstNonEmpty(sources, "PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID"),
+    convexUrl: firstNonEmpty(
+      sources,
+      "PATHWAYOS_CONVEX_URL",
+      "VITE_PATHWAYOS_CONVEX_URL",
+      "EXPO_PUBLIC_CONVEX_URL",
+    ),
     relayUrl: firstNonEmpty(
       sources,
       "PATHWAYOS_CONNECT_URL",

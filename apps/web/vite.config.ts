@@ -17,6 +17,7 @@ const host = process.env.HOST?.trim() || "localhost";
 const configuredWsUrl = process.env.VITE_WS_URL?.trim();
 const configuredRelayUrl =
   repoEnv.VITE_PATHWAYOS_CONNECT_URL?.trim() || repoEnv.VITE_PATHWAYOS_RELAY_URL?.trim() || "";
+const configuredConvexUrl = repoEnv.VITE_PATHWAYOS_CONVEX_URL?.trim() || "";
 const configuredClerkPublishableKey = repoEnv.VITE_CLERK_PUBLISHABLE_KEY?.trim() || "";
 const configuredClerkJwtTemplate = repoEnv.VITE_CLERK_JWT_TEMPLATE?.trim() || "";
 const configuredRelayTracingUrl = repoEnv.VITE_RELAY_OTLP_TRACES_URL?.trim() || "";
@@ -114,6 +115,7 @@ export default defineConfig(() => {
       "import.meta.env.VITE_WS_URL": JSON.stringify(configuredWsUrl ?? ""),
       "import.meta.env.VITE_PATHWAYOS_CONNECT_URL": JSON.stringify(configuredRelayUrl),
       "import.meta.env.VITE_PATHWAYOS_RELAY_URL": JSON.stringify(configuredRelayUrl),
+      "import.meta.env.VITE_PATHWAYOS_CONVEX_URL": JSON.stringify(configuredConvexUrl),
       "import.meta.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(configuredClerkPublishableKey),
       "import.meta.env.VITE_CLERK_JWT_TEMPLATE": JSON.stringify(configuredClerkJwtTemplate),
       "import.meta.env.VITE_RELAY_OTLP_TRACES_URL": JSON.stringify(configuredRelayTracingUrl),

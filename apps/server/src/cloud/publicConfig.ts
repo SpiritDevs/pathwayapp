@@ -1,4 +1,5 @@
 import { clerkFrontendApiUrlFromPublishableKey } from "@pathwayos/shared/relayAuth";
+import { normalizeSecureConvexUrl } from "@pathwayos/shared/convexUrl";
 import { normalizeSecureRelayUrl } from "@pathwayos/shared/relayUrl";
 import * as Config from "effect/Config";
 import * as ConfigProvider from "effect/ConfigProvider";
@@ -8,6 +9,7 @@ import * as Schema from "effect/Schema";
 import * as SchemaIssue from "effect/SchemaIssue";
 
 declare const __PATHWAYOS_BUILD_RELAY_URL__: string | undefined;
+declare const __PATHWAYOS_BUILD_CONVEX_URL__: string | undefined;
 declare const __PATHWAYOS_BUILD_CLERK_PUBLISHABLE_KEY__: string | undefined;
 declare const __PATHWAYOS_BUILD_CLERK_CLI_OAUTH_CLIENT_ID__: string | undefined;
 declare const __PATHWAYOS_BUILD_RELAY_CLIENT_OTLP_TRACES_URL__: string | undefined;
@@ -32,6 +34,21 @@ function validateRelayUrl(value: string) {
     : Effect.succeed(relayUrl);
 }
 
+function validateConvexUrl(value: string) {
+  const convexUrl = normalizeSecureConvexUrl(value);
+  return convexUrl === null
+    ? Effect.fail(
+        new Config.ConfigError(
+          new Schema.SchemaError(
+            new SchemaIssue.InvalidValue(Option.some(value), {
+              message: "Convex URL must be a secure absolute HTTPS origin.",
+            }),
+          ),
+        ),
+      )
+    : Effect.succeed(convexUrl);
+}
+
 function readBuildTimeValue(value: string | undefined): string {
   return typeof value === "undefined" ? "" : value.trim();
 }
@@ -49,6 +66,10 @@ export const buildTimeRelayUrl =
   typeof __PATHWAYOS_BUILD_RELAY_URL__ === "undefined"
     ? ""
     : (normalizeSecureRelayUrl(__PATHWAYOS_BUILD_RELAY_URL__) ?? "");
+export const buildTimeConvexUrl =
+  typeof __PATHWAYOS_BUILD_CONVEX_URL__ === "undefined"
+    ? ""
+    : (normalizeSecureConvexUrl(__PATHWAYOS_BUILD_CONVEX_URL__) ?? "");
 export const buildTimeClerkPublishableKey = readBuildTimeValue(
   typeof __PATHWAYOS_BUILD_CLERK_PUBLISHABLE_KEY__ === "undefined"
     ? undefined
@@ -101,6 +122,15 @@ export function makeRelayUrlConfig(fallback = buildTimeRelayUrl) {
 }
 
 export const relayUrlConfig = makeRelayUrlConfig();
+
+export function makeConvexUrlConfig(fallback = buildTimeConvexUrl) {
+  const runtimeConfig = Config.nonEmptyString("PATHWAYOS_CONVEX_URL");
+  return (fallback ? runtimeConfig.pipe(Config.withDefault(fallback)) : runtimeConfig).pipe(
+    Config.mapOrFail(validateConvexUrl),
+  );
+}
+
+export const convexUrlConfig = makeConvexUrlConfig();
 
 function makePublicValueConfig(name: string, fallback: string) {
   const runtimeConfig = Config.nonEmptyString(name);
@@ -170,4 +200,9 @@ export const hasCloudPublicConfig = Boolean(
   (normalizeSecureRelayUrl(configuredRelayUrlFromEnv(process.env)) ?? buildTimeRelayUrl) &&
   (process.env.PATHWAYOS_CLERK_PUBLISHABLE_KEY?.trim() || buildTimeClerkPublishableKey) &&
   (process.env.PATHWAYOS_CLERK_CLI_OAUTH_CLIENT_ID?.trim() || buildTimeClerkCliOAuthClientId),
+);
+
+export const hasConvexPublicConfig = Boolean(
+  (normalizeSecureConvexUrl(process.env.PATHWAYOS_CONVEX_URL ?? "") ?? buildTimeConvexUrl) &&
+  (process.env.PATHWAYOS_CLERK_PUBLISHABLE_KEY?.trim() || buildTimeClerkPublishableKey),
 );

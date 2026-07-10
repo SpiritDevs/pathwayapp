@@ -30,6 +30,7 @@ vi.mock("./publicConfig", () => ({
   resolveCloudPublicConfig: vi.fn(() => ({
     clerk: { publishableKey: null },
     relay: { url: null },
+    convex: { url: null },
   })),
   resolveRelayClerkTokenOptions: vi.fn(),
 }));

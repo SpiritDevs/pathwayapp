@@ -8,6 +8,7 @@ import {
   Link2Icon,
   MailIcon,
   Settings2Icon,
+  UsersIcon,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -22,6 +23,7 @@ import {
 
 export type SettingsSectionPath =
   | "/settings/profile"
+  | "/settings/account"
   | "/settings/general"
   | "/settings/keybindings"
   | "/settings/email"
@@ -36,6 +38,7 @@ export const SETTINGS_NAV_ITEMS: ReadonlyArray<{
   icon: ComponentType<{ className?: string }>;
 }> = [
   { label: "Profile", to: "/settings/profile", icon: CircleUserRoundIcon },
+  { label: "Account & Teams", to: "/settings/account", icon: UsersIcon },
   { label: "General", to: "/settings/general", icon: Settings2Icon },
   { label: "Keybindings", to: "/settings/keybindings", icon: KeyboardIcon },
   { label: "Email", to: "/settings/email", icon: MailIcon },
