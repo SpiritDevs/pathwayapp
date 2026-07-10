@@ -1195,14 +1195,14 @@ const makeWsRpcLayer = (
         [WS_METHODS.issuesSubscribe]: (_input) =>
           observeRpcStreamEffect(
             WS_METHODS.issuesSubscribe,
-            issuesGateway.getSnapshot.pipe(
-              Effect.map((snapshot) =>
-                Stream.concat(
-                  Stream.make({ kind: "snapshot" as const, snapshot }),
-                  issuesGateway.changes,
-                ),
-              ),
-            ),
+            Effect.gen(function* () {
+              const changes = yield* issuesGateway.subscribeChanges;
+              const snapshot = yield* issuesGateway.getSnapshot;
+              return Stream.concat(
+                Stream.make({ kind: "snapshot" as const, snapshot }),
+                Stream.fromSubscription(changes),
+              );
+            }),
             { "rpc.aggregate": "issues" },
           ),
         [WS_METHODS.issuesSubscribeDetail]: ({ issueId }) =>

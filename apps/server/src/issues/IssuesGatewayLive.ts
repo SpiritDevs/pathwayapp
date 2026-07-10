@@ -59,7 +59,7 @@ const make = Effect.gen(function* () {
       if (attribution.kind === "agent" && command.type === "issue.purge") {
         return Effect.fail(
           new IssuesDomainError({
-            code: "guardrail",
+            code: "forbidden",
             message: "Agents may not permanently purge issues.",
           }),
         );
@@ -81,6 +81,7 @@ const make = Effect.gen(function* () {
     ),
     getIssueDetail,
     changes: store.changes,
+    subscribeChanges: store.subscribeChanges,
     detailChanges: (issueId) => {
       const issueUpserts = store.changes.pipe(
         Stream.filter(

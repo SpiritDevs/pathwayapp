@@ -72,10 +72,13 @@ const MirrorDeltaWireRow = Schema.Union([
     table: Schema.Literal("issues"),
     doc: Schema.Union([withSyncSeq(Issue.fields), MirrorIssuePurgeDoc]),
   }),
-  Schema.Struct({ table: Schema.Literal("relations"), doc: withSyncSeq(IssueRelation.fields) }),
+  Schema.Struct({
+    table: Schema.Literal("relations"),
+    doc: Schema.Union([withSyncSeq(IssueRelation.fields), MirrorIssuePurgeDoc]),
+  }),
   Schema.Struct({
     table: Schema.Literal("threadLinks"),
-    doc: withSyncSeq(IssueThreadLink.fields),
+    doc: Schema.Union([withSyncSeq(IssueThreadLink.fields), MirrorIssuePurgeDoc]),
   }),
   Schema.Struct({
     table: Schema.Literal("savedViews"),
@@ -94,7 +97,13 @@ const IssuesHttpErrorEnvelope = Schema.Struct({ error: Schema.String });
 
 export type IssuesMirrorDeltaRow =
   | { readonly seq: number; readonly entity: IssuesEntityRow }
-  | { readonly seq: number; readonly purge: { readonly table: "issues"; readonly id: string } };
+  | {
+      readonly seq: number;
+      readonly purge: {
+        readonly table: "issues" | "relations" | "threadLinks";
+        readonly id: string;
+      };
+    };
 
 export interface IssuesMirrorDelta {
   readonly rows: ReadonlyArray<IssuesMirrorDeltaRow>;
@@ -239,8 +248,11 @@ const make = Effect.gen(function* () {
       Effect.map((response) => ({
         ...response,
         rows: response.rows.map((row): IssuesMirrorDeltaRow => {
-          if (row.table === "issues" && "purged" in row.doc) {
-            return { seq: row.doc.syncSeq, purge: { table: "issues", id: row.doc.id } };
+          if (
+            (row.table === "issues" || row.table === "relations" || row.table === "threadLinks") &&
+            "purged" in row.doc
+          ) {
+            return { seq: row.doc.syncSeq, purge: { table: row.table, id: row.doc.id } };
           }
           const { syncSeq, ...entityRow } = row.doc;
           return {

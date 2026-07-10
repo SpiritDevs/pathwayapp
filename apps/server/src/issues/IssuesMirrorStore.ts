@@ -14,10 +14,12 @@ import {
   type IssuesSnapshot,
   type IssuesStreamItem,
 } from "@pathwayos/contracts";
+import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as PubSub from "effect/PubSub";
+import type * as Scope from "effect/Scope";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as SqlClient from "effect/unstable/sql/SqlClient";
@@ -58,6 +60,11 @@ export class IssuesMirrorStore extends Context.Service<
       lastError: string | null,
     ) => Effect.Effect<void, PersistenceSqlError>;
     readonly changes: Stream.Stream<IssuesStreamItem>;
+    readonly subscribeChanges: Effect.Effect<
+      PubSub.Subscription<IssuesStreamItem>,
+      never,
+      Scope.Scope
+    >;
   }
 >()("pathwayos/issues/IssuesMirrorStore") {}
 
@@ -112,9 +119,21 @@ const make = Effect.gen(function* () {
     },
   });
 
-  const deletePurgedIssue = SqlSchema.void({
-    Request: Schema.Struct({ id: Schema.String }),
-    execute: ({ id }) => sql`DELETE FROM issues_mirror_issues WHERE id = ${id}`,
+  const deletePurgedEntity = SqlSchema.void({
+    Request: Schema.Struct({
+      table: Schema.Literals(["issues", "relations", "threadLinks"]),
+      id: Schema.String,
+    }),
+    execute: ({ table, id }) => {
+      switch (table) {
+        case "issues":
+          return sql`DELETE FROM issues_mirror_issues WHERE id = ${id}`;
+        case "relations":
+          return sql`DELETE FROM issues_mirror_relations WHERE id = ${id}`;
+        case "threadLinks":
+          return sql`DELETE FROM issues_mirror_thread_links WHERE id = ${id}`;
+      }
+    },
   });
   const setCursorStatement = SqlSchema.void({
     Request: Schema.Struct({ cursor: Schema.Number }),
@@ -154,16 +173,30 @@ const make = Effect.gen(function* () {
   const applyDeltaBatch: IssuesMirrorStore["Service"]["applyDeltaBatch"] = (rows, nextSeq) =>
     sql.withTransaction(
       Effect.gen(function* () {
+        const appliedRows: IssuesMirrorDeltaRow[] = [];
         for (const delta of rows) {
-          if ("purge" in delta) yield* deletePurgedIssue({ id: delta.purge.id });
-          else yield* upsertEntity({ kind: "entity", entity: delta.entity });
+          const applyRow =
+            "purge" in delta
+              ? deletePurgedEntity({ table: delta.purge.table, id: delta.purge.id })
+              : upsertEntity({ kind: "entity", entity: delta.entity });
+          const applied = yield* applyRow.pipe(
+            Effect.as(true),
+            Effect.catchCause((cause) =>
+              Effect.logError("Skipping invalid issues mirror delta row", {
+                seq: delta.seq,
+                cause: Cause.pretty(cause),
+              }).pipe(Effect.as(false)),
+            ),
+          );
+          if (applied) appliedRows.push(delta);
         }
         yield* setCursorStatement({ cursor: nextSeq });
+        return appliedRows;
       }),
     ).pipe(
       Effect.mapError(mapSqlError),
-      Effect.andThen(
-        Effect.forEach(rows, (delta) =>
+      Effect.flatMap((appliedRows) =>
+        Effect.forEach(appliedRows, (delta) =>
           PubSub.publish(
             changesPubSub,
             "purge" in delta
@@ -209,6 +242,7 @@ const make = Effect.gen(function* () {
   return IssuesMirrorStore.of({
     applyDeltaBatch, getSnapshot, getCursor, setCursor, setMetadata, setSyncedAt, setSyncStatus,
     changes: Stream.fromPubSub(changesPubSub),
+    subscribeChanges: PubSub.subscribe(changesPubSub),
   });
 });
 

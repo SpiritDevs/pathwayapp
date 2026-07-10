@@ -110,7 +110,7 @@ export default Effect.gen(function* () {
     ) VALUES ('issues', 0, NULL, 'Issues mirror has not synchronized yet.', 'WS', NULL)
   `;
 
-  yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_mirror_teams_key ON issues_mirror_teams(key)`;
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_teams_key ON issues_mirror_teams(key)`;
   yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_mirror_memberships_team_actor ON issues_mirror_memberships(team_id, actor_id)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_states_team_position ON issues_mirror_states(team_id, position)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_labels_team_name ON issues_mirror_labels(team_id, name)`;
@@ -118,11 +118,11 @@ export default Effect.gen(function* () {
   yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_mirror_cycles_team_number ON issues_mirror_cycles(team_id, number)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_epics_status ON issues_mirror_epics(status)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_milestones_epic_position ON issues_mirror_milestones(epic_id, position)`;
-  yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_mirror_issues_identifier ON issues_mirror_issues(identifier)`;
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_issues_identifier ON issues_mirror_issues(identifier)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_issues_team_state ON issues_mirror_issues(team_id, state_id)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_issues_assignee ON issues_mirror_issues(assignee_actor_id)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_relations_issue ON issues_mirror_relations(issue_id, related_issue_id)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_thread_links_issue ON issues_mirror_thread_links(issue_id)`;
-  yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_mirror_thread_links_thread ON issues_mirror_thread_links(environment_id, thread_id)`;
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_thread_links_thread ON issues_mirror_thread_links(environment_id, thread_id)`;
   yield* sql`CREATE INDEX IF NOT EXISTS idx_issues_mirror_saved_views_owner_position ON issues_mirror_saved_views(owner_user_id, position)`;
 });

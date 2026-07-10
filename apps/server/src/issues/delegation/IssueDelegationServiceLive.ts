@@ -280,6 +280,7 @@ export const IssueDelegationServiceLive = Layer.effect(
       if (!issue) return;
       const currentState = snapshot.states.find((candidate) => candidate.id === issue.stateId);
       if (
+        issue.deletedAt !== null ||
         issue.assigneeActorId !== entry.actorId ||
         (currentState !== undefined && TERMINAL_STATE_CATEGORIES.has(currentState.category))
       ) {
@@ -494,6 +495,7 @@ export const IssueDelegationServiceLive = Layer.effect(
       const terminal = state !== undefined && TERMINAL_STATE_CATEGORIES.has(state.category);
 
       if (
+        issue.deletedAt === null &&
         owned &&
         (issue.delegationStatus === null || issue.delegationStatus === "queued") &&
         eligible
@@ -511,7 +513,7 @@ export const IssueDelegationServiceLive = Layer.effect(
       }
 
       const queuedEntry = (yield* Ref.get(queueRef)).find((entry) => entry.issueId === issue.id);
-      if (queuedEntry && (!owned || terminal)) {
+      if (queuedEntry && (issue.deletedAt !== null || !owned || terminal)) {
         yield* dequeue(issue.id);
         yield* executeStatus(issue.id, queuedEntry.actorId, null);
       }
@@ -531,13 +533,13 @@ export const IssueDelegationServiceLive = Layer.effect(
 
     const completeRunningThread = Effect.fn(
       "IssueDelegationService.completeRunningThread",
-    )(function* (threadId: string) {
+    )(function* (threadId: string, status: "completed" | "failed") {
       const match = [...(yield* Ref.get(runningRef)).entries()].find(
         ([, running]) => running.threadId === threadId,
       );
       if (!match) return;
       const [issueId, running] = match;
-      yield* executeStatus(issueId, running.actorId, "completed", threadId).pipe(
+      yield* executeStatus(issueId, running.actorId, status, threadId).pipe(
         Effect.catchCause((cause) =>
           Effect.logWarning("Failed to complete delegated issue", {
             issueId,
@@ -557,8 +559,22 @@ export const IssueDelegationServiceLive = Layer.effect(
     const processOrchestrationEvent = (
       event: import("@pathwayos/contracts").OrchestrationEvent,
     ) => {
-      if (event.type === "thread.turn-diff-completed" || event.type === "thread.deleted") {
-        return completeRunningThread(event.payload.threadId);
+      if (
+        event.type === "thread.session-set" &&
+        event.payload.session.activeTurnId === null &&
+        event.payload.session.status === "error"
+      ) {
+        return completeRunningThread(event.payload.threadId, "failed");
+      }
+      if (
+        event.type === "thread.session-set" &&
+        event.payload.session.activeTurnId === null &&
+        (event.payload.session.status === "ready" || event.payload.session.status === "stopped")
+      ) {
+        return completeRunningThread(event.payload.threadId, "completed");
+      }
+      if (event.type === "thread.deleted") {
+        return completeRunningThread(event.payload.threadId, "failed");
       }
       return Effect.void;
     };
@@ -577,6 +593,7 @@ export const IssueDelegationServiceLive = Layer.effect(
       );
 
       for (const issue of snapshot.issues) {
+        if (issue.deletedAt !== null) continue;
         if (!isOwnedActor(issue.assigneeActorId, settings.agentActors)) continue;
         const link = linksByIssue.get(issue.id);
         if (
@@ -619,6 +636,7 @@ export const IssueDelegationServiceLive = Layer.effect(
     const start = Effect.fn("IssueDelegationService.start")(function* () {
       const shouldStart = yield* Ref.modify(startedRef, (started) => [!started, true]);
       if (!shouldStart) return;
+      const issueChanges = yield* gateway.subscribeChanges;
       yield* rebuild.pipe(
         Effect.catchCause((cause) =>
           Effect.logWarning("Failed to rebuild the issue delegation queue", {
@@ -626,7 +644,9 @@ export const IssueDelegationServiceLive = Layer.effect(
           }),
         ),
       );
-      yield* Effect.forkScoped(Stream.runForEach(gateway.changes, processIssueChange));
+      yield* Effect.forkScoped(
+        Stream.runForEach(Stream.fromSubscription(issueChanges), processIssueChange),
+      );
       yield* Effect.forkScoped(
         Stream.runForEach(orchestrationEngine.streamDomainEvents, processOrchestrationEvent),
       );

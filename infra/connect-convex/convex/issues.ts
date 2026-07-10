@@ -503,19 +503,65 @@ export const executeCommand = internalMutationGeneric({
         }
         const relations = await ctx.db.query("issueRelations").withIndex("by_issue", (query) => query.eq("issueId", issue._id)).collect();
         const reverseRelations = await ctx.db.query("issueRelations").withIndex("by_related_issue", (query) => query.eq("relatedIssueId", issue._id)).collect();
-        for (const relation of [...relations, ...reverseRelations]) await ctx.db.delete("issueRelations", relation._id);
+        const relationsToPurge = new Map(
+          [...relations, ...reverseRelations].map((relation) => [relation._id, relation] as const),
+        );
+        for (const relation of relationsToPurge.values()) {
+          const syncSeq = await allocateSyncSeq(ctx, principal, now);
+          await ctx.db.insert("issueEvents", {
+            tenantId: principal.tenantId,
+            ownerUserId: principal.ownerUserId,
+            issueId: issue._id,
+            actorId: actor._id,
+            kind: "issue.purged",
+            payload: { table: "relations", id: relation._id, purged: true },
+            threadRef: null,
+            syncSeq,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          });
+          await ctx.db.delete("issueRelations", relation._id);
+        }
         const links = await ctx.db.query("issueThreadLinks").withIndex("by_issue", (query) => query.eq("issueId", issue._id)).collect();
-        for (const link of links) await ctx.db.delete("issueThreadLinks", link._id);
+        for (const link of links) {
+          const syncSeq = await allocateSyncSeq(ctx, principal, now);
+          await ctx.db.insert("issueEvents", {
+            tenantId: principal.tenantId,
+            ownerUserId: principal.ownerUserId,
+            issueId: issue._id,
+            actorId: actor._id,
+            kind: "issue.purged",
+            payload: { table: "threadLinks", id: link._id, purged: true },
+            threadRef: null,
+            syncSeq,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          });
+          await ctx.db.delete("issueThreadLinks", link._id);
+        }
         await ctx.db.delete("issues", issue._id);
         const syncSeq = await allocateSyncSeq(ctx, principal, now);
-        await ctx.db.insert("issueEvents", { tenantId: principal.tenantId, ownerUserId: principal.ownerUserId, issueId: issue._id, actorId: actor._id, kind: "issue.purged", payload: { id: issue._id, purged: true }, threadRef: null, syncSeq, createdAt: now, updatedAt: now, deletedAt: null });
+        await ctx.db.insert("issueEvents", { tenantId: principal.tenantId, ownerUserId: principal.ownerUserId, issueId: issue._id, actorId: actor._id, kind: "issue.purged", payload: { table: "issues", id: issue._id, purged: true }, threadRef: null, syncSeq, createdAt: now, updatedAt: now, deletedAt: null });
         touchedTeamId = issue.teamId;
         break;
       }
       case "issue.startWork": {
         const issue = await issueById(ctx, principal, args.command.issueId);
-        const startedState = await defaultState(ctx, principal, issue.teamId, "started");
-        await ctx.db.patch("issues", issue._id, { stateId: startedState._id, delegationStatus: issue.assigneeActorId === null ? issue.delegationStatus : "queued", syncSeq: await allocateSyncSeq(ctx, principal, now), updatedAt: now });
+        const assignee = issue.assigneeActorId === null
+          ? null
+          : assertTenant(
+              await ctx.db.get("issueActors", issue.assigneeActorId),
+              principal,
+              "ISSUES_ACTOR_NOT_FOUND",
+            );
+        void args.command.repoLogicalKey;
+        await ctx.db.patch("issues", issue._id, {
+          delegationStatus: assignee?.kind === "agent" ? "queued" : issue.delegationStatus,
+          syncSeq: await allocateSyncSeq(ctx, principal, now),
+          updatedAt: now,
+        });
         eventIssue = issue;
         touchedTeamId = issue.teamId;
         break;
@@ -594,8 +640,8 @@ export const executeCommand = internalMutationGeneric({
       }
       case "team.create": {
         const key = normalizeIssueKey(args.command.key);
-        const conflict = await ctx.db.query("issueTeams").withIndex("by_tenant_key", (query) => query.eq("tenantId", principal.tenantId).eq("key", key)).unique();
-        if (conflict !== null) throw new Error("ISSUES_TEAM_KEY_CONFLICT");
+        const conflicts = await ctx.db.query("issueTeams").withIndex("by_tenant_key", (query) => query.eq("tenantId", principal.tenantId).eq("key", key)).collect();
+        if (conflicts.some((conflict) => conflict.deletedAt === null)) throw new Error("ISSUES_TEAM_KEY_CONFLICT");
         const teamId = await ctx.db.insert("issueTeams", { tenantId: principal.tenantId, ownerUserId: principal.ownerUserId, name: args.command.name, description: args.command.description ?? null, icon: args.command.icon ?? null, color: args.command.color ?? null, key, cycleConfig: DEFAULT_CYCLE_CONFIG, estimateScale: "disabled", repoLinks: [], defaultRepoLogicalKey: null, syncSeq: await allocateSyncSeq(ctx, principal, now), createdAt: now, updatedAt: now, deletedAt: null });
         await seedStates(ctx, principal, teamId, now);
         createdId = teamId;
@@ -606,8 +652,8 @@ export const executeCommand = internalMutationGeneric({
         const team = assertTenant(await ctx.db.get("issueTeams", args.command.teamId), principal, "ISSUES_TEAM_NOT_FOUND");
         const patch = args.command.patch.key === undefined ? args.command.patch : { ...args.command.patch, key: normalizeIssueKey(args.command.patch.key) };
         if (patch.key !== undefined) {
-          const conflict = await ctx.db.query("issueTeams").withIndex("by_tenant_key", (query) => query.eq("tenantId", principal.tenantId).eq("key", patch.key!)).unique();
-          if (conflict !== null && conflict._id !== team._id && conflict.deletedAt === null) throw new Error("ISSUES_TEAM_KEY_CONFLICT");
+          const conflicts = await ctx.db.query("issueTeams").withIndex("by_tenant_key", (query) => query.eq("tenantId", principal.tenantId).eq("key", patch.key!)).collect();
+          if (conflicts.some((conflict) => conflict._id !== team._id && conflict.deletedAt === null)) throw new Error("ISSUES_TEAM_KEY_CONFLICT");
         }
         await ctx.db.patch("issueTeams", team._id, { ...patch, syncSeq: await allocateSyncSeq(ctx, principal, now), updatedAt: now });
         touchedTeamId = team._id;
@@ -824,7 +870,16 @@ export const mirrorDelta = internalQueryGeneric({
       ...threadLinks.map((row) => ({ table: "threadLinks" as const, doc: mirrorThreadLink(row) })),
       ...savedViews.map((row) => ({ table: "savedViews" as const, doc: mirrorSavedView(row) })),
       // Purges have no source document left. The mirror translates this tombstone shape to remove.
-      ...purgeEvents.map((row) => ({ table: "issues" as const, doc: { id: row.issueId, purged: true, syncSeq: row.syncSeq } })),
+      ...purgeEvents.map((row) => {
+        const payload = row.payload as {
+          readonly table?: "issues" | "relations" | "threadLinks";
+          readonly id?: string;
+        };
+        return {
+          table: payload.table ?? ("issues" as const),
+          doc: { id: payload.id ?? row.issueId, purged: true, syncSeq: row.syncSeq },
+        };
+      }),
     ].sort((left, right) => left.doc.syncSeq - right.doc.syncSeq);
     const selected = rows.slice(0, limit);
     const meta = await ctx.db.query("issueMeta").withIndex("by_tenant", (query) => query.eq("tenantId", principal.tenantId)).unique();

@@ -131,7 +131,29 @@ export const make = Effect.gen(function* () {
         "The default agent actor command completed without returning an actor id.",
       );
     }
-    return IssueActorId.make(created.createdId);
+    const actorId = IssueActorId.make(created.createdId);
+    yield* settingsService
+      .updateSettings({
+        agentActors: {
+          ...settings.agentActors,
+          [actorId]: {
+            providerInstanceId: instanceId,
+            model: null,
+            instructions: null,
+          },
+        },
+      })
+      .pipe(
+        Effect.mapError(() =>
+          makeAccessError(
+            scope,
+            operation,
+            "persistence-failed",
+            "The default agent actor was created, but its local configuration could not be saved.",
+          ),
+        ),
+      );
+    return actorId;
   });
 
   const resolve: AgentActorResolverShape["resolve"] = Effect.fn("AgentActorResolver.resolve")(
