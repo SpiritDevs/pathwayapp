@@ -1,5 +1,7 @@
 import type {
   EnvironmentId,
+  Issue,
+  IssueId,
   OrchestrationMessage,
   OrchestrationProjectShell,
   OrchestrationShellSnapshot,
@@ -7,6 +9,15 @@ import type {
   OrchestrationThreadShell,
   ThreadId,
 } from "@pathwayos/contracts";
+
+export interface ScopedIssueRef {
+  readonly environmentId: EnvironmentId;
+  readonly issueId: IssueId;
+}
+
+export interface EnvironmentIssue extends Issue {
+  readonly environmentId: EnvironmentId;
+}
 
 export interface EnvironmentProject extends OrchestrationProjectShell {
   readonly environmentId: EnvironmentId;
@@ -41,6 +52,10 @@ export function scopeThread(
   thread: OrchestrationThread,
 ): EnvironmentThread {
   return { ...thread, environmentId };
+}
+
+export function scopeIssue(environmentId: EnvironmentId, issue: Issue): EnvironmentIssue {
+  return { ...issue, environmentId };
 }
 
 export function selectEnvironmentThreadShell(
