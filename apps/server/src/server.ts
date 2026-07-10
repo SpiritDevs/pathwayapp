@@ -90,6 +90,11 @@ import * as ProjectSmtpRouter from "./emailSandbox/ProjectSmtpRouter.ts";
 import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
 import * as TraceDiagnostics from "./diagnostics/TraceDiagnostics.ts";
+import * as IssuesCommandClient from "./issues/IssuesCommandClient.ts";
+import * as IssuesGatewayLive from "./issues/IssuesGatewayLive.ts";
+import * as IssuesMirrorStore from "./issues/IssuesMirrorStore.ts";
+import * as IssuesMirrorWorker from "./issues/IssuesMirrorWorker.ts";
+import { IssueDelegationServiceUnavailableLive } from "./issues/delegation/IssueDelegationServiceStub.ts";
 import { OrchestrationLayerLive } from "./orchestration/runtimeLayer.ts";
 import {
   clearPersistedServerRuntimeState,
@@ -363,11 +368,30 @@ const EmailSandboxSyncWorkerLive = EmailSandboxSyncWorker.layer.pipe(
   Layer.provide(RuntimeCoreBaseLive),
 );
 
+const IssuesMirrorStoreLive = IssuesMirrorStore.layer.pipe(Layer.provide(PersistenceLayerLive));
+const IssuesCommandClientLive = IssuesCommandClient.layer.pipe(Layer.provide(RuntimeCoreBaseLive));
+const IssuesCoreLive = Layer.mergeAll(IssuesMirrorStoreLive, IssuesCommandClientLive);
+const IssuesMirrorWorkerLive = IssuesMirrorWorker.layer.pipe(Layer.provide(IssuesCoreLive));
+const IssuesGatewayLayerLive = IssuesGatewayLive.layer.pipe(
+  Layer.provide(Layer.mergeAll(IssuesCoreLive, IssuesMirrorWorkerLive)),
+);
+// WIRING: replace this unavailable stub with the S3 IssueDelegationService Live layer.
+const IssueDelegationLayerLive = IssueDelegationServiceUnavailableLive.pipe(
+  Layer.provide(RuntimeCoreBaseLive),
+);
+const IssuesLive = Layer.mergeAll(
+  IssuesCoreLive,
+  IssuesMirrorWorkerLive,
+  IssuesGatewayLayerLive,
+  IssueDelegationLayerLive,
+);
+
 const RuntimeCoreDependenciesLive = Layer.mergeAll(
   RuntimeCoreBaseLive,
   CloudSyncWorkerLive,
   EmailSandboxLive.pipe(Layer.provide(RuntimeCoreBaseLive)),
   EmailSandboxSyncWorkerLive,
+  IssuesLive,
 );
 
 const RuntimeDependenciesLive = RuntimeCoreDependenciesLive.pipe(
