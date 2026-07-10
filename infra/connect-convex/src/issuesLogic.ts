@@ -5,6 +5,7 @@ import type {
   StateCategory,
 } from "@pathwayos/contracts";
 import { orderKeyBetween } from "@pathwayos/shared/fractionalIndex";
+import * as DateTime from "effect/DateTime";
 
 export const DEFAULT_WORKSPACE_KEY = "WS";
 
@@ -102,7 +103,7 @@ export function cycleWindows(
   ) {
     throw new Error("ISSUES_CYCLE_CONFIG_INVALID");
   }
-  const epochDay = new Date(0).getUTCDay();
+  const epochDay = 4;
   const anchorMs = ((config.startDayOfWeek - epochDay + 7) % 7) * DAY_MS;
   const periodMs = (config.durationWeeks + config.cooldownWeeks) * WEEK_MS;
   const index = Math.max(0, Math.floor((nowMs - anchorMs) / periodMs));
@@ -110,8 +111,8 @@ export function cycleWindows(
     const startsMs = anchorMs + cycleIndex * periodMs;
     return {
       number: cycleIndex + 1,
-      startsAt: new Date(startsMs).toISOString(),
-      endsAt: new Date(startsMs + config.durationWeeks * WEEK_MS).toISOString(),
+      startsAt: DateTime.formatIso(DateTime.makeUnsafe(startsMs)),
+      endsAt: DateTime.formatIso(DateTime.makeUnsafe(startsMs + config.durationWeeks * WEEK_MS)),
     };
   };
   return [makeWindow(index), makeWindow(index + 1)];
