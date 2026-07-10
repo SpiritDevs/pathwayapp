@@ -10,6 +10,7 @@ import { ChildProcessSpawner } from "effect/unstable/process";
 
 import {
   BuildCommandFailedError,
+  createStageFileOverrideDependencies,
   createStageInstallArgs,
   createStagePatchedDependencies,
   createBuildConfig,
@@ -197,6 +198,20 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         { effect: "4.0.0-beta.73" },
       ),
       undefined,
+    );
+  });
+
+  it("promotes file overrides to direct staged dependencies for electron-builder traversal", () => {
+    assert.deepStrictEqual(
+      createStageFileOverrideDependencies({
+        "@base-org/account": "file:./stubs/unused-wallet-auth",
+        "@coinbase/wallet-sdk": "file:./stubs/unused-wallet-auth",
+        effect: "4.0.0-beta.78",
+      }),
+      {
+        "@base-org/account": "file:./stubs/unused-wallet-auth",
+        "@coinbase/wallet-sdk": "file:./stubs/unused-wallet-auth",
+      },
     );
   });
 

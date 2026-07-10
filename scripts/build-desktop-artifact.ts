@@ -46,6 +46,7 @@ const RepoRoot = Effect.service(Path.Path).pipe(
   Effect.flatMap((path) => path.fromFileUrl(new URL("..", import.meta.url))),
 );
 const encodeJsonString = Schema.encodeEffect(Schema.UnknownFromJsonString);
+const decodeJsonString = Schema.decodeUnknownEffect(Schema.UnknownFromJsonString);
 
 function readWorkspaceConfig(): WorkspaceConfig {
   return {
@@ -872,6 +873,17 @@ export function createStagePatchedDependencies(
   return Object.keys(stagePatchedDependencies).length > 0 ? stagePatchedDependencies : undefined;
 }
 
+export function createStageFileOverrideDependencies(
+  overrides: Record<string, unknown>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(overrides).filter(
+      (entry): entry is [string, string] =>
+        typeof entry[1] === "string" && entry[1].startsWith("file:./"),
+    ),
+  );
+}
+
 function getPatchedDependencyPackageName(patchKey: string): string {
   const versionSeparator = patchKey.lastIndexOf("@");
   return versionSeparator > 0 ? patchKey.slice(0, versionSeparator) : patchKey;
@@ -889,6 +901,184 @@ function getFileOverrideRelativePaths(overrides: Record<string, unknown>): reado
 
   return [...paths];
 }
+
+function packageNamePathSegments(packageName: string): readonly string[] {
+  return packageName.split("/");
+}
+
+function encodeBunPackageDirectoryPrefix(packageName: string): string {
+  return packageName.replaceAll("/", "+");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const materializeFileOverridePackage = Effect.fn("materializeFileOverridePackage")(function* (
+  packageName: string,
+  sourceDir: string,
+  targetDir: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  if (!(yield* fs.exists(targetDir))) {
+    return;
+  }
+
+  const sourcePackageJsonPath = path.join(sourceDir, "package.json");
+  const sourcePackageJsonText = yield* fs.readFileString(sourcePackageJsonPath);
+  const sourcePackageJsonUnknown = yield* decodeJsonString(sourcePackageJsonText);
+  const sourcePackageJson = isRecord(sourcePackageJsonUnknown) ? sourcePackageJsonUnknown : {};
+  const packageJsonString = yield* encodeJsonString({
+    ...sourcePackageJson,
+    name: packageName,
+  });
+
+  yield* fs.remove(targetDir, { recursive: true, force: true });
+  yield* fs.copy(sourceDir, targetDir);
+  yield* fs.writeFileString(path.join(targetDir, "package.json"), `${packageJsonString}\n`);
+});
+
+function rewriteDependencyBlock(
+  value: unknown,
+  replacementVersions: Record<string, string>,
+): { readonly value: unknown; readonly changed: boolean } {
+  if (!isRecord(value)) {
+    return { value, changed: false };
+  }
+
+  let changed = false;
+  const next = { ...value };
+  for (const [packageName, version] of Object.entries(replacementVersions)) {
+    if (Object.hasOwn(next, packageName)) {
+      next[packageName] = version;
+      changed = true;
+    }
+  }
+
+  return { value: changed ? next : value, changed };
+}
+
+const patchPackageManifestFileOverrideVersions = Effect.fn(
+  "patchPackageManifestFileOverrideVersions",
+)(function* (packageJsonPath: string, replacementVersions: Record<string, string>) {
+  const fs = yield* FileSystem.FileSystem;
+  if (!(yield* fs.exists(packageJsonPath))) {
+    return;
+  }
+
+  const packageJsonText = yield* fs.readFileString(packageJsonPath);
+  const packageJsonUnknown = yield* decodeJsonString(packageJsonText);
+  if (!isRecord(packageJsonUnknown)) {
+    return;
+  }
+
+  let changed = false;
+  const nextPackageJson = { ...packageJsonUnknown };
+  for (const field of ["dependencies", "optionalDependencies", "peerDependencies"] as const) {
+    const rewritten = rewriteDependencyBlock(nextPackageJson[field], replacementVersions);
+    if (rewritten.changed) {
+      nextPackageJson[field] = rewritten.value;
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return;
+  }
+
+  const packageJsonString = yield* encodeJsonString(nextPackageJson);
+  yield* fs.writeFileString(packageJsonPath, `${packageJsonString}\n`);
+});
+
+const patchBunStoreFileOverrideVersions = Effect.fn("patchBunStoreFileOverrideVersions")(function* (
+  bunStoreDir: string,
+  replacementVersions: Record<string, string>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  if (!(yield* fs.exists(bunStoreDir))) {
+    return;
+  }
+
+  for (const bunStoreEntry of yield* fs.readDirectory(bunStoreDir)) {
+    const packageNodeModulesDir = path.join(bunStoreDir, bunStoreEntry, "node_modules");
+    if (!(yield* fs.exists(packageNodeModulesDir))) {
+      continue;
+    }
+
+    for (const packageEntry of yield* fs.readDirectory(packageNodeModulesDir)) {
+      if (packageEntry.startsWith("@")) {
+        const scopeDir = path.join(packageNodeModulesDir, packageEntry);
+        if (!(yield* fs.exists(scopeDir))) {
+          continue;
+        }
+        for (const scopedPackageEntry of yield* fs.readDirectory(scopeDir)) {
+          yield* patchPackageManifestFileOverrideVersions(
+            path.join(scopeDir, scopedPackageEntry, "package.json"),
+            replacementVersions,
+          );
+        }
+        continue;
+      }
+
+      yield* patchPackageManifestFileOverrideVersions(
+        path.join(packageNodeModulesDir, packageEntry, "package.json"),
+        replacementVersions,
+      );
+    }
+  }
+});
+
+const materializeFileOverridePackages = Effect.fn("materializeFileOverridePackages")(function* (
+  stageAppDir: string,
+  overrides: Record<string, unknown>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const nodeModulesDir = path.join(stageAppDir, "node_modules");
+  const bunStoreDir = path.join(nodeModulesDir, ".bun");
+  const replacementVersions = Object.fromEntries(
+    Object.entries(overrides)
+      .filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === "string" && entry[1].startsWith("file:./"),
+      )
+      .map(([packageName]) => [packageName, "0.0.0"]),
+  );
+
+  for (const [packageName, overrideSpec] of Object.entries(overrides)) {
+    if (typeof overrideSpec !== "string" || !overrideSpec.startsWith("file:./")) {
+      continue;
+    }
+
+    const sourceDir = path.join(stageAppDir, overrideSpec.slice("file:./".length));
+    const packageSegments = packageNamePathSegments(packageName);
+    yield* materializeFileOverridePackage(
+      packageName,
+      sourceDir,
+      path.join(nodeModulesDir, ...packageSegments),
+    );
+
+    if (!(yield* fs.exists(bunStoreDir))) {
+      continue;
+    }
+
+    const bunPackagePrefix = `${encodeBunPackageDirectoryPrefix(packageName)}@file+`;
+    const bunPackageDirs = (yield* fs.readDirectory(bunStoreDir)).filter((entry) =>
+      entry.startsWith(bunPackagePrefix),
+    );
+    for (const bunPackageDir of bunPackageDirs) {
+      yield* materializeFileOverridePackage(
+        packageName,
+        sourceDir,
+        path.join(bunStoreDir, bunPackageDir, "node_modules", ...packageSegments),
+      );
+    }
+  }
+
+  yield* patchBunStoreFileOverrideVersions(bunStoreDir, replacementVersions);
+});
 
 const AzureTrustedSigningOptionsConfig = Config.all({
   publisherName: Config.string("AZURE_TRUSTED_SIGNING_PUBLISHER_NAME"),
@@ -1571,6 +1761,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       options.arch,
       serverPackageJson.dependencies["@ff-labs/fff-node"],
     ),
+    ...createStageFileOverrideDependencies(resolvedOverrides),
   };
   const stagePatchedDependencies = createStagePatchedDependencies(
     workspacePatchedDependencies,
@@ -1630,6 +1821,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     }),
     { label: `bun ${stageInstallArgs.join(" ")}`, verbose: options.verbose },
   );
+  yield* materializeFileOverridePackages(stageAppDir, resolvedOverrides);
   yield* stageClerkPasskeyNativeBinaries(stageAppDir, options.platform, options.arch);
 
   // electron-builder treats several set-but-empty variables (e.g. CSC_LINK="")

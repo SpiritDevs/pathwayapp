@@ -413,6 +413,15 @@ export const MessagesTimeline = memo(function MessagesTimeline({
           initialScrollAtEnd
           {...(anchoredEndSpace ? { anchoredEndSpace } : {})}
           contentInsetEndAdjustment={contentInsetEndAdjustment}
+          maintainScrollAtEnd={{
+            animated: false,
+            on: {
+              dataChange: true,
+              footerLayout: true,
+              itemLayout: true,
+              layout: true,
+            },
+          }}
           maintainVisibleContentPosition={{
             data: true,
             size: false,

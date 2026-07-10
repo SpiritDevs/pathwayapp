@@ -818,6 +818,33 @@ describe("deriveWorkLogEntries", () => {
     expect(entries.map((entry) => entry.id)).toEqual(["tool-complete"]);
   });
 
+  it("omits provider usage update entries", () => {
+    const activities: OrchestrationThreadActivity[] = [
+      makeActivity({
+        id: "provider-usage",
+        createdAt: "2026-02-23T00:00:01.000Z",
+        summary: "Provider usage updated",
+        tone: "info",
+        kind: "account-rate-limits.updated",
+        payload: {
+          primary: {
+            usedPercent: 9,
+          },
+        },
+      }),
+      makeActivity({
+        id: "tool-complete",
+        createdAt: "2026-02-23T00:00:02.000Z",
+        summary: "Ran command",
+        tone: "tool",
+        kind: "tool.completed",
+      }),
+    ];
+
+    const entries = deriveWorkLogEntries(activities);
+    expect(entries.map((entry) => entry.id)).toEqual(["tool-complete"]);
+  });
+
   it("omits ExitPlanMode lifecycle entries once the plan card is shown", () => {
     const activities: OrchestrationThreadActivity[] = [
       makeActivity({

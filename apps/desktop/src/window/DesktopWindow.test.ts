@@ -29,6 +29,7 @@ import * as ElectronShell from "../electron/ElectronShell.ts";
 import * as ElectronTheme from "../electron/ElectronTheme.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
+import { NATIVE_WINDOW_CONTROLS_VISIBILITY_CHANNEL } from "../ipc/channels.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
 import * as PreviewManager from "../preview/Manager.ts";
 
@@ -45,6 +46,7 @@ const environmentInput = {
 } satisfies DesktopEnvironment.MakeDesktopEnvironmentInput;
 
 function makeFakeBrowserWindow() {
+  const windowListeners = new Map<string, (...args: readonly unknown[]) => void>();
   const webContentsListeners = new Map<string, (...args: readonly unknown[]) => void>();
   const webContents = {
     copyImageAt: vi.fn(),
@@ -64,10 +66,13 @@ function makeFakeBrowserWindow() {
   const window = {
     focus: vi.fn(),
     isDestroyed: vi.fn(() => false),
+    isFullScreen: vi.fn(() => false),
     isMinimized: vi.fn(() => false),
     isVisible: vi.fn(() => true),
     loadURL: vi.fn(() => Promise.resolve()),
-    on: vi.fn(),
+    on: vi.fn((eventName: string, listener: (...args: readonly unknown[]) => void) => {
+      windowListeners.set(eventName, listener);
+    }),
     once: vi.fn(),
     restore: vi.fn(),
     setBackgroundColor: vi.fn(),
@@ -84,6 +89,8 @@ function makeFakeBrowserWindow() {
     openDevTools: webContents.openDevTools,
     reload: webContents.reload,
     setAutoHideCursor: window.setAutoHideCursor,
+    send: webContents.send,
+    windowListeners,
     webContentsListeners,
   };
 }
@@ -342,6 +349,38 @@ describe("DesktopWindow", () => {
 
         assert.isTrue(prevented);
         assert.deepEqual(openedExternalUrls, ["https://accounts.microsoft.com/oauth"]);
+      }).pipe(Effect.provide(layer));
+    }),
+  );
+
+  it.effect("notifies the renderer when macOS native window controls hide in fullscreen", () =>
+    Effect.gen(function* () {
+      const fakeWindow = makeFakeBrowserWindow();
+      const createCount = yield* Ref.make(0);
+      const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
+      const layer = makeTestLayer({
+        window: fakeWindow.window,
+        createCount,
+        mainWindow,
+      });
+
+      yield* Effect.gen(function* () {
+        const desktopWindow = yield* DesktopWindow.DesktopWindow;
+        yield* desktopWindow.handleBackendReady;
+
+        const enterFullScreen = fakeWindow.windowListeners.get("enter-full-screen");
+        const leaveFullScreen = fakeWindow.windowListeners.get("leave-full-screen");
+        if (!enterFullScreen || !leaveFullScreen) {
+          return yield* Effect.die("fullscreen listeners were not registered");
+        }
+
+        enterFullScreen();
+        leaveFullScreen();
+
+        assert.deepEqual(fakeWindow.send.mock.calls, [
+          [NATIVE_WINDOW_CONTROLS_VISIBILITY_CHANNEL, false],
+          [NATIVE_WINDOW_CONTROLS_VISIBILITY_CHANNEL, true],
+        ]);
       }).pipe(Effect.provide(layer));
     }),
   );

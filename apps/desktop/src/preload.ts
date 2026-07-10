@@ -111,6 +111,20 @@ contextBridge.exposeInMainWorld("desktopBridge", {
       ipcRenderer.removeListener(IpcChannels.MENU_ACTION_CHANNEL, wrappedListener);
     };
   },
+  onNativeWindowControlsVisibilityChange: (listener) => {
+    const wrappedListener = (_event: Electron.IpcRendererEvent, visible: unknown) => {
+      if (typeof visible !== "boolean") return;
+      listener(visible);
+    };
+
+    ipcRenderer.on(IpcChannels.NATIVE_WINDOW_CONTROLS_VISIBILITY_CHANNEL, wrappedListener);
+    return () => {
+      ipcRenderer.removeListener(
+        IpcChannels.NATIVE_WINDOW_CONTROLS_VISIBILITY_CHANNEL,
+        wrappedListener,
+      );
+    };
+  },
   getUpdateState: () => ipcRenderer.invoke(IpcChannels.UPDATE_GET_STATE_CHANNEL),
   setUpdateChannel: (channel) =>
     ipcRenderer.invoke(IpcChannels.UPDATE_SET_CHANNEL_CHANNEL, channel),
