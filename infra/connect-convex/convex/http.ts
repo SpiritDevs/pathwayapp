@@ -53,13 +53,15 @@ function errorResponse(error: unknown): Response {
   const message = error instanceof Error ? error.message : "INTERNAL_ERROR";
   const status = message.includes("SEQUENCE_CONFLICT")
     ? 409
-    : message.includes("INVALID") || message.includes("CONTIGUOUS")
-      ? 400
-      : message.includes("NOT_FOUND")
-        ? 404
-        : message.includes("CREDENTIAL") || message.includes("ACCESS_DENIED")
-          ? 401
-          : 500;
+    : message.includes("FORBIDDEN") || message.includes("GUARDRAIL")
+      ? 403
+      : message.includes("INVALID") || message.includes("CONTIGUOUS")
+        ? 400
+        : message.includes("NOT_FOUND")
+          ? 404
+          : message.includes("CREDENTIAL") || message.includes("ACCESS_DENIED")
+            ? 401
+            : 500;
   return jsonResponse({ error: message }, { status });
 }
 
@@ -88,6 +90,17 @@ const ingestBatchReference = makeFunctionReference(
   "cloudSync:ingestBatch",
 ) as unknown as InternalRef<Record<string, Value>, Record<string, Value>>;
 const snapshotReference = makeFunctionReference("cloudSync:snapshot") as unknown as InternalRef<
+  Record<string, Value>,
+  Value
+>;
+const issuesCommandReference = makeFunctionReference(
+  "issues:executeCommand",
+) as unknown as InternalRef<Record<string, Value>, Record<string, Value>>;
+const issuesMirrorReference = makeFunctionReference("issues:mirrorDelta") as unknown as InternalRef<
+  Record<string, Value>,
+  Value
+>;
+const issuesDetailReference = makeFunctionReference("issues:issueDetail") as unknown as InternalRef<
   Record<string, Value>,
   Value
 >;
@@ -515,6 +528,72 @@ http.route({
 });
 
 http.route({
+  path: "/v1/issues/command",
+  method: "POST",
+  handler: httpActionGeneric(async (ctx, request) => {
+    try {
+      const body = (await request.json()) as Record<string, Value>;
+      const result = await ctx.runMutation(
+        issuesCommandReference as FunctionReference<
+          "mutation",
+          "internal",
+          Record<string, Value>,
+          Record<string, Value>
+        >,
+        { ...body, credentialHash: await sha256(bearerToken(request)) },
+      );
+      return jsonResponse(result);
+    } catch (error) {
+      return errorResponse(error);
+    }
+  }),
+});
+
+http.route({
+  path: "/v1/issues/mirror",
+  method: "POST",
+  handler: httpActionGeneric(async (ctx, request) => {
+    try {
+      const body = (await request.json()) as Record<string, Value>;
+      const result = await ctx.runQuery(
+        issuesMirrorReference as FunctionReference<
+          "query",
+          "internal",
+          Record<string, Value>,
+          Value
+        >,
+        { ...body, credentialHash: await sha256(bearerToken(request)) },
+      );
+      return jsonResponse(result);
+    } catch (error) {
+      return errorResponse(error);
+    }
+  }),
+});
+
+http.route({
+  path: "/v1/issues/detail",
+  method: "POST",
+  handler: httpActionGeneric(async (ctx, request) => {
+    try {
+      const body = (await request.json()) as Record<string, Value>;
+      const result = await ctx.runQuery(
+        issuesDetailReference as FunctionReference<
+          "query",
+          "internal",
+          Record<string, Value>,
+          Value
+        >,
+        { ...body, credentialHash: await sha256(bearerToken(request)) },
+      );
+      return jsonResponse(result);
+    } catch (error) {
+      return errorResponse(error);
+    }
+  }),
+});
+
+http.route({
   path: "/v1/email/captures/batch",
   method: "POST",
   handler: httpActionGeneric(async (ctx, request) => {
@@ -631,6 +710,9 @@ for (const path of [
   "/v1/client/dpop-token",
   "/v1/sync/batches",
   "/v1/sync/snapshot",
+  "/v1/issues/command",
+  "/v1/issues/mirror",
+  "/v1/issues/detail",
   "/v1/email/captures/batch",
   "/v1/email/sources/batch",
   "/v1/blobs/prepare",

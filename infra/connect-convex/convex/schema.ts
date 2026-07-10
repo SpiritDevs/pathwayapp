@@ -130,6 +130,85 @@ const emailAddress = v.object({
   address: v.string(),
 });
 
+const issueStateCategory = v.union(
+  v.literal("triage"),
+  v.literal("backlog"),
+  v.literal("unstarted"),
+  v.literal("started"),
+  v.literal("completed"),
+  v.literal("canceled"),
+);
+
+const issueCycleConfig = v.object({
+  enabled: v.boolean(),
+  startDayOfWeek: v.union(
+    v.literal(0),
+    v.literal(1),
+    v.literal(2),
+    v.literal(3),
+    v.literal(4),
+    v.literal(5),
+    v.literal(6),
+  ),
+  durationWeeks: v.number(),
+  cooldownWeeks: v.number(),
+  autoRollover: v.boolean(),
+});
+
+const issuePriority = v.union(v.literal(0), v.literal(1), v.literal(2), v.literal(3), v.literal(4));
+
+const issueFilterConfig = v.object({
+  teamIds: v.optional(v.array(v.id("issueTeams"))),
+  stateIds: v.optional(v.array(v.id("issueStates"))),
+  stateCategories: v.optional(v.array(issueStateCategory)),
+  assigneeActorIds: v.optional(v.array(v.id("issueActors"))),
+  creatorActorIds: v.optional(v.array(v.id("issueActors"))),
+  priorities: v.optional(v.array(issuePriority)),
+  labelIds: v.optional(v.array(v.id("issueLabels"))),
+  cycleIds: v.optional(v.array(v.id("issueCycles"))),
+  epicIds: v.optional(v.array(v.id("issueEpics"))),
+  parentIssueId: v.optional(v.union(v.null(), v.id("issues"))),
+  dueBefore: v.optional(v.string()),
+  searchText: v.optional(v.string()),
+  includeDeleted: v.optional(v.boolean()),
+});
+
+const issueDisplayConfig = v.object({
+  viewMode: v.union(v.literal("list"), v.literal("board")),
+  groupBy: v.union(
+    v.literal("state"),
+    v.literal("assignee"),
+    v.literal("priority"),
+    v.literal("label"),
+    v.literal("cycle"),
+    v.literal("epic"),
+    v.literal("team"),
+    v.literal("none"),
+  ),
+  swimlaneBy: v.optional(
+    v.union(v.literal("none"), v.literal("priority"), v.literal("assignee"), v.literal("epic")),
+  ),
+  orderBy: v.union(
+    v.literal("manual"),
+    v.literal("priority"),
+    v.literal("dueDate"),
+    v.literal("createdAt"),
+    v.literal("updatedAt"),
+  ),
+  showCompleted: v.boolean(),
+  showTriage: v.boolean(),
+  showSubIssues: v.boolean(),
+});
+
+const issueEntityFields = {
+  tenantId: v.id("tenants"),
+  ownerUserId: v.string(),
+  syncSeq: v.number(),
+  createdAt: isoTimestamp,
+  updatedAt: isoTimestamp,
+  deletedAt: v.union(v.null(), isoTimestamp),
+};
+
 export default defineSchema({
   connectUsers: defineTable({
     clerkUserId: v.string(),
@@ -898,4 +977,230 @@ export default defineSchema({
   })
     .index("by_huddle", ["huddleId"])
     .index("by_huddle_user", ["huddleId", "userId"]),
+
+  issueTeams: defineTable({
+    ...issueEntityFields,
+    name: v.string(),
+    description: v.union(v.null(), v.string()),
+    icon: v.union(v.null(), v.string()),
+    color: v.union(v.null(), v.string()),
+    key: v.string(),
+    cycleConfig: issueCycleConfig,
+    estimateScale: v.union(
+      v.literal("disabled"),
+      v.literal("exponential"),
+      v.literal("fibonacci"),
+      v.literal("linear"),
+      v.literal("tshirt"),
+    ),
+    repoLinks: v.array(v.object({ logicalProjectKey: v.string(), displayName: v.string() })),
+    defaultRepoLogicalKey: v.union(v.null(), v.string()),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_key", ["tenantId", "key"]),
+
+  issueTeamMemberships: defineTable({
+    ...issueEntityFields,
+    teamId: v.id("issueTeams"),
+    actorId: v.id("issueActors"),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_team_actor", ["teamId", "actorId"]),
+
+  issueStates: defineTable({
+    ...issueEntityFields,
+    teamId: v.union(v.null(), v.id("issueTeams")),
+    name: v.string(),
+    color: v.string(),
+    category: issueStateCategory,
+    position: v.number(),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_team", ["tenantId", "teamId"]),
+
+  issueLabels: defineTable({
+    ...issueEntityFields,
+    teamId: v.union(v.null(), v.id("issueTeams")),
+    name: v.string(),
+    color: v.string(),
+    description: v.union(v.null(), v.string()),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_team", ["tenantId", "teamId"]),
+
+  issueActors: defineTable({
+    ...issueEntityFields,
+    kind: v.union(v.literal("human"), v.literal("agent")),
+    displayName: v.string(),
+    avatarColor: v.string(),
+    avatarUrl: v.union(v.null(), v.string()),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_owner_kind", ["tenantId", "ownerUserId", "kind"]),
+
+  issueCycles: defineTable({
+    ...issueEntityFields,
+    teamId: v.id("issueTeams"),
+    number: v.number(),
+    name: v.union(v.null(), v.string()),
+    startsAt: isoTimestamp,
+    endsAt: isoTimestamp,
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_team_number", ["teamId", "number"]),
+
+  issueEpics: defineTable({
+    ...issueEntityFields,
+    name: v.string(),
+    description: v.union(v.null(), v.string()),
+    icon: v.union(v.null(), v.string()),
+    color: v.union(v.null(), v.string()),
+    status: v.union(
+      v.literal("backlog"),
+      v.literal("planned"),
+      v.literal("in-progress"),
+      v.literal("paused"),
+      v.literal("completed"),
+      v.literal("canceled"),
+    ),
+    startDate: v.union(v.null(), v.string()),
+    targetDate: v.union(v.null(), v.string()),
+  }).index("by_tenant_sync", ["tenantId", "syncSeq"]),
+
+  issueMilestones: defineTable({
+    ...issueEntityFields,
+    epicId: v.id("issueEpics"),
+    name: v.string(),
+    targetDate: v.union(v.null(), v.string()),
+    position: v.number(),
+    completedAt: v.union(v.null(), isoTimestamp),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_epic", ["epicId", "position"]),
+
+  issues: defineTable({
+    ...issueEntityFields,
+    teamId: v.union(v.null(), v.id("issueTeams")),
+    number: v.number(),
+    identifier: v.string(),
+    title: v.string(),
+    descriptionMd: v.string(),
+    priority: issuePriority,
+    stateId: v.id("issueStates"),
+    assigneeActorId: v.union(v.null(), v.id("issueActors")),
+    creatorActorId: v.id("issueActors"),
+    labelIds: v.array(v.id("issueLabels")),
+    estimate: v.union(v.null(), v.number()),
+    dueDate: v.union(v.null(), v.string()),
+    cycleId: v.union(v.null(), v.id("issueCycles")),
+    epicId: v.union(v.null(), v.id("issueEpics")),
+    milestoneId: v.union(v.null(), v.id("issueMilestones")),
+    parentIssueId: v.union(v.null(), v.id("issues")),
+    orderKey: v.string(),
+    delegationStatus: v.union(
+      v.null(),
+      v.literal("queued"),
+      v.literal("starting"),
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
+    triaged: v.boolean(),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_identifier", ["tenantId", "identifier"])
+    .index("by_tenant_team", ["tenantId", "teamId"]),
+
+  issueRelations: defineTable({
+    ...issueEntityFields,
+    issueId: v.id("issues"),
+    relationType: v.union(v.literal("blocks"), v.literal("related"), v.literal("duplicate")),
+    relatedIssueId: v.id("issues"),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_issue", ["issueId"])
+    .index("by_related_issue", ["relatedIssueId"]),
+
+  issueThreadLinks: defineTable({
+    ...issueEntityFields,
+    issueId: v.id("issues"),
+    environmentId: v.string(),
+    threadId: v.string(),
+    logicalProjectKey: v.union(v.null(), v.string()),
+    status: v.union(v.literal("linked"), v.literal("working"), v.literal("closed")),
+    createdByActorId: v.id("issueActors"),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_issue", ["issueId"])
+    .index("by_environment_thread", ["environmentId", "threadId"]),
+
+  issueComments: defineTable({
+    ...issueEntityFields,
+    issueId: v.id("issues"),
+    parentCommentId: v.union(v.null(), v.id("issueComments")),
+    authorActorId: v.id("issueActors"),
+    bodyMd: v.string(),
+    editedAt: v.union(v.null(), isoTimestamp),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_issue", ["issueId", "createdAt"]),
+
+  issueCommentReactions: defineTable({
+    ...issueEntityFields,
+    commentId: v.id("issueComments"),
+    actorId: v.id("issueActors"),
+    emoji: v.string(),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_comment_actor_emoji", ["commentId", "actorId", "emoji"]),
+
+  issueSavedViews: defineTable({
+    ...issueEntityFields,
+    scope: v.union(v.literal("personal"), v.literal("team")),
+    teamId: v.union(v.null(), v.id("issueTeams")),
+    name: v.string(),
+    icon: v.union(v.null(), v.string()),
+    color: v.union(v.null(), v.string()),
+    filters: issueFilterConfig,
+    display: issueDisplayConfig,
+    position: v.number(),
+  }).index("by_tenant_sync", ["tenantId", "syncSeq"]),
+
+  issueEvents: defineTable({
+    ...issueEntityFields,
+    issueId: v.id("issues"),
+    actorId: v.union(v.null(), v.id("issueActors")),
+    kind: v.string(),
+    payload: v.any(),
+    threadRef: v.union(
+      v.null(),
+      v.object({ environmentId: v.string(), threadId: v.string() }),
+    ),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_issue_created", ["issueId", "createdAt"]),
+
+  issueAliases: defineTable({
+    ...issueEntityFields,
+    alias: v.string(),
+    issueId: v.id("issues"),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_alias", ["tenantId", "alias"]),
+
+  issueCounters: defineTable({
+    ...issueEntityFields,
+    scopeKey: v.string(),
+    next: v.number(),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant_scope", ["tenantId", "scopeKey"]),
+
+  issueMeta: defineTable({
+    ...issueEntityFields,
+    workspaceKey: v.string(),
+    nextSyncSeq: v.number(),
+  })
+    .index("by_tenant_sync", ["tenantId", "syncSeq"])
+    .index("by_tenant", ["tenantId"]),
 });
