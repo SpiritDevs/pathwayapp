@@ -44,3 +44,15 @@ event-sourced template") is superseded by this ADR.
   snapshot+delta).
 - Agents queued to auto-start (ADR 0004) will not dequeue while offline;
   cross-user assignments are picked up when the owning instance reconnects.
+
+## Amendments (2026-07-11, post-scouting)
+
+1. **Workspace boundary = existing tenant system, not Clerk Organizations.** Scouting found no
+   Clerk org integration anywhere; the repo already has `tenants`/`tenantMemberships`/
+   `tenantInvitations` with roles and hashed invites. Issues tables scope by `tenantId` like every
+   other Convex table. The rationale for choosing Clerk Orgs (avoid building custom membership)
+   was based on a wrong premise — custom membership already exists and is the house pattern.
+2. **Mirror transport = cursor-based polling over HTTP actions.** The local server has no Convex
+   subscription client; both existing sync workers use `*.convex.site` HTTP actions with the
+   environment-credential bearer. The issues mirror polls `POST /v1/issues/mirror` with a
+   per-tenant monotonic `syncSeq` cursor. See `docs/issues-build/interface-freeze.md`.

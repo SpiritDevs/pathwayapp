@@ -186,6 +186,10 @@
     "./hostProcess": {
       "types": "./src/hostProcess.ts",
       "import": "./src/hostProcess.ts"
+    },
+    "./fractionalIndex": {
+      "types": "./src/fractionalIndex.ts",
+      "import": "./src/fractionalIndex.ts"
     }
   },
   "scripts": {
