@@ -94,9 +94,8 @@ export function FilterBar({
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       if (search === (filters.searchText ?? "")) return;
-      const next = { ...filters, searchText: search || undefined };
-      if (!search) delete next.searchText;
-      onChange(next);
+      const { searchText: _previousSearch, ...rest } = filters;
+      onChange(search ? { ...rest, searchText: search } : rest);
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [filters, onChange, search]);

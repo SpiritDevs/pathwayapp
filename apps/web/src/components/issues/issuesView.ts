@@ -118,7 +118,7 @@ export function groupIssues(
     const key = value === null ? "none" : String(value);
     buckets.set(key, [...(buckets.get(key) ?? []), issue]);
   }
-  const definitions: Array<{ value: string | number | null; label: string; color?: string; position: number }> = [];
+  const definitions: Array<{ value: string | number | null; label: string; color?: string | undefined; position: number }> = [];
   switch (groupBy) {
     case "state": definitions.push(...lookup.states.map((item) => ({ value: item.id, label: item.name, color: item.color, position: item.position }))); break;
     case "assignee": definitions.push(...lookup.actors.map((item, position) => ({ value: item.id, label: item.displayName, color: item.avatarColor, position })), { value: null, label: "Unassigned", position: 9999 }); break;

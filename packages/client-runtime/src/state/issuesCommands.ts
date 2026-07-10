@@ -15,7 +15,7 @@ type IssueCommandType = IssueCommand["type"];
 type IssueCommandOfType<T extends IssueCommandType> = Extract<IssueCommand, { readonly type: T }>;
 type IssueCommandInput<T extends IssueCommandType> = Omit<IssueCommandOfType<T>, "type">;
 
-interface IssueCommandTarget<T extends IssueCommandType> {
+export interface IssueCommandTarget<T extends IssueCommandType> {
   readonly environmentId: EnvironmentId;
   readonly input: IssueCommandInput<T>;
 }

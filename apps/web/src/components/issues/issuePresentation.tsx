@@ -16,7 +16,7 @@ import {
   SignalLowIcon,
   SignalMediumIcon,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, CSSProperties } from "react";
 
 export const PRIORITY_PRESENTATION: Record<
   IssuePriority,
@@ -33,7 +33,7 @@ export const PRIORITY_ORDER: ReadonlyArray<IssuePriority> = [1, 2, 3, 4, 0];
 
 export const STATE_CATEGORY_ICONS: Record<
   StateCategory,
-  ComponentType<{ className?: string }>
+  ComponentType<{ className?: string; style?: CSSProperties }>
 > = {
   triage: CircleDashedIcon,
   backlog: CircleIcon,
@@ -45,7 +45,7 @@ export const STATE_CATEGORY_ICONS: Record<
 
 export function StateIcon({ state, className }: { state: IssueWorkflowState; className?: string }) {
   const Icon = STATE_CATEGORY_ICONS[state.category];
-  return <Icon className={className} style={{ color: state.color }} />;
+  return <Icon className={className ?? ""} style={{ color: state.color }} />;
 }
 
 export function PriorityIcon({ priority, className }: { priority: IssuePriority; className?: string }) {

@@ -22,7 +22,7 @@ export function IssueCard({
   issue: EnvironmentIssue;
   labels: ReadonlyArray<IssueLabel>;
   assignee: IssueActor | null;
-  subIssueProgress?: { completed: number; total: number };
+  subIssueProgress?: { completed: number; total: number } | undefined;
   overlay?: boolean;
   dragDisabled?: boolean;
 }) {

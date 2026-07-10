@@ -86,7 +86,7 @@ function suggestTeamKey(name: string): string {
   const words = name.toUpperCase().match(/[A-Z0-9]+/gu) ?? [];
   if (words.length === 0) return "";
   const initials = words.map((word) => word[0]).join("");
-  return (initials.length >= 2 ? initials : words[0]).slice(0, 6);
+  return (initials.length >= 2 ? initials : (words[0] ?? "")).slice(0, 6);
 }
 
 function ActionError({ message }: { readonly message: string | null }) {

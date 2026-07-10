@@ -4,7 +4,7 @@ import { IssueDetailPage, IssueNotFound } from "~/components/issues/detail/Issue
 import { useActiveEnvironmentId } from "~/state/entities";
 import { useIssues } from "~/state/issueEntities";
 
-export const Route = createFileRoute("/issues/$identifier")({
+export const Route = createFileRoute("/issues_/$identifier")({
   component: IssueIdentifierRoute,
 });
 

@@ -75,7 +75,7 @@ export const makeEnvironmentIssuesState = Effect.fn("EnvironmentIssuesState.make
     SubscriptionRef.update(state, (current) => ({
       snapshot: Option.map(current.snapshot, (snapshot) => ({ ...snapshot, online: false })),
       error: Option.some(ISSUES_SYNCHRONIZATION_ERROR_MESSAGE),
-    })).pipe(Effect.zipLeft(Effect.logWarning(Cause.squash(cause))));
+    })).pipe(Effect.tap(() => Effect.logWarning(Cause.squash(cause))));
 
   yield* subscribe(
     WS_METHODS.issuesSubscribe,

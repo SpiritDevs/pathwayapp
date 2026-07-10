@@ -48,7 +48,7 @@ export function IssueQuickCreateDialog() {
         <DialogPanel className="space-y-4">
           <Input autoFocus value={title} placeholder="Issue title" onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void submit(); } }} />
           <div className="grid grid-cols-2 gap-3">
-            <Select value={teamId} onValueChange={(value) => { if (value !== null) setTeamId(value as IssueTeamId | "workspace"); }}>
+            <Select value={teamId as string} onValueChange={(value) => { if (value !== null) setTeamId(value as IssueTeamId | "workspace"); }}>
               <SelectTrigger><SelectValue placeholder="Team" /></SelectTrigger>
               <SelectPopup><SelectItem value="workspace">Workspace</SelectItem>{teams.filter((team) => team.deletedAt === null).map((team) => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}</SelectPopup>
             </Select>
