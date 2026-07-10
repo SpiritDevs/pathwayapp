@@ -94,7 +94,8 @@ import * as IssuesCommandClient from "./issues/IssuesCommandClient.ts";
 import * as IssuesGatewayLive from "./issues/IssuesGatewayLive.ts";
 import * as IssuesMirrorStore from "./issues/IssuesMirrorStore.ts";
 import * as IssuesMirrorWorker from "./issues/IssuesMirrorWorker.ts";
-import { IssueDelegationServiceUnavailableLive } from "./issues/delegation/IssueDelegationServiceStub.ts";
+import { IssueDelegationServiceLive } from "./issues/delegation/IssueDelegationServiceLive.ts";
+import { SystemHeadroomLive } from "./issues/delegation/SystemHeadroom.ts";
 import { OrchestrationLayerLive } from "./orchestration/runtimeLayer.ts";
 import {
   clearPersistedServerRuntimeState,
@@ -375,8 +376,9 @@ const IssuesMirrorWorkerLive = IssuesMirrorWorker.layer.pipe(Layer.provide(Issue
 const IssuesGatewayLayerLive = IssuesGatewayLive.layer.pipe(
   Layer.provide(Layer.mergeAll(IssuesCoreLive, IssuesMirrorWorkerLive)),
 );
-// WIRING: replace this unavailable stub with the S3 IssueDelegationService Live layer.
-const IssueDelegationLayerLive = IssueDelegationServiceUnavailableLive.pipe(
+const IssueDelegationLayerLive = IssueDelegationServiceLive.pipe(
+  Layer.provide(SystemHeadroomLive),
+  Layer.provide(IssuesGatewayLayerLive),
   Layer.provide(RuntimeCoreBaseLive),
 );
 const IssuesLive = Layer.mergeAll(
@@ -423,7 +425,11 @@ export const makeRoutesLayer = Layer.mergeAll(
     staticAndDevRouteLayer,
     websocketRpcRouteLayer,
   ),
-  McpHttpServer.layer.pipe(Layer.provide(McpSessionRegistry.layer)),
+  McpHttpServer.layer.pipe(
+    Layer.provide(McpSessionRegistry.layer),
+    Layer.provide(IssuesGatewayLayerLive),
+    Layer.provide(RuntimeCoreBaseLive),
+  ),
 ).pipe(Layer.provide(PreviewAutomationBroker.layer), Layer.provide(browserApiCorsLayer));
 
 export const makeServerLayer = Layer.unwrap(
