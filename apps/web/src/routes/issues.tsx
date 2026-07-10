@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { AppPlaceholderView } from "../components/AppPlaceholderView";
+import { IssuesPage } from "../components/issues/IssuesPage";
 
 export const Route = createFileRoute("/issues")({
   component: IssuesRouteView,
 });
 
 function IssuesRouteView() {
-  return <AppPlaceholderView title="Issues" description="Issue tracking will appear here." />;
+  return <IssuesPage />;
 }
