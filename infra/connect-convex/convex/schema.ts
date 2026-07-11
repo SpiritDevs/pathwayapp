@@ -1172,10 +1172,7 @@ export default defineSchema({
     actorId: v.union(v.null(), v.id("issueActors")),
     kind: v.string(),
     payload: v.any(),
-    threadRef: v.union(
-      v.null(),
-      v.object({ environmentId: v.string(), threadId: v.string() }),
-    ),
+    threadRef: v.union(v.null(), v.object({ environmentId: v.string(), threadId: v.string() })),
   })
     .index("by_tenant_sync", ["tenantId", "syncSeq"])
     .index("by_issue_created", ["issueId", "createdAt"]),

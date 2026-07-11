@@ -119,10 +119,7 @@ import { stackedThreadToast, toastManager } from "./ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 import { ComposerHandleContext, useComposerHandleContext } from "../composerHandleContext";
 import type { ChatComposerHandle } from "./chat/ChatComposer";
-import {
-  IssueQuickCreateDialog,
-  openIssueQuickCreate,
-} from "./issues/IssueQuickCreateDialog";
+import { IssueQuickCreateDialog, openIssueQuickCreate } from "./issues/IssueQuickCreateDialog";
 import { navigateToIssue } from "./issues/issuesView";
 
 const EMPTY_BROWSE_ENTRIES: FilesystemBrowseResult["entries"] = [];

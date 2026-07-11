@@ -54,20 +54,20 @@ import * as IssueDelegationService from "./issues/delegation/IssueDelegationServ
 In `make`, resolve the services beside `cloudSyncWorker` and `emailSandboxSyncWorker`:
 
 ```ts
-const issuesMirrorWorker = yield* IssuesMirrorWorker.IssuesMirrorWorker;
-const issueDelegationService = yield* IssueDelegationService.IssueDelegationService;
+const issuesMirrorWorker = yield * IssuesMirrorWorker.IssuesMirrorWorker;
+const issueDelegationService = yield * IssueDelegationService.IssueDelegationService;
 ```
 
 In the existing `reactors.start` phase, start delegation immediately after the issues mirror worker
 so its startup rebuild reads the initialized mirror snapshot:
 
 ```ts
-yield* orchestrationReactor.start().pipe(Scope.provide(reactorScope));
-yield* providerSessionReaper.start().pipe(Scope.provide(reactorScope));
-yield* cloudSyncWorker.start().pipe(Scope.provide(reactorScope));
-yield* emailSandboxSyncWorker.start().pipe(Scope.provide(reactorScope));
-yield* issuesMirrorWorker.start().pipe(Scope.provide(reactorScope));
-yield* issueDelegationService.start().pipe(Scope.provide(reactorScope));
+yield * orchestrationReactor.start().pipe(Scope.provide(reactorScope));
+yield * providerSessionReaper.start().pipe(Scope.provide(reactorScope));
+yield * cloudSyncWorker.start().pipe(Scope.provide(reactorScope));
+yield * emailSandboxSyncWorker.start().pipe(Scope.provide(reactorScope));
+yield * issuesMirrorWorker.start().pipe(Scope.provide(reactorScope));
+yield * issueDelegationService.start().pipe(Scope.provide(reactorScope));
 ```
 
 If S1 already placed `issuesMirrorWorker.start()` earlier in this phase, keep that line in place and

@@ -56,16 +56,18 @@ export const useIssuesUiStateStore = create<IssuesUiState>()(
       pinnedViewIds: [],
       collapsedGroupIds: [],
       collapsedBoardColumnIds: [],
-      setFilters: (filters) => set((state) => ({
-        filters,
-        ...(state.selectedViewId === null ? { personalFilters: filters } : {}),
-        dirty: state.selectedViewId !== null,
-      })),
-      setDisplay: (display) => set((state) => ({
-        display,
-        ...(state.selectedViewId === null ? { personalDisplay: display } : {}),
-        dirty: state.selectedViewId !== null,
-      })),
+      setFilters: (filters) =>
+        set((state) => ({
+          filters,
+          ...(state.selectedViewId === null ? { personalFilters: filters } : {}),
+          dirty: state.selectedViewId !== null,
+        })),
+      setDisplay: (display) =>
+        set((state) => ({
+          display,
+          ...(state.selectedViewId === null ? { personalDisplay: display } : {}),
+          dirty: state.selectedViewId !== null,
+        })),
       selectView: (view) =>
         set((state) =>
           view === null

@@ -3,6 +3,7 @@
 Binding contract for all implementation waves. If code and this doc disagree, this doc wins
 until amended here. Companion material: `docs/adr/0001`–`0010`, `.plans/25-linear-issues-agents-plan.md`,
 and the scout reports (conventions + exemplar file paths):
+
 - `scout-convex.md`, `scout-server.md`, `scout-web.md` in the session scratchpad
   (`/private/tmp/claude-501/-Users-coreybaines-GitHub-pathwayapp/21f4374e-b3a6-4301-813d-f1f7860f47f0/scratchpad/`).
 
@@ -29,18 +30,18 @@ All IDs are Convex document ids carried as branded strings in contracts:
 `IssueSavedViewId`, `IssueTeamMembershipId`.
 
 ```ts
-StateCategory      = "triage" | "backlog" | "unstarted" | "started" | "completed" | "canceled"
-IssuePriority      = 0 | 1 | 2 | 3 | 4        // 0=none, 1=urgent, 2=high, 3=medium, 4=low
-ActorKind          = "human" | "agent"
-RelationType       = "blocks" | "related" | "duplicate"   // stored directional; "blocked-by" derived
-DelegationStatus   = null | "queued" | "starting" | "running" | "completed" | "failed"
-EpicStatus         = "backlog" | "planned" | "in-progress" | "paused" | "completed" | "canceled"
-EstimateScale      = "disabled" | "exponential" | "fibonacci" | "linear" | "tshirt"
-SavedViewScope     = "personal" | "team"
-ThreadLinkStatus   = "linked" | "working" | "closed"
-GroupBy            = "state" | "assignee" | "priority" | "label" | "cycle" | "epic" | "team" | "none"
-OrderBy            = "manual" | "priority" | "dueDate" | "createdAt" | "updatedAt"
-ViewMode           = "list" | "board"
+StateCategory = "triage" | "backlog" | "unstarted" | "started" | "completed" | "canceled";
+IssuePriority = 0 | 1 | 2 | 3 | 4; // 0=none, 1=urgent, 2=high, 3=medium, 4=low
+ActorKind = "human" | "agent";
+RelationType = "blocks" | "related" | "duplicate"; // stored directional; "blocked-by" derived
+DelegationStatus = null | "queued" | "starting" | "running" | "completed" | "failed";
+EpicStatus = "backlog" | "planned" | "in-progress" | "paused" | "completed" | "canceled";
+EstimateScale = "disabled" | "exponential" | "fibonacci" | "linear" | "tshirt";
+SavedViewScope = "personal" | "team";
+ThreadLinkStatus = "linked" | "working" | "closed";
+GroupBy = "state" | "assignee" | "priority" | "label" | "cycle" | "epic" | "team" | "none";
+OrderBy = "manual" | "priority" | "dueDate" | "createdAt" | "updatedAt";
+ViewMode = "list" | "board";
 ```
 
 - Team key: 1–6 chars `[A-Z][A-Z0-9]*`. Workspace key default `"WS"` (configurable).
@@ -173,10 +174,10 @@ DelegationQueueState    { running: Array<{ issueId, actorId, threadId, startedAt
 read scope for subscribes, write scope for execute — mirror the existing scope map style):
 
 ```ts
-issuesSubscribe:       "issues.subscribe"        // stream: true, payload {}, success IssuesStreamItem
-issuesSubscribeDetail: "issues.subscribeDetail"  // stream: true, payload { issueId }, success IssueDetailStreamItem
-issuesExecute:         "issues.execute"          // payload { command: IssueCommand }, success IssueCommandResult
-issuesDelegationState: "issues.delegationState"  // payload {}, success DelegationQueueState
+issuesSubscribe: "issues.subscribe"; // stream: true, payload {}, success IssuesStreamItem
+issuesSubscribeDetail: "issues.subscribeDetail"; // stream: true, payload { issueId }, success IssueDetailStreamItem
+issuesExecute: "issues.execute"; // payload { command: IssueCommand }, success IssueCommandResult
+issuesDelegationState: "issues.delegationState"; // payload {}, success DelegationQueueState
 ```
 
 `settings.ts` — add to `ServerSettings` (+ mirrored `optionalKey` entries in `ServerSettingsPatch`):
@@ -209,6 +210,7 @@ Field names match the contracts entities 1:1 (camelCase). `issues.descriptionMd`
 doc but is EXCLUDED from mirror shell rows (delivered via detail endpoint).
 
 New module `convex/issues.ts` (+ split files if large — `issuesCommands.ts`, `issuesQueries.ts`):
+
 - `issues:executeCommand` (internalMutation) args `{ credentialHash, environmentId, command, attribution }`
   → `requireEnvironmentPrincipal` → tenant scope → apply command → bump `syncSeq` on every touched
   row (allocate from `issueMeta.nextSyncSeq`) → append `issueEvents` row (kind = command type,
@@ -224,9 +226,10 @@ New module `convex/issues.ts` (+ split files if large — `issuesCommands.ts`, `
 - `issues:issueDetail` (internalQuery) args `{ credentialHash, environmentId, issueId }` → IssueDetail shape.
 
 `convex/http.ts` routes (same envelope as `/v1/sync/batches`; bearer → sha256 → runMutation/runQuery):
-- `POST /v1/issues/command`  → `issues:executeCommand`
-- `POST /v1/issues/mirror`   → `issues:mirrorDelta`
-- `POST /v1/issues/detail`   → `issues:issueDetail`
+
+- `POST /v1/issues/command` → `issues:executeCommand`
+- `POST /v1/issues/mirror` → `issues:mirrorDelta`
+- `POST /v1/issues/detail` → `issues:issueDetail`
 
 No `clientApi.ts` additions (browser never talks to issues directly).
 
@@ -247,14 +250,19 @@ delegation/
 `IssuesGateway` (frozen interface — Foundation authors the tag + type; S1 provides the Live layer):
 
 ```ts
-export class IssuesGateway extends Context.Service<IssuesGateway, {
-  readonly execute: (command: IssueCommand, attribution: IssueCommandAttribution)
-    => Effect.Effect<IssueCommandResult, IssuesDomainError>
-  readonly getSnapshot: Effect.Effect<IssuesSnapshot, IssuesDomainError>
-  readonly getIssueDetail: (issueId: IssueId) => Effect.Effect<IssueDetail, IssuesDomainError>
-  readonly changes: Stream.Stream<IssuesStreamItem>            // live tail (post-projection publish)
-  readonly detailChanges: (issueId: IssueId) => Stream.Stream<IssueDetailStreamItem>
-}>()("pathwayos/issues/IssuesGateway") {}
+export class IssuesGateway extends Context.Service<
+  IssuesGateway,
+  {
+    readonly execute: (
+      command: IssueCommand,
+      attribution: IssueCommandAttribution,
+    ) => Effect.Effect<IssueCommandResult, IssuesDomainError>;
+    readonly getSnapshot: Effect.Effect<IssuesSnapshot, IssuesDomainError>;
+    readonly getIssueDetail: (issueId: IssueId) => Effect.Effect<IssueDetail, IssuesDomainError>;
+    readonly changes: Stream.Stream<IssuesStreamItem>; // live tail (post-projection publish)
+    readonly detailChanges: (issueId: IssueId) => Stream.Stream<IssueDetailStreamItem>;
+  }
+>()("pathwayos/issues/IssuesGateway") {}
 ```
 
 - Offline (no credential / HTTP failure): `execute` fails fast `{ code: "offline" }`; snapshot serves
@@ -266,14 +274,14 @@ export class IssuesGateway extends Context.Service<IssuesGateway, {
   These are mirror caches, NOT event-sourced projections — no `projection_state` involvement.
 - ws.ts: S1 adds the four RPC handlers + `RPC_REQUIRED_SCOPE` entries + wires
   `IssuesGateway` Live + `IssuesMirrorWorker.start()` in `serverRuntimeStartup.ts` (reactors phase)
-  + layers in `server.ts`. **Only S1 touches ws.ts / server.ts / serverRuntimeStartup.ts in round 1.**
+  - layers in `server.ts`. **Only S1 touches ws.ts / server.ts / serverRuntimeStartup.ts in round 1.**
 - Delegation (S3): subscribes `IssuesGateway.changes`; on `issues` upsert where
   `assigneeActorId ∈ ownedAgentActorIds && delegationStatus ∈ {null, "queued"} && state category
-  ∈ {triage, backlog, unstarted}` → enqueue. Dequeue when `running < maxConcurrent && headroomOk`,
+∈ {triage, backlog, unstarted}` → enqueue. Dequeue when `running < maxConcurrent && headroomOk`,
   FIFO within priority (urgent first). Spawn = single `thread.turn.start` command with
   `bootstrap.createThread` (scout-server §5), repo resolved issue.repoOverride → team default →
   else mark failed with a comment. On spawn: `execute(threadLink.create + issue.update{stateId:
-  startedState} , attribution agent)` and delegation status transitions queued→starting→running,
+startedState} , attribution agent)` and delegation status transitions queued→starting→running,
   completed/failed on turn end (subscribe thread lifecycle events via OrchestrationEngine stream).
   S3 exposes `IssueDelegationService` with `{ start(), state: Effect<DelegationQueueState> }` and
   does NOT touch ws.ts (S1 stubs the `issues.delegationState` handler against the service tag,
@@ -286,15 +294,15 @@ export class IssuesGateway extends Context.Service<IssuesGateway, {
   `McpSessionRegistry.issue`: mint capabilities `["preview", "email", "issues"]`.
 - Tools (`tools.ts` / `handlers.ts`, email-toolkit shape; failure type `IssueAgentToolError`):
   `issue_create, issue_get, issue_list, issue_update, issue_comment, issue_start_work,
-  issue_link_thread, issue_relation_set, issue_delete, team_list, actor_list, state_list,
-  label_list, cycle_list, epic_list, view_list`.
+issue_link_thread, issue_relation_set, issue_delete, team_list, actor_list, state_list,
+label_list, cycle_list, epic_list, view_list`.
   Read tools annotated readonly. Handlers: resolve scope via `requireIssuesCapability` → resolve the
   invoking agent actor (`AgentActorResolver` service: threadId → delegation record → actorId; falls
   back to a per-provider default agent actor, creating it on first use) → call
   `IssuesGateway.execute/getSnapshot/getIssueDetail` with `attribution: { kind: "agent", actorId, threadId }`.
   `issue_list` filters in-handler over the snapshot (teams/state category/assignee/label/text, limit).
   Register in `McpHttpServer.ts` (`IssuesToolkitRegistrationLive`, merged into
-  `PathwayToolkitRegistrationLive`). S2 owns those two mcp/*.ts touch-points (no other wave edits them).
+  `PathwayToolkitRegistrationLive`). S2 owns those two mcp/\*.ts touch-points (no other wave edits them).
 
 ## 7. Client runtime + web
 
@@ -308,8 +316,8 @@ export class IssuesGateway extends Context.Service<IssuesGateway, {
   `execute` (generic), plus convenience `createIssue/updateIssue/deleteIssue/startWork/comment/...`
   wrappers around it, and `delegationStateQuery` via `createEnvironmentRpcQueryAtomFamily`.
 - `apps/web/src/state/issues.ts` (F3): instantiate factories; hooks `useIssues, useIssue(ref),
-  useIssueDetail(ref), useIssueTeams, useIssueStates, useIssueLabels, useIssueActors, useIssueCycles,
-  useIssueEpics, useIssueSavedViews, useDelegationState`, non-hook `readIssue/findIssueRef`.
+useIssueDetail(ref), useIssueTeams, useIssueStates, useIssueLabels, useIssueActors, useIssueCycles,
+useIssueEpics, useIssueSavedViews, useDelegationState`, non-hook `readIssue/findIssueRef`.
 - UI dirs (round 2, one wave each):
   - W-A `apps/web/src/components/issues/` board+list: `IssuesPage.tsx` (tabs, filter bar,
     display-options popover), `IssuesListView.tsx`, `IssuesBoardView.tsx` (dnd-kit + DragOverlay,
@@ -317,7 +325,7 @@ export class IssuesGateway extends Context.Service<IssuesGateway, {
     `SavedViewsRail.tsx` (secondary sidebar; extend `shouldShowSecondarySidebar` for `/issues`),
     `issuesUiStateStore.ts` (zustand persist `pathwayos:issues-ui-state:v1`: current filter/display
     per page, pinned view ids, collapsed groups, selected view). Routes: `routes/issues.tsx` (page)
-    + `routes/issues.$identifier.tsx` STUB that W-B fills (W-A creates only the list/board route file).
+    - `routes/issues.$identifier.tsx` STUB that W-B fills (W-A creates only the list/board route file).
   - W-B `apps/web/src/components/issues/detail/`: `IssueDetailPage.tsx` (route
     `routes/issues.$identifier.tsx`), `IssuePeek.tsx` (RightPanelSheet + selected-issue state),
     `PropertiesSidebar.tsx`, `CommentThread.tsx`, `CommentComposer.tsx` (new Lexical
@@ -335,17 +343,17 @@ export class IssuesGateway extends Context.Service<IssuesGateway, {
 
 ## 8. Wave file-ownership map (conflict prevention)
 
-| Wave | Owns (exclusive write access) |
-|---|---|
+| Wave                        | Owns (exclusive write access)                                                                                                                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | F0 (foundation, sequential) | `packages/contracts/src/issues.ts`, `rpc.ts` + `settings.ts` additions, `packages/shared/src/fractionalIndex.ts`, `apps/server/src/issues/IssuesGateway.ts`, `apps/server/src/issues/delegation/IssueDelegationService.ts` (tag+interface only), contracts index exports |
-| F1 | `infra/connect-convex/convex/schema.ts` (append), `convex/issues*.ts` (new), `convex/http.ts` (append routes) |
-| F3 | `packages/client-runtime/src/state/issues*.ts` (new), `entities.ts`/`models.ts` additions, `apps/web/src/state/issues.ts` (new) |
-| S1 | `apps/server/src/issues/*` (except the two seam files), `persistence/Migrations/037_*`, `Migrations.ts` (append), `ws.ts`, `server.ts`, `serverRuntimeStartup.ts` |
-| S2 | `apps/server/src/mcp/**` |
-| S3 | `apps/server/src/issues/delegation/*` (impl), nothing else |
-| W-A | `components/issues/*` (top level), `routes/issues.tsx`, `CommandPalette.tsx`, `appNavRoutes.ts`, `issuesUiStateStore.ts` |
-| W-B | `components/issues/detail/**`, `components/issues/editor/**`, `routes/issues.$identifier.tsx` |
-| W-C | `components/settings/{Teams,AgentActors,IssueDelegation}*`, `SettingsSidebarNav.tsx`, `components/issues/triage/**`, `TrashView.tsx`, `routes/settings.teams.tsx`, `routes/settings.agents.tsx`, `routes/issues.triage.tsx`, `routes/issues.trash.tsx` |
+| F1                          | `infra/connect-convex/convex/schema.ts` (append), `convex/issues*.ts` (new), `convex/http.ts` (append routes)                                                                                                                                                            |
+| F3                          | `packages/client-runtime/src/state/issues*.ts` (new), `entities.ts`/`models.ts` additions, `apps/web/src/state/issues.ts` (new)                                                                                                                                          |
+| S1                          | `apps/server/src/issues/*` (except the two seam files), `persistence/Migrations/037_*`, `Migrations.ts` (append), `ws.ts`, `server.ts`, `serverRuntimeStartup.ts`                                                                                                        |
+| S2                          | `apps/server/src/mcp/**`                                                                                                                                                                                                                                                 |
+| S3                          | `apps/server/src/issues/delegation/*` (impl), nothing else                                                                                                                                                                                                               |
+| W-A                         | `components/issues/*` (top level), `routes/issues.tsx`, `CommandPalette.tsx`, `appNavRoutes.ts`, `issuesUiStateStore.ts`                                                                                                                                                 |
+| W-B                         | `components/issues/detail/**`, `components/issues/editor/**`, `routes/issues.$identifier.tsx`                                                                                                                                                                            |
+| W-C                         | `components/settings/{Teams,AgentActors,IssueDelegation}*`, `SettingsSidebarNav.tsx`, `components/issues/triage/**`, `TrashView.tsx`, `routes/settings.teams.tsx`, `routes/settings.agents.tsx`, `routes/issues.triage.tsx`, `routes/issues.trash.tsx`                   |
 
 Rules: no wave edits files outside its row; cross-wave needs → note in `docs/issues-build/WIRING-<wave>.md`
 for the integration pass. Do NOT run `vp check`/lint/typecheck/tests — validation is deferred to the

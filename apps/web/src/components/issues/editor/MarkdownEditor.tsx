@@ -84,10 +84,7 @@ class IssueMentionNode extends TextNode {
   }
 
   override updateDOM(previous: IssueMentionNode, dom: HTMLElement): boolean {
-    if (
-      previous.__displayName !== this.__displayName ||
-      previous.__actorId !== this.__actorId
-    ) {
+    if (previous.__displayName !== this.__displayName || previous.__actorId !== this.__actorId) {
       dom.textContent = `@${this.__displayName}`;
     }
     return false;
@@ -161,10 +158,7 @@ function importMarkdown(markdown: string): void {
   }
 }
 
-function ControlledMarkdownPlugin(props: {
-  onChange: (markdown: string) => void;
-  value: string;
-}) {
+function ControlledMarkdownPlugin(props: { onChange: (markdown: string) => void; value: string }) {
   const [editor] = useLexicalComposerContext();
   const lastEmitted = useRef(props.value);
 
@@ -226,7 +220,10 @@ function insertMention(editor: LexicalEditor, actor: IssueActor, query: string):
     node.spliceText(start, query.length + 1, "", true);
     const nextSelection = $getSelection();
     if ($isRangeSelection(nextSelection)) {
-      nextSelection.insertNodes([$createIssueMentionNode(actor.displayName, actor.id), $createTextNode(" ")]);
+      nextSelection.insertNodes([
+        $createIssueMentionNode(actor.displayName, actor.id),
+        $createTextNode(" "),
+      ]);
     }
   });
 }
@@ -257,8 +254,7 @@ function MentionPlugin(props: { actors: ReadonlyArray<IssueActor> }) {
     return props.actors
       .filter(
         (actor) =>
-          actor.deletedAt === null &&
-          actor.displayName.toLocaleLowerCase().includes(normalized),
+          actor.deletedAt === null && actor.displayName.toLocaleLowerCase().includes(normalized),
       )
       .slice(0, 6);
   }, [props.actors, query]);
@@ -277,10 +273,7 @@ function MentionPlugin(props: { actors: ReadonlyArray<IssueActor> }) {
           }}
           type="button"
         >
-          <span
-            className="size-2 rounded-full"
-            style={{ backgroundColor: actor.avatarColor }}
-          />
+          <span className="size-2 rounded-full" style={{ backgroundColor: actor.avatarColor }} />
           <span className="truncate">{actor.displayName}</span>
         </button>
       ))}

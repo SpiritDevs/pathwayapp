@@ -154,8 +154,7 @@ export function issueRefsEqual(
     left.length === right.length &&
     left.every(
       (ref, index) =>
-        ref.environmentId === right[index]?.environmentId &&
-        ref.issueId === right[index]?.issueId,
+        ref.environmentId === right[index]?.environmentId && ref.issueId === right[index]?.issueId,
     )
   );
 }

@@ -3,12 +3,14 @@
 Work in the current repo root (a pathwayOS worktree). React 19, Tailwind v4, Base UI wrappers in components/ui, dnd-kit, @legendapp/list.
 
 READ FIRST:
+
 1. docs/issues-build/interface-freeze.md §7 (W-A bullets), §1 (enums), §2 (types) — BINDING.
 2. /private/tmp/claude-501/-Users-coreybaines-GitHub-pathwayapp/21f4374e-b3a6-4301-813d-f1f7860f47f0/scratchpad/scout-web.md — §2 routing, §3 design system, §5 dnd-kit patterns, §6 LegendList, §9 CommandPalette/hotkeys, §10 zustand persist.
 3. The already-built data plane: apps/web/src/state/issues.ts + issueEntities.ts (hooks), packages/client-runtime/src/state/issuesCommands.ts (command wrappers), packages/contracts/src/issues.ts, packages/shared fractionalIndex (orderKeyBetween).
-4. Exemplars: components/Sidebar.tsx (dnd), chat/MessagesTimeline.tsx (LegendList), ui/* (menu, popover, command, badge, tooltip, kbd), appNavRoutes.ts, uiStateStore.ts / rightPanelStore.ts (persist patterns).
+4. Exemplars: components/Sidebar.tsx (dnd), chat/MessagesTimeline.tsx (LegendList), ui/\* (menu, popover, command, badge, tooltip, kbd), appNavRoutes.ts, uiStateStore.ts / rightPanelStore.ts (persist patterns).
 
-DELIVERABLES (ownership — ONLY these; do NOT touch components/issues/detail/** or editor/** or triage/**):
+DELIVERABLES (ownership — ONLY these; do NOT touch components/issues/detail/** or editor/** or triage/\*\*):
+
 - apps/web/src/components/issues/IssuesPage.tsx — page shell: header (title, view switcher list/board via ui toggle-group, "New issue" button), FilterBar, DisplayOptions popover, active saved-view name, offline banner when snapshot meta online=false ("Issues are read-only while offline"), triage chip linking to /issues/triage showing untriaged count.
 - IssuesListView.tsx — grouped, virtualized (LegendList per group; groups collapsible), rows via IssueRow.tsx (priority icon, identifier muted mono, title, label chips, due date w/ overdue color, estimate, assignee avatar, state icon; click → navigate to /issues/$identifier; a peek affordance is a stub callback prop `onPeek(issueRef)` wired later by W-B — keep the prop, call it on spacebar). Drag: dnd-kit SortableContext per group, cross-group drop sets the group's dimension (state/assignee/priority/label/cycle/epic/team) + orderKey via orderKeyBetween of neighbors, issuesEnvironment.updateIssue. Multi-select with x / shift-click; bulk context menu (state, priority, assignee, labels, delete).
 - IssuesBoardView.tsx — columns from current groupBy (default state; columns ordered by state position / priority order / etc.), horizontally scrollable, each column a LegendList; IssueCard.tsx (title, identifier, priority, labels, avatar, sub-issue progress if parent); dnd-kit with a DragOverlay (net-new — card ghost while dragging), drop into column = set dimension + orderKey between neighbors; optional swimlanes rows when display.swimlaneBy != none (grid of column×lane cells; keep simple, one LegendList per cell only when lanes active); column headers show count + "+" quick-create (inline title input creating issue with that column's dimension preset).
@@ -24,7 +26,8 @@ DELIVERABLES (ownership — ONLY these; do NOT touch components/issues/detail/**
 QUALITY BAR: this is the flagship surface — Linear-tight density (text-sm, muted identifiers, 28px rows-ish), zero layout shift while dragging, snappy optimistic feel (mutations round-trip; rely on mirror re-emit; use local pending state only where reordering would visibly snap back — acceptable v1: none). Priority icons: use lucide (SignalHigh/SignalMedium/SignalLow/AlertTriangle for urgent, Minus for none) mapped in a shared issuePresentation.ts (also yours: priority labels/icons, state category icons/colors, avatar color hashing).
 
 RULES:
-- Never use `any`. Match ui/* composition idioms; cn() for classes; lucide per-icon imports.
+
+- Never use `any`. Match ui/\* composition idioms; cn() for classes; lucide per-icon imports.
 - Do NOT run vp check / typecheck / lint / tests / dev servers / build. Validation deferred.
 - Commit when done: `[new feature] Add issues list and board views with filters and saved views`.
 - Print final summary: files, deviations + why.

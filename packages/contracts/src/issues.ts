@@ -547,7 +547,10 @@ const TeamUpdateCommand = Schema.Struct({
   }),
 });
 
-const TeamDeleteCommand = Schema.Struct({ type: Schema.Literal("team.delete"), teamId: IssueTeamId });
+const TeamDeleteCommand = Schema.Struct({
+  type: Schema.Literal("team.delete"),
+  teamId: IssueTeamId,
+});
 const TeamMemberAddCommand = Schema.Struct({
   type: Schema.Literal("team.memberAdd"),
   teamId: IssueTeamId,
@@ -631,7 +634,10 @@ const EpicUpdateCommand = Schema.Struct({
     targetDate: Schema.optionalKey(Schema.NullOr(Schema.String)),
   }),
 });
-const EpicDeleteCommand = Schema.Struct({ type: Schema.Literal("epic.delete"), epicId: IssueEpicId });
+const EpicDeleteCommand = Schema.Struct({
+  type: Schema.Literal("epic.delete"),
+  epicId: IssueEpicId,
+});
 
 const MilestoneCreateCommand = Schema.Struct({
   type: Schema.Literal("milestone.create"),

@@ -56,7 +56,7 @@ meaning wins here.
 - **Resource monitor** — the headroom check (CPU / free RAM thresholds) run
   before dequeuing agent work. (ADR 0004)
 - **Saved view** — a named, synced filter + display configuration (personal
-  or team-shared, pinnable). The *current* unsaved config persists locally
+  or team-shared, pinnable). The _current_ unsaved config persists locally
   per page. (ADR 0008, 0009)
 - **Soft-delete** — the only delete: `deletedAt` + trash with restore.
   Hard purge is human-only. (ADR 0007)
@@ -68,5 +68,5 @@ meaning wins here.
 - **Triage** — the state (category) where unprocessed issues await
   accept/decline; all agent-created issues land here. (ADR 0006, 0007)
 - **Workflow state** — a team-owned status (`{name, color, category,
-  position}`) that forms board columns; customizable within fixed
+position}`) that forms board columns; customizable within fixed
   categories. (ADR 0006)

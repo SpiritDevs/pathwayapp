@@ -48,7 +48,13 @@ export function StateIcon({ state, className }: { state: IssueWorkflowState; cla
   return <Icon className={className ?? ""} style={{ color: state.color }} />;
 }
 
-export function PriorityIcon({ priority, className }: { priority: IssuePriority; className?: string }) {
+export function PriorityIcon({
+  priority,
+  className,
+}: {
+  priority: IssuePriority;
+  className?: string;
+}) {
   const presentation = PRIORITY_PRESENTATION[priority];
   const Icon = presentation.icon;
   return <Icon className={`${presentation.className} ${className ?? ""}`} />;

@@ -845,7 +845,7 @@ export const executeCommand = internalMutationGeneric({
         const selectedState =
           attributionContract.kind === "agent"
             ? await defaultState(ctx, principal, teamId, "triage")
-          : args.command.stateId === undefined
+            : args.command.stateId === undefined
               ? await defaultState(ctx, principal, teamId)
               : assertTenant(
                   await ctx.db.get("issueStates", args.command.stateId),
@@ -1099,12 +1099,12 @@ export const executeCommand = internalMutationGeneric({
         const issue = await issueById(ctx, principal, args.command.issueId);
         const assignee =
           issue.assigneeActorId === null
-          ? null
-          : assertTenant(
-              await ctx.db.get("issueActors", issue.assigneeActorId),
-              principal,
-              "ISSUES_ACTOR_NOT_FOUND",
-            );
+            ? null
+            : assertTenant(
+                await ctx.db.get("issueActors", issue.assigneeActorId),
+                principal,
+                "ISSUES_ACTOR_NOT_FOUND",
+              );
         void args.command.repoLogicalKey;
         await ctx.db.patch("issues", issue._id, {
           delegationStatus: assignee?.kind === "agent" ? "queued" : issue.delegationStatus,

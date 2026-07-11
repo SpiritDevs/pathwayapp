@@ -14,7 +14,10 @@ function IssueIdentifierRoute() {
   const issues = useIssues();
   const normalized = identifier.toLocaleLowerCase();
   const matches = issues.filter((issue) => issue.identifier.toLocaleLowerCase() === normalized);
-  const issue = matches.find((candidate) => candidate.environmentId === activeEnvironmentId) ?? matches[0] ?? null;
+  const issue =
+    matches.find((candidate) => candidate.environmentId === activeEnvironmentId) ??
+    matches[0] ??
+    null;
   if (!issue) return <IssueNotFound identifier={identifier} />;
   return <IssueDetailPage issueRef={{ environmentId: issue.environmentId, issueId: issue.id }} />;
 }

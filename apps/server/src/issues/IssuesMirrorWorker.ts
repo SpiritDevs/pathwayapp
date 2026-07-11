@@ -84,7 +84,9 @@ const make = Effect.gen(function* () {
                   publishStatusTransition(false, snapshot.syncedAt, error.message),
                 ),
                 Effect.catch(() => Effect.void),
-                Effect.andThen(Effect.logWarning("issues mirror synchronization attempt failed", error)),
+                Effect.andThen(
+                  Effect.logWarning("issues mirror synchronization attempt failed", error),
+                ),
               ),
             ),
           );

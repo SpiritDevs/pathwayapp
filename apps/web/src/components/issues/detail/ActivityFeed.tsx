@@ -13,7 +13,10 @@ function relativeTime(timestamp: string): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
-function eventDescription(event: IssueEventRecord, states: ReadonlyArray<IssueWorkflowState>): string {
+function eventDescription(
+  event: IssueEventRecord,
+  states: ReadonlyArray<IssueWorkflowState>,
+): string {
   const payload = isRecord(event.payload) ? event.payload : {};
   const stateId = typeof payload.stateId === "string" ? payload.stateId : null;
   const state = stateId ? states.find((candidate) => candidate.id === stateId) : null;
@@ -35,7 +38,9 @@ export function ActivityFeed(props: {
   if (props.events.length === 0) return null;
   return (
     <section className="border-t py-4">
-      <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Activity</h2>
+      <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Activity
+      </h2>
       <div className="space-y-2">
         {props.events.map((event) => {
           const actor = props.actors.find((candidate) => candidate.id === event.actorId);
@@ -43,7 +48,9 @@ export function ActivityFeed(props: {
             <div className="flex items-center gap-2 text-xs text-muted-foreground" key={event.id}>
               <span className="size-1.5 shrink-0 rounded-full bg-border" />
               <span>
-                <span className="font-medium text-foreground/80">{actor?.displayName ?? "System"}</span>{" "}
+                <span className="font-medium text-foreground/80">
+                  {actor?.displayName ?? "System"}
+                </span>{" "}
                 {eventDescription(event, props.states)} · {relativeTime(event.createdAt)}
               </span>
             </div>

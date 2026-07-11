@@ -1,7 +1,13 @@
 import { buildCommentTree, type ScopedIssueRef } from "@pathwayos/client-runtime/state/issues";
 import type { IssueCommentTreeNode } from "@pathwayos/client-runtime/state/issues";
 import type { IssueActor, IssueComment, IssueCommentReaction } from "@pathwayos/contracts";
-import { BotIcon, MessageSquareReplyIcon, MoreHorizontalIcon, SmilePlusIcon, Trash2Icon } from "lucide-react";
+import {
+  BotIcon,
+  MessageSquareReplyIcon,
+  MoreHorizontalIcon,
+  SmilePlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -12,7 +18,24 @@ import { useAtomCommand } from "~/state/use-atom-command";
 import { MarkdownView } from "../editor/MarkdownView";
 import { CommentComposer } from "./CommentComposer";
 
-const REACTION_EMOJI = ["👍", "👎", "❤️", "🎉", "😄", "😕", "👀", "🚀", "✅", "❌", "🔥", "💯", "🙏", "👏", "🤔", "💡"];
+const REACTION_EMOJI = [
+  "👍",
+  "👎",
+  "❤️",
+  "🎉",
+  "😄",
+  "😕",
+  "👀",
+  "🚀",
+  "✅",
+  "❌",
+  "🔥",
+  "💯",
+  "🙏",
+  "👏",
+  "🤔",
+  "💡",
+];
 
 function relativeTime(timestamp: string): string {
   const elapsed = Date.now() - new Date(timestamp).getTime();
@@ -72,7 +95,9 @@ function CommentNode(props: {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5 text-xs">
-              <span className="truncate font-medium text-foreground">{author?.displayName ?? "Unknown actor"}</span>
+              <span className="truncate font-medium text-foreground">
+                {author?.displayName ?? "Unknown actor"}
+              </span>
               {author?.kind === "agent" ? (
                 <span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
                   <BotIcon className="size-2.5" /> agent
@@ -99,12 +124,23 @@ function CommentNode(props: {
                   </button>
                 ))}
                 <Popover>
-                  <PopoverTrigger render={<Button aria-label="Add reaction" size="icon-xs" variant="ghost" />}>
+                  <PopoverTrigger
+                    render={<Button aria-label="Add reaction" size="icon-xs" variant="ghost" />}
+                  >
                     <SmilePlusIcon />
                   </PopoverTrigger>
-                  <PopoverPopup align="start" className="w-52" viewportClassName="grid grid-cols-8 gap-1 p-2">
+                  <PopoverPopup
+                    align="start"
+                    className="w-52"
+                    viewportClassName="grid grid-cols-8 gap-1 p-2"
+                  >
                     {REACTION_EMOJI.map((emoji) => (
-                      <button className="rounded p-1 text-base hover:bg-accent" key={emoji} onClick={() => void react(emoji)} type="button">
+                      <button
+                        className="rounded p-1 text-base hover:bg-accent"
+                        key={emoji}
+                        onClick={() => void react(emoji)}
+                        type="button"
+                      >
                         {emoji}
                       </button>
                     ))}
@@ -114,11 +150,29 @@ function CommentNode(props: {
                   <MessageSquareReplyIcon /> Reply
                 </Button>
                 <Popover>
-                  <PopoverTrigger render={<Button aria-label="Comment actions" className="opacity-0 group-hover:opacity-100" size="icon-xs" variant="ghost" />}>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        aria-label="Comment actions"
+                        className="opacity-0 group-hover:opacity-100"
+                        size="icon-xs"
+                        variant="ghost"
+                      />
+                    }
+                  >
                     <MoreHorizontalIcon />
                   </PopoverTrigger>
                   <PopoverPopup align="end" className="w-36" viewportClassName="p-1">
-                    <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-accent" onClick={() => void deleteComment({ environmentId: props.issueRef.environmentId, input: { commentId: comment.id } })} type="button">
+                    <button
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-destructive hover:bg-accent"
+                      onClick={() =>
+                        void deleteComment({
+                          environmentId: props.issueRef.environmentId,
+                          input: { commentId: comment.id },
+                        })
+                      }
+                      type="button"
+                    >
                       <Trash2Icon className="size-3.5" /> Delete
                     </button>
                   </PopoverPopup>

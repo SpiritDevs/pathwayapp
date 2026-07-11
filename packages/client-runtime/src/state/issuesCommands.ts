@@ -1,15 +1,8 @@
-import {
-  WS_METHODS,
-  type EnvironmentId,
-  type IssueCommand,
-} from "@pathwayos/contracts";
+import { WS_METHODS, type EnvironmentId, type IssueCommand } from "@pathwayos/contracts";
 import { Atom } from "effect/unstable/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
-import {
-  createEnvironmentRpcCommand,
-  createEnvironmentRpcQueryAtomFamily,
-} from "./runtime.ts";
+import { createEnvironmentRpcCommand, createEnvironmentRpcQueryAtomFamily } from "./runtime.ts";
 
 type IssueCommandType = IssueCommand["type"];
 type IssueCommandOfType<T extends IssueCommandType> = Extract<IssueCommand, { readonly type: T }>;
@@ -30,10 +23,7 @@ export function createIssuesEnvironmentAtoms<R, E>(
 
   const command = <T extends IssueCommandType>(type: T) => ({
     label: `environment-data:issues:${type}`,
-    run: (
-      registry: Parameters<typeof execute.run>[0],
-      target: IssueCommandTarget<T>,
-    ) =>
+    run: (registry: Parameters<typeof execute.run>[0], target: IssueCommandTarget<T>) =>
       execute.run(registry, {
         environmentId: target.environmentId,
         input: {

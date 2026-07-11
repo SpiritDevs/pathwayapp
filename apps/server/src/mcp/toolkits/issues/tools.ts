@@ -31,11 +31,7 @@ import { IssuesGateway } from "../../../issues/IssuesGateway.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import { AgentActorResolver } from "./AgentActorResolver.ts";
 
-const dependencies = [
-  McpInvocationContext.McpInvocationContext,
-  AgentActorResolver,
-  IssuesGateway,
-];
+const dependencies = [McpInvocationContext.McpInvocationContext, AgentActorResolver, IssuesGateway];
 
 export const IssueAgentToolError = Schema.Union([
   McpInvocationContext.IssueAgentAccessError,

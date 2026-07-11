@@ -448,9 +448,7 @@ export const ServerSettings = Schema.Struct({
   providerInstances: Schema.Record(ProviderInstanceId, ProviderInstanceConfig).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
-  issueDelegation: IssueDelegationSettings.pipe(
-    Schema.withDecodingDefault(Effect.succeed({})),
-  ),
+  issueDelegation: IssueDelegationSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   agentActors: Schema.Record(Schema.String, AgentActorRuntimeConfig).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),

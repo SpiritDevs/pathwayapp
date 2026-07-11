@@ -23,9 +23,7 @@ export class IssuesGateway extends Context.Service<
       attribution: IssueCommandAttribution,
     ) => Effect.Effect<IssueCommandResult, IssuesDomainError>;
     readonly getSnapshot: Effect.Effect<IssuesSnapshot, IssuesDomainError>;
-    readonly getIssueDetail: (
-      issueId: IssueId,
-    ) => Effect.Effect<IssueDetail, IssuesDomainError>;
+    readonly getIssueDetail: (issueId: IssueId) => Effect.Effect<IssueDetail, IssuesDomainError>;
     readonly changes: Stream.Stream<IssuesStreamItem>;
     readonly subscribeChanges: Effect.Effect<
       PubSub.Subscription<IssuesStreamItem>,

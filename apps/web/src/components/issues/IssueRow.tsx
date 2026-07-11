@@ -41,8 +41,15 @@ export function IssueRow({
   onBulkProperty: (property: IssueBulkProperty) => void;
 }) {
   const ref = issueRef(issue);
-  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: issue.id, data: { issue, group: state.id }, disabled: dragDisabled });
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: issue.id, data: { issue, group: state.id }, disabled: dragDisabled });
   const overdue = issue.dueDate !== null && issue.dueDate < new Date().toISOString().slice(0, 10);
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
@@ -87,20 +94,32 @@ export function IssueRow({
         <GripVerticalIcon className="size-3.5" />
       </button>
       <StateIcon state={state} className="size-3.5" />
-      <span className="truncate font-mono text-[11px] text-muted-foreground/72">{issue.identifier}</span>
+      <span className="truncate font-mono text-[11px] text-muted-foreground/72">
+        {issue.identifier}
+      </span>
       <div className="flex min-w-0 items-center gap-2">
         <PriorityIcon priority={issue.priority} className="size-3.5 shrink-0" />
         <span className="truncate text-[13px]">{issue.title}</span>
         <div className="flex min-w-0 gap-1 overflow-hidden">
           {labels.slice(0, 2).map((label) => (
-            <Badge key={label.id} variant="outline" size="sm" className="max-w-24 border-0 bg-muted/70 font-normal text-muted-foreground">
+            <Badge
+              key={label.id}
+              variant="outline"
+              size="sm"
+              className="max-w-24 border-0 bg-muted/70 font-normal text-muted-foreground"
+            >
               <span className="size-1.5 rounded-full" style={{ backgroundColor: label.color }} />
               <span className="truncate">{label.name}</span>
             </Badge>
           ))}
         </div>
       </div>
-      <span className={cn("flex items-center gap-1 text-xs text-muted-foreground", overdue && "text-destructive")}>
+      <span
+        className={cn(
+          "flex items-center gap-1 text-xs text-muted-foreground",
+          overdue && "text-destructive",
+        )}
+      >
         {issue.dueDate ? <CalendarIcon className="size-3" /> : null}
         {issue.dueDate ?? ""}
       </span>
@@ -110,8 +129,12 @@ export function IssueRow({
           <Tooltip>
             <TooltipTrigger>
               <Avatar className="size-5" style={{ backgroundColor: avatarColorFor(assignee) }}>
-                {assignee.avatarUrl ? <AvatarImage src={assignee.avatarUrl} alt={assignee.displayName} /> : null}
-                <AvatarFallback className="text-[9px] text-white">{actorInitials(assignee.displayName)}</AvatarFallback>
+                {assignee.avatarUrl ? (
+                  <AvatarImage src={assignee.avatarUrl} alt={assignee.displayName} />
+                ) : null}
+                <AvatarFallback className="text-[9px] text-white">
+                  {actorInitials(assignee.displayName)}
+                </AvatarFallback>
               </Avatar>
             </TooltipTrigger>
             <TooltipPopup>{assignee.displayName}</TooltipPopup>
@@ -130,9 +153,15 @@ export function IssueRow({
           <MenuItem onClick={() => onBulkProperty("state")}>Set state</MenuItem>
           <MenuItem onClick={() => onBulkProperty("priority")}>Set priority</MenuItem>
           <MenuItem onClick={() => onBulkProperty("assignee")}>Set assignee</MenuItem>
-          <MenuItem onClick={() => onBulkProperty("labels")}><TagIcon />Set labels</MenuItem>
+          <MenuItem onClick={() => onBulkProperty("labels")}>
+            <TagIcon />
+            Set labels
+          </MenuItem>
           <MenuSeparator />
-          <MenuItem variant="destructive" onClick={() => onBulkProperty("delete")}><Trash2Icon />Delete</MenuItem>
+          <MenuItem variant="destructive" onClick={() => onBulkProperty("delete")}>
+            <Trash2Icon />
+            Delete
+          </MenuItem>
         </MenuPopup>
       </Menu>
     </div>

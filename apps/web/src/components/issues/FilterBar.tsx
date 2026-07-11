@@ -12,12 +12,23 @@ import { CheckIcon, FilterIcon, SearchIcon, XIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "~/components/ui/button";
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "~/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "~/components/ui/command";
 import { Input } from "~/components/ui/input";
 import { Popover, PopoverPopup, PopoverTrigger } from "~/components/ui/popover";
 import { cn } from "~/lib/utils";
 
-import { PRIORITY_ORDER, PRIORITY_PRESENTATION, PriorityIcon, StateIcon } from "./issuePresentation";
+import {
+  PRIORITY_ORDER,
+  PRIORITY_PRESENTATION,
+  PriorityIcon,
+  StateIcon,
+} from "./issuePresentation";
 
 interface FilterOption<T extends string | number> {
   readonly value: T;
@@ -42,7 +53,8 @@ function FilterChip<T extends string | number>({
         render={<Button size="xs" variant={values.length ? "secondary" : "outline"} />}
         className="rounded-full font-normal"
       >
-        {label}{values.length ? ` · ${values.length}` : ""}
+        {label}
+        {values.length ? ` · ${values.length}` : ""}
       </PopoverTrigger>
       <PopoverPopup align="start" className="w-64" viewportClassName="p-0!">
         <Command>
@@ -55,7 +67,13 @@ function FilterChip<T extends string | number>({
                 <CommandItem
                   key={String(option.value)}
                   value={`${option.label} ${option.value}`}
-                  onClick={() => onChange(selected ? values.filter((value) => value !== option.value) : [...values, option.value])}
+                  onClick={() =>
+                    onChange(
+                      selected
+                        ? values.filter((value) => value !== option.value)
+                        : [...values, option.value],
+                    )
+                  }
                 >
                   <CheckIcon className={cn("size-3.5", !selected && "opacity-0")} />
                   {option.icon}
@@ -114,19 +132,81 @@ export function FilterBar({
       <span className="mr-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <FilterIcon className="size-3.5" /> Filters
       </span>
-      <FilterChip label="Team" values={filters.teamIds ?? []} options={teams.map((item) => ({ value: item.id, label: item.name }))} onChange={(value) => update("teamIds", value)} />
-      <FilterChip label="State" values={filters.stateIds ?? []} options={states.map((item) => ({ value: item.id, label: item.name, icon: <StateIcon state={item} className="size-3.5" /> }))} onChange={(value) => update("stateIds", value)} />
-      <FilterChip label="Assignee" values={filters.assigneeActorIds ?? []} options={actors.map((item) => ({ value: item.id, label: item.displayName }))} onChange={(value) => update("assigneeActorIds", value)} />
-      <FilterChip<IssuePriority> label="Priority" values={filters.priorities ?? []} options={PRIORITY_ORDER.map((value) => ({ value, label: PRIORITY_PRESENTATION[value].label, icon: <PriorityIcon priority={value} className="size-3.5" /> }))} onChange={(value) => update("priorities", value)} />
-      <FilterChip label="Label" values={filters.labelIds ?? []} options={labels.map((item) => ({ value: item.id, label: item.name, icon: <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} /> }))} onChange={(value) => update("labelIds", value)} />
-      <FilterChip label="Cycle" values={filters.cycleIds ?? []} options={cycles.map((item) => ({ value: item.id, label: item.name ?? `Cycle ${item.number}` }))} onChange={(value) => update("cycleIds", value)} />
-      <FilterChip label="Epic" values={filters.epicIds ?? []} options={epics.map((item) => ({ value: item.id, label: item.name }))} onChange={(value) => update("epicIds", value)} />
+      <FilterChip
+        label="Team"
+        values={filters.teamIds ?? []}
+        options={teams.map((item) => ({ value: item.id, label: item.name }))}
+        onChange={(value) => update("teamIds", value)}
+      />
+      <FilterChip
+        label="State"
+        values={filters.stateIds ?? []}
+        options={states.map((item) => ({
+          value: item.id,
+          label: item.name,
+          icon: <StateIcon state={item} className="size-3.5" />,
+        }))}
+        onChange={(value) => update("stateIds", value)}
+      />
+      <FilterChip
+        label="Assignee"
+        values={filters.assigneeActorIds ?? []}
+        options={actors.map((item) => ({ value: item.id, label: item.displayName }))}
+        onChange={(value) => update("assigneeActorIds", value)}
+      />
+      <FilterChip<IssuePriority>
+        label="Priority"
+        values={filters.priorities ?? []}
+        options={PRIORITY_ORDER.map((value) => ({
+          value,
+          label: PRIORITY_PRESENTATION[value].label,
+          icon: <PriorityIcon priority={value} className="size-3.5" />,
+        }))}
+        onChange={(value) => update("priorities", value)}
+      />
+      <FilterChip
+        label="Label"
+        values={filters.labelIds ?? []}
+        options={labels.map((item) => ({
+          value: item.id,
+          label: item.name,
+          icon: <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />,
+        }))}
+        onChange={(value) => update("labelIds", value)}
+      />
+      <FilterChip
+        label="Cycle"
+        values={filters.cycleIds ?? []}
+        options={cycles.map((item) => ({
+          value: item.id,
+          label: item.name ?? `Cycle ${item.number}`,
+        }))}
+        onChange={(value) => update("cycleIds", value)}
+      />
+      <FilterChip
+        label="Epic"
+        values={filters.epicIds ?? []}
+        options={epics.map((item) => ({ value: item.id, label: item.name }))}
+        onChange={(value) => update("epicIds", value)}
+      />
       <div className="relative ml-auto min-w-44 max-w-64 flex-1">
         <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search issues…" className="h-7 rounded-full pl-8 text-xs" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search issues…"
+          className="h-7 rounded-full pl-8 text-xs"
+        />
       </div>
       {activeCount > 0 ? (
-        <Button size="xs" variant="ghost" onClick={() => { setSearch(""); onChange({}); }}>
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() => {
+            setSearch("");
+            onChange({});
+          }}
+        >
           <XIcon /> Clear all
         </Button>
       ) : null}

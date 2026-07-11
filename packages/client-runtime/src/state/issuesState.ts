@@ -172,53 +172,74 @@ export function createEnvironmentIssuesAtoms(input: {
   readonly snapshotAtom: (environmentId: EnvironmentId) => Atom.Atom<IssuesSnapshot | null>;
 }) {
   const environmentTeamsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueTeam> => get(input.snapshotAtom(environmentId))?.teams ?? EMPTY_TEAMS)
-      .pipe(Atom.withLabel(`environment-issue-teams:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueTeam> =>
+        get(input.snapshotAtom(environmentId))?.teams ?? EMPTY_TEAMS,
+    ).pipe(Atom.withLabel(`environment-issue-teams:${environmentId}`)),
   );
   const environmentMembershipsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueTeamMembership> => get(input.snapshotAtom(environmentId))?.memberships ?? EMPTY_MEMBERSHIPS)
-      .pipe(Atom.withLabel(`environment-issue-memberships:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueTeamMembership> =>
+        get(input.snapshotAtom(environmentId))?.memberships ?? EMPTY_MEMBERSHIPS,
+    ).pipe(Atom.withLabel(`environment-issue-memberships:${environmentId}`)),
   );
   const environmentStatesAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueWorkflowState> => get(input.snapshotAtom(environmentId))?.states ?? EMPTY_STATES)
-      .pipe(Atom.withLabel(`environment-issue-states:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueWorkflowState> =>
+        get(input.snapshotAtom(environmentId))?.states ?? EMPTY_STATES,
+    ).pipe(Atom.withLabel(`environment-issue-states:${environmentId}`)),
   );
   const environmentLabelsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueLabel> => get(input.snapshotAtom(environmentId))?.labels ?? EMPTY_LABELS)
-      .pipe(Atom.withLabel(`environment-issue-labels:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueLabel> =>
+        get(input.snapshotAtom(environmentId))?.labels ?? EMPTY_LABELS,
+    ).pipe(Atom.withLabel(`environment-issue-labels:${environmentId}`)),
   );
   const environmentActorsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueActor> => get(input.snapshotAtom(environmentId))?.actors ?? EMPTY_ACTORS)
-      .pipe(Atom.withLabel(`environment-issue-actors:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueActor> =>
+        get(input.snapshotAtom(environmentId))?.actors ?? EMPTY_ACTORS,
+    ).pipe(Atom.withLabel(`environment-issue-actors:${environmentId}`)),
   );
   const environmentCyclesAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueCycle> => get(input.snapshotAtom(environmentId))?.cycles ?? EMPTY_CYCLES)
-      .pipe(Atom.withLabel(`environment-issue-cycles:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueCycle> =>
+        get(input.snapshotAtom(environmentId))?.cycles ?? EMPTY_CYCLES,
+    ).pipe(Atom.withLabel(`environment-issue-cycles:${environmentId}`)),
   );
   const environmentEpicsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueEpic> => get(input.snapshotAtom(environmentId))?.epics ?? EMPTY_EPICS)
-      .pipe(Atom.withLabel(`environment-issue-epics:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueEpic> =>
+        get(input.snapshotAtom(environmentId))?.epics ?? EMPTY_EPICS,
+    ).pipe(Atom.withLabel(`environment-issue-epics:${environmentId}`)),
   );
   const environmentMilestonesAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueMilestone> => get(input.snapshotAtom(environmentId))?.milestones ?? EMPTY_MILESTONES)
-      .pipe(Atom.withLabel(`environment-issue-milestones:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueMilestone> =>
+        get(input.snapshotAtom(environmentId))?.milestones ?? EMPTY_MILESTONES,
+    ).pipe(Atom.withLabel(`environment-issue-milestones:${environmentId}`)),
   );
   const environmentRelationsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueRelation> => get(input.snapshotAtom(environmentId))?.relations ?? EMPTY_RELATIONS)
-      .pipe(Atom.withLabel(`environment-issue-relations:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueRelation> =>
+        get(input.snapshotAtom(environmentId))?.relations ?? EMPTY_RELATIONS,
+    ).pipe(Atom.withLabel(`environment-issue-relations:${environmentId}`)),
   );
   const environmentThreadLinksAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueThreadLink> => get(input.snapshotAtom(environmentId))?.threadLinks ?? EMPTY_THREAD_LINKS)
-      .pipe(Atom.withLabel(`environment-issue-thread-links:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueThreadLink> =>
+        get(input.snapshotAtom(environmentId))?.threadLinks ?? EMPTY_THREAD_LINKS,
+    ).pipe(Atom.withLabel(`environment-issue-thread-links:${environmentId}`)),
   );
   const environmentSavedViewsAtom = Atom.family((environmentId: EnvironmentId) =>
-    Atom.make((get): ReadonlyArray<IssueSavedView> => get(input.snapshotAtom(environmentId))?.savedViews ?? EMPTY_SAVED_VIEWS)
-      .pipe(Atom.withLabel(`environment-issue-saved-views:${environmentId}`)),
+    Atom.make(
+      (get): ReadonlyArray<IssueSavedView> =>
+        get(input.snapshotAtom(environmentId))?.savedViews ?? EMPTY_SAVED_VIEWS,
+    ).pipe(Atom.withLabel(`environment-issue-saved-views:${environmentId}`)),
   );
   const environmentIssuesAtom = Atom.family((environmentId: EnvironmentId) =>
     Atom.make(
-      (get): ReadonlyArray<Issue> =>
-        get(input.snapshotAtom(environmentId))?.issues ?? EMPTY_ISSUES,
+      (get): ReadonlyArray<Issue> => get(input.snapshotAtom(environmentId))?.issues ?? EMPTY_ISSUES,
     ).pipe(Atom.withLabel(`environment-issues:${environmentId}`)),
   );
   const environmentIssueIndexAtom = Atom.family((environmentId: EnvironmentId) =>
@@ -255,25 +276,60 @@ export function createEnvironmentIssuesAtoms(input: {
   });
 
   const environmentIssueRefsByStateAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssueStateId>(environmentId, environmentIssuesAtom(environmentId), (x) => x.stateId, `environment-issue-refs-by-state:${environmentId}`),
+    groupedRefsAtom<IssueStateId>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.stateId,
+      `environment-issue-refs-by-state:${environmentId}`,
+    ),
   );
   const environmentIssueRefsByAssigneeAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssueActorId | null>(environmentId, environmentIssuesAtom(environmentId), (x) => x.assigneeActorId, `environment-issue-refs-by-assignee:${environmentId}`),
+    groupedRefsAtom<IssueActorId | null>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.assigneeActorId,
+      `environment-issue-refs-by-assignee:${environmentId}`,
+    ),
   );
   const environmentIssueRefsByPriorityAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssuePriority>(environmentId, environmentIssuesAtom(environmentId), (x) => x.priority, `environment-issue-refs-by-priority:${environmentId}`),
+    groupedRefsAtom<IssuePriority>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.priority,
+      `environment-issue-refs-by-priority:${environmentId}`,
+    ),
   );
   const environmentIssueRefsByLabelAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssueLabelId | null>(environmentId, environmentIssuesAtom(environmentId), (x) => x.labelIds[0] ?? null, `environment-issue-refs-by-label:${environmentId}`),
+    groupedRefsAtom<IssueLabelId | null>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.labelIds[0] ?? null,
+      `environment-issue-refs-by-label:${environmentId}`,
+    ),
   );
   const environmentIssueRefsByCycleAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssueCycleId | null>(environmentId, environmentIssuesAtom(environmentId), (x) => x.cycleId, `environment-issue-refs-by-cycle:${environmentId}`),
+    groupedRefsAtom<IssueCycleId | null>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.cycleId,
+      `environment-issue-refs-by-cycle:${environmentId}`,
+    ),
   );
   const environmentIssueRefsByEpicAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssueEpicId | null>(environmentId, environmentIssuesAtom(environmentId), (x) => x.epicId, `environment-issue-refs-by-epic:${environmentId}`),
+    groupedRefsAtom<IssueEpicId | null>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.epicId,
+      `environment-issue-refs-by-epic:${environmentId}`,
+    ),
   );
   const environmentIssueRefsByTeamAtom = Atom.family((environmentId: EnvironmentId) =>
-    groupedRefsAtom<IssueTeamId | null>(environmentId, environmentIssuesAtom(environmentId), (x) => x.teamId, `environment-issue-refs-by-team:${environmentId}`),
+    groupedRefsAtom<IssueTeamId | null>(
+      environmentId,
+      environmentIssuesAtom(environmentId),
+      (x) => x.teamId,
+      `environment-issue-refs-by-team:${environmentId}`,
+    ),
   );
 
   let previousRefs = EMPTY_ISSUE_REFS;

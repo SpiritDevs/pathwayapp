@@ -61,9 +61,8 @@ const handlers = {
           const teamIdForKey =
             input.teamKey === undefined
               ? undefined
-              : snapshot.teams.find(
-                  (team) => team.deletedAt === null && team.key === input.teamKey,
-                )?.id;
+              : snapshot.teams.find((team) => team.deletedAt === null && team.key === input.teamKey)
+                  ?.id;
           const stateById = new Map(snapshot.states.map((state) => [state.id, state]));
           const text = input.text?.toLocaleLowerCase();
           return snapshot.issues
@@ -85,7 +84,9 @@ const handlers = {
                 input.assigneeActorId === undefined ||
                 issue.assigneeActorId === input.assigneeActorId,
             )
-            .filter((issue) => input.labelId === undefined || issue.labelIds.includes(input.labelId))
+            .filter(
+              (issue) => input.labelId === undefined || issue.labelIds.includes(input.labelId),
+            )
             .filter((issue) => input.priority === undefined || issue.priority === input.priority)
             .filter(
               (issue) =>

@@ -1206,11 +1206,10 @@ const makeWsRpcLayer = (
             { "rpc.aggregate": "issues" },
           ),
         [WS_METHODS.issuesSubscribeDetail]: ({ issueId }) =>
-          observeRpcStream(
-            WS_METHODS.issuesSubscribeDetail,
-            issuesGateway.detailChanges(issueId),
-            { "rpc.aggregate": "issues", "rpc.issue_id": issueId },
-          ),
+          observeRpcStream(WS_METHODS.issuesSubscribeDetail, issuesGateway.detailChanges(issueId), {
+            "rpc.aggregate": "issues",
+            "rpc.issue_id": issueId,
+          }),
         [WS_METHODS.issuesExecute]: ({ command }) =>
           observeRpcEffect(
             WS_METHODS.issuesExecute,

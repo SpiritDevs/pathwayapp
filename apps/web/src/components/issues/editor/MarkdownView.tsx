@@ -19,7 +19,8 @@ export function MarkdownView(props: {
     let cursor = 0;
     for (const match of props.markdown.matchAll(MENTION_MARKDOWN)) {
       const index = match.index ?? 0;
-      if (index > cursor) output.push({ kind: "markdown", value: props.markdown.slice(cursor, index) });
+      if (index > cursor)
+        output.push({ kind: "markdown", value: props.markdown.slice(cursor, index) });
       output.push({
         kind: "mention",
         actorId: match[2] ?? "",

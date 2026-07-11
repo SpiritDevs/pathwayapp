@@ -33,7 +33,8 @@ export function SubIssuesList(props: {
     const category = states.find((state) => state.id === child.stateId)?.category;
     return category === "completed" || category === "canceled";
   }).length;
-  const completion = children.length === 0 ? 0 : Math.round((completeCount / children.length) * 100);
+  const completion =
+    children.length === 0 ? 0 : Math.round((completeCount / children.length) * 100);
 
   const add = async () => {
     const trimmed = title.trim();
@@ -54,13 +55,20 @@ export function SubIssuesList(props: {
   return (
     <section className="border-t py-4">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sub-issues</h2>
-        <span className="text-xs text-muted-foreground">{completeCount}/{children.length}</span>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Sub-issues
+        </h2>
+        <span className="text-xs text-muted-foreground">
+          {completeCount}/{children.length}
+        </span>
       </div>
       {children.length > 0 ? (
         <>
           <div className="mb-2 h-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${completion}%` }} />
+            <div
+              className="h-full rounded-full bg-primary transition-[width]"
+              style={{ width: `${completion}%` }}
+            />
           </div>
           <div className="divide-y">
             {children.map((child) => {
@@ -70,10 +78,19 @@ export function SubIssuesList(props: {
                 <button
                   className="flex w-full items-center gap-2 py-2 text-left text-sm hover:text-primary"
                   key={child.id}
-                  onClick={() => void navigate({ to: "/issues/$identifier", params: { identifier: child.identifier } })}
+                  onClick={() =>
+                    void navigate({
+                      to: "/issues/$identifier",
+                      params: { identifier: child.identifier },
+                    })
+                  }
                   type="button"
                 >
-                  {done ? <CheckCircle2Icon className="size-3.5 text-success" /> : <CircleIcon className="size-3.5 text-muted-foreground" />}
+                  {done ? (
+                    <CheckCircle2Icon className="size-3.5 text-success" />
+                  ) : (
+                    <CircleIcon className="size-3.5 text-muted-foreground" />
+                  )}
                   <span className="text-xs text-muted-foreground">{child.identifier}</span>
                   <span className="min-w-0 flex-1 truncate">{child.title}</span>
                   <span className="text-xs text-muted-foreground">{state?.name}</span>
@@ -97,8 +114,12 @@ export function SubIssuesList(props: {
             placeholder="Sub-issue title"
             value={title}
           />
-          <Button onClick={() => void add()} size="sm">Add</Button>
-          <Button onClick={() => setAdding(false)} size="sm" variant="ghost">Cancel</Button>
+          <Button onClick={() => void add()} size="sm">
+            Add
+          </Button>
+          <Button onClick={() => setAdding(false)} size="sm" variant="ghost">
+            Cancel
+          </Button>
         </div>
       ) : (
         <Button className="mt-2" onClick={() => setAdding(true)} size="xs" variant="ghost">

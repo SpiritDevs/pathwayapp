@@ -43,7 +43,12 @@ export function CommentComposer(props: {
       {props.replyTo ? (
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Replying to {props.replyLabel ?? "comment"}</span>
-          <Button aria-label="Cancel reply" onClick={props.onCancelReply} size="icon-xs" variant="ghost">
+          <Button
+            aria-label="Cancel reply"
+            onClick={props.onCancelReply}
+            size="icon-xs"
+            variant="ghost"
+          >
             <XIcon />
           </Button>
         </div>

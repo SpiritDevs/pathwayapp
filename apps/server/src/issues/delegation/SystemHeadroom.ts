@@ -47,10 +47,7 @@ export const SystemHeadroomLive = Layer.succeed(
     sample: Effect.gen(function* () {
       const first = yield* readCpuTimesSafely;
       yield* Effect.sleep("500 millis");
-      const [second, freeMemoryMb] = yield* Effect.all([
-        readCpuTimesSafely,
-        readFreeMemorySafely,
-      ]);
+      const [second, freeMemoryMb] = yield* Effect.all([readCpuTimesSafely, readFreeMemorySafely]);
 
       if (first === null || second === null) {
         return { cpuPercent: null, freeMemoryMb };

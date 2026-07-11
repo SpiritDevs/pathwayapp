@@ -37,7 +37,8 @@ export function buildCommentTree(
   for (const comment of comments) {
     const node = mutable.get(comment.id);
     if (node === undefined) continue;
-    const parent = comment.parentCommentId === null ? undefined : mutable.get(comment.parentCommentId);
+    const parent =
+      comment.parentCommentId === null ? undefined : mutable.get(comment.parentCommentId);
     if (parent === undefined) roots.push(node);
     else parent.children.push(node);
   }
@@ -70,8 +71,7 @@ export function createEnvironmentIssueDetailAtoms<R, E>(
   );
   const commentsAtomFamily = Atom.family((key: string) =>
     Atom.make(
-      (get): ReadonlyArray<IssueComment> =>
-        get(detailAtomFamily(key))?.comments ?? EMPTY_COMMENTS,
+      (get): ReadonlyArray<IssueComment> => get(detailAtomFamily(key))?.comments ?? EMPTY_COMMENTS,
     ).pipe(
       Atom.setIdleTTL(ISSUE_DETAIL_IDLE_TTL_MS),
       Atom.withLabel(`environment-issue-comments:${key}`),
@@ -102,8 +102,7 @@ export function createEnvironmentIssueDetailAtoms<R, E>(
   );
   const eventsAtomFamily = Atom.family((key: string) =>
     Atom.make(
-      (get): ReadonlyArray<IssueEventRecord> =>
-        get(detailAtomFamily(key))?.events ?? EMPTY_EVENTS,
+      (get): ReadonlyArray<IssueEventRecord> => get(detailAtomFamily(key))?.events ?? EMPTY_EVENTS,
     ).pipe(
       Atom.setIdleTTL(ISSUE_DETAIL_IDLE_TTL_MS),
       Atom.withLabel(`environment-issue-events:${key}`),

@@ -1,8 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type {
-  EnvironmentIssue,
-  ScopedIssueRef,
-} from "@pathwayos/client-runtime/state/issues";
+import type { EnvironmentIssue, ScopedIssueRef } from "@pathwayos/client-runtime/state/issues";
 import type {
   DelegationQueueState,
   EnvironmentId,
@@ -61,13 +58,21 @@ const EMPTY_LABELS_ATOM = Atom.make(EMPTY_LABELS).pipe(Atom.withLabel("web-issue
 const EMPTY_ACTORS_ATOM = Atom.make(EMPTY_ACTORS).pipe(Atom.withLabel("web-issue-actors:empty"));
 const EMPTY_CYCLES_ATOM = Atom.make(EMPTY_CYCLES).pipe(Atom.withLabel("web-issue-cycles:empty"));
 const EMPTY_EPICS_ATOM = Atom.make(EMPTY_EPICS).pipe(Atom.withLabel("web-issue-epics:empty"));
-const EMPTY_MILESTONES_ATOM = Atom.make(EMPTY_MILESTONES).pipe(Atom.withLabel("web-issue-milestones:empty"));
-const EMPTY_SAVED_VIEWS_ATOM = Atom.make(EMPTY_SAVED_VIEWS).pipe(Atom.withLabel("web-issue-saved-views:empty"));
-const EMPTY_RELATIONS_ATOM = Atom.make(EMPTY_RELATIONS).pipe(Atom.withLabel("web-issue-relations:empty"));
-const EMPTY_THREAD_LINKS_ATOM = Atom.make(EMPTY_THREAD_LINKS).pipe(Atom.withLabel("web-issue-thread-links:empty"));
-const EMPTY_STATE_GROUPS_ATOM = Atom.make<
-  ReadonlyMap<IssueStateId, ReadonlyArray<ScopedIssueRef>>
->(new Map()).pipe(Atom.withLabel("web-issue-state-groups:empty"));
+const EMPTY_MILESTONES_ATOM = Atom.make(EMPTY_MILESTONES).pipe(
+  Atom.withLabel("web-issue-milestones:empty"),
+);
+const EMPTY_SAVED_VIEWS_ATOM = Atom.make(EMPTY_SAVED_VIEWS).pipe(
+  Atom.withLabel("web-issue-saved-views:empty"),
+);
+const EMPTY_RELATIONS_ATOM = Atom.make(EMPTY_RELATIONS).pipe(
+  Atom.withLabel("web-issue-relations:empty"),
+);
+const EMPTY_THREAD_LINKS_ATOM = Atom.make(EMPTY_THREAD_LINKS).pipe(
+  Atom.withLabel("web-issue-thread-links:empty"),
+);
+const EMPTY_STATE_GROUPS_ATOM = Atom.make<ReadonlyMap<IssueStateId, ReadonlyArray<ScopedIssueRef>>>(
+  new Map(),
+).pipe(Atom.withLabel("web-issue-state-groups:empty"));
 const EMPTY_ASSIGNEE_GROUPS_ATOM = Atom.make<
   ReadonlyMap<IssueActorId | null, ReadonlyArray<ScopedIssueRef>>
 >(new Map()).pipe(Atom.withLabel("web-issue-assignee-groups:empty"));
@@ -119,7 +124,8 @@ const snapshotMetaAtom = Atom.family((environmentId: EnvironmentId) => {
       previous.syncedAt === next.syncedAt &&
       previous.workspaceKey === next.workspaceKey &&
       previous.viewerUserId === next.viewerUserId
-    ) return previous;
+    )
+      return previous;
     previous = next;
     return previous;
   }).pipe(Atom.withLabel(`web-issues-snapshot-meta:${environmentId}`));
@@ -145,32 +151,66 @@ export function useIssueTeams(environmentId: EnvironmentId | null): ReadonlyArra
   );
 }
 
-export function useIssueStates(environmentId: EnvironmentId | null): ReadonlyArray<IssueWorkflowState> {
-  return useAtomValue(environmentId === null ? EMPTY_STATES_ATOM : environmentIssues.environmentStatesAtom(environmentId));
+export function useIssueStates(
+  environmentId: EnvironmentId | null,
+): ReadonlyArray<IssueWorkflowState> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_STATES_ATOM
+      : environmentIssues.environmentStatesAtom(environmentId),
+  );
 }
 
 export function useIssueLabels(environmentId: EnvironmentId | null): ReadonlyArray<IssueLabel> {
-  return useAtomValue(environmentId === null ? EMPTY_LABELS_ATOM : environmentIssues.environmentLabelsAtom(environmentId));
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_LABELS_ATOM
+      : environmentIssues.environmentLabelsAtom(environmentId),
+  );
 }
 
 export function useIssueActors(environmentId: EnvironmentId | null): ReadonlyArray<IssueActor> {
-  return useAtomValue(environmentId === null ? EMPTY_ACTORS_ATOM : environmentIssues.environmentActorsAtom(environmentId));
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_ACTORS_ATOM
+      : environmentIssues.environmentActorsAtom(environmentId),
+  );
 }
 
 export function useIssueCycles(environmentId: EnvironmentId | null): ReadonlyArray<IssueCycle> {
-  return useAtomValue(environmentId === null ? EMPTY_CYCLES_ATOM : environmentIssues.environmentCyclesAtom(environmentId));
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_CYCLES_ATOM
+      : environmentIssues.environmentCyclesAtom(environmentId),
+  );
 }
 
 export function useIssueEpics(environmentId: EnvironmentId | null): ReadonlyArray<IssueEpic> {
-  return useAtomValue(environmentId === null ? EMPTY_EPICS_ATOM : environmentIssues.environmentEpicsAtom(environmentId));
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_EPICS_ATOM
+      : environmentIssues.environmentEpicsAtom(environmentId),
+  );
 }
 
-export function useIssueMilestones(environmentId: EnvironmentId | null): ReadonlyArray<IssueMilestone> {
-  return useAtomValue(environmentId === null ? EMPTY_MILESTONES_ATOM : environmentIssues.environmentMilestonesAtom(environmentId));
+export function useIssueMilestones(
+  environmentId: EnvironmentId | null,
+): ReadonlyArray<IssueMilestone> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_MILESTONES_ATOM
+      : environmentIssues.environmentMilestonesAtom(environmentId),
+  );
 }
 
-export function useIssueSavedViews(environmentId: EnvironmentId | null): ReadonlyArray<IssueSavedView> {
-  return useAtomValue(environmentId === null ? EMPTY_SAVED_VIEWS_ATOM : environmentIssues.environmentSavedViewsAtom(environmentId));
+export function useIssueSavedViews(
+  environmentId: EnvironmentId | null,
+): ReadonlyArray<IssueSavedView> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_SAVED_VIEWS_ATOM
+      : environmentIssues.environmentSavedViewsAtom(environmentId),
+  );
 }
 
 export function useIssueRelations(ref: ScopedIssueRef | null): ReadonlyArray<IssueRelation> {
@@ -195,45 +235,93 @@ export function useIssueRelations(ref: ScopedIssueRef | null): ReadonlyArray<Iss
 export function useIssueThreadLinks(ref: ScopedIssueRef | null): ReadonlyArray<IssueThreadLink> {
   const environmentId = ref?.environmentId ?? null;
   const issueId = ref?.issueId ?? null;
-  const all = useAtomValue(environmentId === null ? EMPTY_THREAD_LINKS_ATOM : environmentIssues.environmentThreadLinksAtom(environmentId));
+  const all = useAtomValue(
+    environmentId === null
+      ? EMPTY_THREAD_LINKS_ATOM
+      : environmentIssues.environmentThreadLinksAtom(environmentId),
+  );
   return useMemo(
-    () => issueId === null ? EMPTY_THREAD_LINKS : all.filter((link) => link.issueId === issueId),
+    () => (issueId === null ? EMPTY_THREAD_LINKS : all.filter((link) => link.issueId === issueId)),
     [all, issueId],
   );
 }
 
-export function useDelegationState(environmentId: EnvironmentId | null): EnvironmentQueryView<DelegationQueueState> {
+export function useDelegationState(
+  environmentId: EnvironmentId | null,
+): EnvironmentQueryView<DelegationQueueState> {
   return useEnvironmentQuery(
-    environmentId === null
-      ? null
-      : issuesEnvironment.delegationState({ environmentId, input: {} }),
+    environmentId === null ? null : issuesEnvironment.delegationState({ environmentId, input: {} }),
   );
 }
 
 export function useIssuesSnapshotMeta(environmentId: EnvironmentId | null): IssuesSnapshotMeta {
-  return useAtomValue(environmentId === null ? EMPTY_SNAPSHOT_META_ATOM : snapshotMetaAtom(environmentId));
+  return useAtomValue(
+    environmentId === null ? EMPTY_SNAPSHOT_META_ATOM : snapshotMetaAtom(environmentId),
+  );
 }
 
-export function useIssueRefsByState(environmentId: EnvironmentId | null): ReadonlyMap<IssueStateId, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_STATE_GROUPS_ATOM : environmentIssues.environmentIssueRefsByStateAtom(environmentId));
+export function useIssueRefsByState(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssueStateId, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_STATE_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByStateAtom(environmentId),
+  );
 }
-export function useIssueRefsByAssignee(environmentId: EnvironmentId | null): ReadonlyMap<IssueActorId | null, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_ASSIGNEE_GROUPS_ATOM : environmentIssues.environmentIssueRefsByAssigneeAtom(environmentId));
+export function useIssueRefsByAssignee(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssueActorId | null, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_ASSIGNEE_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByAssigneeAtom(environmentId),
+  );
 }
-export function useIssueRefsByPriority(environmentId: EnvironmentId | null): ReadonlyMap<IssuePriority, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_PRIORITY_GROUPS_ATOM : environmentIssues.environmentIssueRefsByPriorityAtom(environmentId));
+export function useIssueRefsByPriority(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssuePriority, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_PRIORITY_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByPriorityAtom(environmentId),
+  );
 }
-export function useIssueRefsByLabel(environmentId: EnvironmentId | null): ReadonlyMap<IssueLabelId | null, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_LABEL_GROUPS_ATOM : environmentIssues.environmentIssueRefsByLabelAtom(environmentId));
+export function useIssueRefsByLabel(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssueLabelId | null, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_LABEL_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByLabelAtom(environmentId),
+  );
 }
-export function useIssueRefsByCycle(environmentId: EnvironmentId | null): ReadonlyMap<IssueCycleId | null, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_CYCLE_GROUPS_ATOM : environmentIssues.environmentIssueRefsByCycleAtom(environmentId));
+export function useIssueRefsByCycle(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssueCycleId | null, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_CYCLE_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByCycleAtom(environmentId),
+  );
 }
-export function useIssueRefsByEpic(environmentId: EnvironmentId | null): ReadonlyMap<IssueEpicId | null, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_EPIC_GROUPS_ATOM : environmentIssues.environmentIssueRefsByEpicAtom(environmentId));
+export function useIssueRefsByEpic(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssueEpicId | null, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_EPIC_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByEpicAtom(environmentId),
+  );
 }
-export function useIssueRefsByTeam(environmentId: EnvironmentId | null): ReadonlyMap<IssueTeamId | null, ReadonlyArray<ScopedIssueRef>> {
-  return useAtomValue(environmentId === null ? EMPTY_TEAM_GROUPS_ATOM : environmentIssues.environmentIssueRefsByTeamAtom(environmentId));
+export function useIssueRefsByTeam(
+  environmentId: EnvironmentId | null,
+): ReadonlyMap<IssueTeamId | null, ReadonlyArray<ScopedIssueRef>> {
+  return useAtomValue(
+    environmentId === null
+      ? EMPTY_TEAM_GROUPS_ATOM
+      : environmentIssues.environmentIssueRefsByTeamAtom(environmentId),
+  );
 }
 
 export function readIssue(ref: ScopedIssueRef): EnvironmentIssue | null {
