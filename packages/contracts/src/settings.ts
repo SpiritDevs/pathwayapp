@@ -4,7 +4,7 @@ import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 import { TrimmedNonEmptyString, TrimmedString } from "./baseSchemas.ts";
 import { DEFAULT_GIT_TEXT_GENERATION_MODEL, ProviderOptionSelections } from "./model.ts";
-import { ModelSelection } from "./orchestration.ts";
+import { ModelSelection, RuntimeMode } from "./orchestration.ts";
 import { ProviderInstanceConfig, ProviderInstanceId } from "./providerInstance.ts";
 
 // ── Client Settings (local-only) ───────────────────────────────
@@ -383,6 +383,22 @@ export const EmailSandboxSettings = Schema.Struct({
 });
 export type EmailSandboxSettings = typeof EmailSandboxSettings.Type;
 
+export const AgentActorRuntimeConfig = Schema.Struct({
+  providerInstanceId: Schema.NullOr(Schema.String),
+  model: Schema.NullOr(Schema.String),
+  instructions: Schema.NullOr(Schema.String),
+  runtimeMode: Schema.optionalKey(RuntimeMode),
+});
+export type AgentActorRuntimeConfig = typeof AgentActorRuntimeConfig.Type;
+
+export const IssueDelegationSettings = Schema.Struct({
+  enabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  maxConcurrent: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(3))),
+  cpuHeadroomPercent: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(85))),
+  minFreeMemoryMb: Schema.Number.pipe(Schema.withDecodingDefault(Effect.succeed(2048))),
+});
+export type IssueDelegationSettings = typeof IssueDelegationSettings.Type;
+
 export const ServerSettings = Schema.Struct({
   enableAssistantStreaming: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   enableDeveloperEmailServer: Schema.Boolean.pipe(
@@ -430,6 +446,10 @@ export const ServerSettings = Schema.Struct({
   // (forks, downgrades, in-flight PR branches) round-trip without loss.
   // See providerInstance.ts for the forward/backward compatibility invariant.
   providerInstances: Schema.Record(ProviderInstanceId, ProviderInstanceConfig).pipe(
+    Schema.withDecodingDefault(Effect.succeed({})),
+  ),
+  issueDelegation: IssueDelegationSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
+  agentActors: Schema.Record(Schema.String, AgentActorRuntimeConfig).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
   observability: ObservabilitySettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
@@ -566,6 +586,15 @@ export const ServerSettingsPatch = Schema.Struct({
   // patches risk leaving driver-specific config in a half-merged state.
   // The web UI sends a fully-formed map every time it edits this field.
   providerInstances: Schema.optionalKey(Schema.Record(ProviderInstanceId, ProviderInstanceConfig)),
+  issueDelegation: Schema.optionalKey(
+    Schema.Struct({
+      enabled: Schema.optionalKey(Schema.Boolean),
+      maxConcurrent: Schema.optionalKey(Schema.Number),
+      cpuHeadroomPercent: Schema.optionalKey(Schema.Number),
+      minFreeMemoryMb: Schema.optionalKey(Schema.Number),
+    }),
+  ),
+  agentActors: Schema.optionalKey(Schema.Record(Schema.String, AgentActorRuntimeConfig)),
 });
 export type ServerSettingsPatch = typeof ServerSettingsPatch.Type;
 

@@ -24,6 +24,8 @@ import {
 export type SettingsSectionPath =
   | "/settings/profile"
   | "/settings/account"
+  | "/settings/teams"
+  | "/settings/agents"
   | "/settings/general"
   | "/settings/keybindings"
   | "/settings/email"
@@ -39,6 +41,8 @@ export const SETTINGS_NAV_ITEMS: ReadonlyArray<{
 }> = [
   { label: "Profile", to: "/settings/profile", icon: CircleUserRoundIcon },
   { label: "Account & Teams", to: "/settings/account", icon: UsersIcon },
+  { label: "Teams", to: "/settings/teams", icon: UsersIcon },
+  { label: "Agents", to: "/settings/agents", icon: BotIcon },
   { label: "General", to: "/settings/general", icon: Settings2Icon },
   { label: "Keybindings", to: "/settings/keybindings", icon: KeyboardIcon },
   { label: "Email", to: "/settings/email", icon: MailIcon },

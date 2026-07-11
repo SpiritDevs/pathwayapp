@@ -36,6 +36,8 @@ import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
 import * as ProviderSessionReaper from "./provider/Services/ProviderSessionReaper.ts";
 import * as CloudSyncWorker from "./cloudSync/CloudSyncWorker.ts";
 import * as EmailSandboxSyncWorker from "./emailSandbox/EmailSandboxSyncWorker.ts";
+import * as IssuesMirrorWorker from "./issues/IssuesMirrorWorker.ts";
+import * as IssueDelegationService from "./issues/delegation/IssueDelegationService.ts";
 import {
   formatHeadlessServeOutput,
   formatHostForUrl,
@@ -301,6 +303,8 @@ export const make = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;
   const cloudSyncWorker = yield* CloudSyncWorker.CloudSyncWorker;
   const emailSandboxSyncWorker = yield* EmailSandboxSyncWorker.EmailSandboxSyncWorker;
+  const issuesMirrorWorker = yield* IssuesMirrorWorker.IssuesMirrorWorker;
+  const issueDelegation = yield* IssueDelegationService.IssueDelegationService;
 
   const commandGate = yield* makeCommandGate;
   const httpListening = yield* Deferred.make<void>();
@@ -349,6 +353,8 @@ export const make = Effect.gen(function* () {
         yield* providerSessionReaper.start().pipe(Scope.provide(reactorScope));
         yield* cloudSyncWorker.start().pipe(Scope.provide(reactorScope));
         yield* emailSandboxSyncWorker.start().pipe(Scope.provide(reactorScope));
+        yield* issuesMirrorWorker.start().pipe(Scope.provide(reactorScope));
+        yield* issueDelegation.start().pipe(Scope.provide(reactorScope));
       }),
     );
 

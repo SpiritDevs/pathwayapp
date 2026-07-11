@@ -101,6 +101,8 @@ import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
 import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
 import * as TraceDiagnostics from "./diagnostics/TraceDiagnostics.ts";
+import * as IssuesGateway from "./issues/IssuesGateway.ts";
+import * as IssueDelegationService from "./issues/delegation/IssueDelegationService.ts";
 import * as SourceControlDiscovery from "./sourceControl/SourceControlDiscovery.ts";
 import * as SourceControlRepositoryService from "./sourceControl/SourceControlRepositoryService.ts";
 import * as AzureDevOpsCli from "./sourceControl/AzureDevOpsCli.ts";
@@ -357,6 +359,10 @@ const RPC_REQUIRED_SCOPE = new Map<string, AuthEnvironmentScope>([
   [WS_METHODS.subscribeServerConfig, AuthOrchestrationReadScope],
   [WS_METHODS.subscribeServerLifecycle, AuthOrchestrationReadScope],
   [WS_METHODS.subscribeAuthAccess, AuthAccessReadScope],
+  [WS_METHODS.issuesSubscribe, AuthOrchestrationReadScope],
+  [WS_METHODS.issuesSubscribeDetail, AuthOrchestrationReadScope],
+  [WS_METHODS.issuesExecute, AuthOrchestrationOperateScope],
+  [WS_METHODS.issuesDelegationState, AuthOrchestrationReadScope],
 ]);
 
 function toAuthAccessStreamEvent(
@@ -449,6 +455,8 @@ const makeWsRpcLayer = (
       const processDiagnostics = yield* ProcessDiagnostics.ProcessDiagnostics;
       const processResourceMonitor = yield* ProcessResourceMonitor.ProcessResourceMonitor;
       const relayClient = yield* RelayClient.RelayClient;
+      const issuesGateway = yield* IssuesGateway.IssuesGateway;
+      const issueDelegation = yield* IssueDelegationService.IssueDelegationService;
       const authorizationError = (requiredScope: AuthEnvironmentScope) =>
         new EnvironmentAuthorizationError({
           message: `The authenticated token is missing required scope: ${requiredScope}.`,
@@ -1184,6 +1192,34 @@ const makeWsRpcLayer = (
             }),
             { "rpc.aggregate": "orchestration" },
           ),
+        [WS_METHODS.issuesSubscribe]: (_input) =>
+          observeRpcStreamEffect(
+            WS_METHODS.issuesSubscribe,
+            Effect.gen(function* () {
+              const changes = yield* issuesGateway.subscribeChanges;
+              const snapshot = yield* issuesGateway.getSnapshot;
+              return Stream.concat(
+                Stream.make({ kind: "snapshot" as const, snapshot }),
+                Stream.fromSubscription(changes),
+              );
+            }),
+            { "rpc.aggregate": "issues" },
+          ),
+        [WS_METHODS.issuesSubscribeDetail]: ({ issueId }) =>
+          observeRpcStream(WS_METHODS.issuesSubscribeDetail, issuesGateway.detailChanges(issueId), {
+            "rpc.aggregate": "issues",
+            "rpc.issue_id": issueId,
+          }),
+        [WS_METHODS.issuesExecute]: ({ command }) =>
+          observeRpcEffect(
+            WS_METHODS.issuesExecute,
+            issuesGateway.execute(command, { kind: "human" }),
+            { "rpc.aggregate": "issues", "rpc.command": command.type },
+          ),
+        [WS_METHODS.issuesDelegationState]: (_input) =>
+          observeRpcEffect(WS_METHODS.issuesDelegationState, issueDelegation.state, {
+            "rpc.aggregate": "issues",
+          }),
         [WS_METHODS.serverGetConfig]: (_input) =>
           observeRpcEffect(WS_METHODS.serverGetConfig, loadServerConfig, {
             "rpc.aggregate": "server",

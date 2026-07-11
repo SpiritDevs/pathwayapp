@@ -1,10 +1,12 @@
 import {
   EnvironmentId,
+  IssueId,
   ProjectId,
   ThreadId,
   type ScopedProjectRef,
   type ScopedThreadRef,
 } from "@pathwayos/contracts";
+import type { ScopedIssueRef } from "./models.ts";
 import * as Schema from "effect/Schema";
 
 export class InvalidScopedProjectKeyError extends Schema.TaggedErrorClass<InvalidScopedProjectKeyError>()(
@@ -26,6 +28,15 @@ export class InvalidScopedThreadKeyError extends Schema.TaggedErrorClass<Invalid
 ) {
   override get message(): string {
     return `Invalid scoped thread atom key: ${JSON.stringify(this.key)}.`;
+  }
+}
+
+export class InvalidScopedIssueKeyError extends Schema.TaggedErrorClass<InvalidScopedIssueKeyError>()(
+  "InvalidScopedIssueKeyError",
+  { key: Schema.String },
+) {
+  override get message(): string {
+    return `Invalid scoped issue atom key: ${JSON.stringify(this.key)}.`;
   }
 }
 
@@ -51,6 +62,10 @@ export function projectKey(ref: ScopedProjectRef): string {
 
 export function threadKey(ref: ScopedThreadRef): string {
   return `${ref.environmentId}\u0000${ref.threadId}`;
+}
+
+export function issueKey(ref: ScopedIssueRef): string {
+  return `${ref.environmentId}\u0000${ref.issueId}`;
 }
 
 export function projectRefCollectionKey(refs: ReadonlyArray<ScopedProjectRef>): string {
@@ -92,6 +107,17 @@ export function parseThreadKey(key: string): ScopedThreadRef {
   };
 }
 
+export function parseIssueKey(key: string): ScopedIssueRef {
+  const separator = key.indexOf("\u0000");
+  if (separator < 0) {
+    throw new InvalidScopedIssueKeyError({ key });
+  }
+  return {
+    environmentId: EnvironmentId.make(key.slice(0, separator)),
+    issueId: IssueId.make(key.slice(separator + 1)),
+  };
+}
+
 export function projectRefsEqual(
   left: ReadonlyArray<ScopedProjectRef>,
   right: ReadonlyArray<ScopedProjectRef>,
@@ -116,6 +142,19 @@ export function threadRefsEqual(
       (ref, index) =>
         ref.environmentId === right[index]?.environmentId &&
         ref.threadId === right[index]?.threadId,
+    )
+  );
+}
+
+export function issueRefsEqual(
+  left: ReadonlyArray<ScopedIssueRef>,
+  right: ReadonlyArray<ScopedIssueRef>,
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every(
+      (ref, index) =>
+        ref.environmentId === right[index]?.environmentId && ref.issueId === right[index]?.issueId,
     )
   );
 }

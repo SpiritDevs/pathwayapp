@@ -90,6 +90,12 @@ import * as ProjectSmtpRouter from "./emailSandbox/ProjectSmtpRouter.ts";
 import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
 import * as TraceDiagnostics from "./diagnostics/TraceDiagnostics.ts";
+import * as IssuesCommandClient from "./issues/IssuesCommandClient.ts";
+import * as IssuesGatewayLive from "./issues/IssuesGatewayLive.ts";
+import * as IssuesMirrorStore from "./issues/IssuesMirrorStore.ts";
+import * as IssuesMirrorWorker from "./issues/IssuesMirrorWorker.ts";
+import { IssueDelegationServiceLive } from "./issues/delegation/IssueDelegationServiceLive.ts";
+import { SystemHeadroomLive } from "./issues/delegation/SystemHeadroom.ts";
 import { OrchestrationLayerLive } from "./orchestration/runtimeLayer.ts";
 import {
   clearPersistedServerRuntimeState,
@@ -363,8 +369,22 @@ const EmailSandboxSyncWorkerLive = EmailSandboxSyncWorker.layer.pipe(
   Layer.provide(RuntimeCoreBaseLive),
 );
 
+const IssuesMirrorStoreLive = IssuesMirrorStore.layer.pipe(Layer.provide(PersistenceLayerLive));
+const IssuesCommandClientLive = IssuesCommandClient.layer;
+const IssuesCoreLive = Layer.mergeAll(IssuesMirrorStoreLive, IssuesCommandClientLive);
+const IssuesMirrorWorkerLive = IssuesMirrorWorker.layer.pipe(Layer.provideMerge(IssuesCoreLive));
+const IssuesGatewayLayerLive = IssuesGatewayLive.layer.pipe(
+  Layer.provideMerge(IssuesMirrorWorkerLive),
+);
+const IssueDelegationLayerLive = IssueDelegationServiceLive.pipe(
+  Layer.provide(SystemHeadroomLive),
+  Layer.provide(IssuesGatewayLayerLive),
+);
+export const issuesLayerLive = Layer.mergeAll(IssuesGatewayLayerLive, IssueDelegationLayerLive);
+const RuntimeCoreWithIssuesLive = issuesLayerLive.pipe(Layer.provideMerge(RuntimeCoreBaseLive));
+
 const RuntimeCoreDependenciesLive = Layer.mergeAll(
-  RuntimeCoreBaseLive,
+  RuntimeCoreWithIssuesLive,
   CloudSyncWorkerLive,
   EmailSandboxLive.pipe(Layer.provide(RuntimeCoreBaseLive)),
   EmailSandboxSyncWorkerLive,
@@ -400,7 +420,11 @@ export const makeRoutesLayer = Layer.mergeAll(
     websocketRpcRouteLayer,
   ),
   McpHttpServer.layer.pipe(Layer.provide(McpSessionRegistry.layer)),
-).pipe(Layer.provide(PreviewAutomationBroker.layer), Layer.provide(browserApiCorsLayer));
+).pipe(
+  Layer.provide(PreviewAutomationBroker.layer),
+  Layer.provide(browserApiCorsLayer),
+  Layer.provide(issuesLayerLive),
+);
 
 export const makeServerLayer = Layer.unwrap(
   Effect.gen(function* () {

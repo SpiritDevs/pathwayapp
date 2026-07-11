@@ -25,6 +25,9 @@ import {
 } from "./toolkits/preview/tools.ts";
 import { EmailToolkitHandlersLive } from "./toolkits/email/handlers.ts";
 import { EmailToolkit } from "./toolkits/email/tools.ts";
+import * as AgentActorResolver from "./toolkits/issues/AgentActorResolver.ts";
+import { IssuesToolkitHandlersLive } from "./toolkits/issues/handlers.ts";
+import { IssuesToolkit } from "./toolkits/issues/tools.ts";
 
 const unauthorized = HttpServerResponse.jsonUnsafe(
   {
@@ -216,9 +219,15 @@ export const EmailToolkitRegistrationLive = McpServer.toolkit(EmailToolkit).pipe
   Layer.provide(AgentEmailSandbox.layer),
 );
 
+export const IssuesToolkitRegistrationLive = McpServer.toolkit(IssuesToolkit).pipe(
+  Layer.provide(IssuesToolkitHandlersLive),
+  Layer.provide(AgentActorResolver.layer),
+);
+
 export const PathwayToolkitRegistrationLive = Layer.mergeAll(
   PreviewToolkitRegistrationLive,
   EmailToolkitRegistrationLive,
+  IssuesToolkitRegistrationLive,
 );
 
 const McpTransportLive = McpServer.layerHttp({

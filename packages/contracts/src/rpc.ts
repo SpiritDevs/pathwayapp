@@ -64,6 +64,15 @@ import {
 } from "./review.ts";
 import { KeybindingsConfigError } from "./keybindings.ts";
 import {
+  DelegationQueueState,
+  IssueCommand,
+  IssueCommandResult,
+  IssueDetailStreamItem,
+  IssueId,
+  IssuesDomainError,
+  IssuesStreamItem,
+} from "./issues.ts";
+import {
   ClientOrchestrationCommand,
   ORCHESTRATION_WS_METHODS,
   OrchestrationDispatchCommandError,
@@ -251,6 +260,12 @@ export const WS_METHODS = {
   emailSandboxDeleteMessage: "emailSandbox.deleteMessage",
   emailSandboxGetAttachment: "emailSandbox.getAttachment",
 
+  // Issues methods
+  issuesSubscribe: "issues.subscribe",
+  issuesSubscribeDetail: "issues.subscribeDetail",
+  issuesExecute: "issues.execute",
+  issuesDelegationState: "issues.delegationState",
+
   // Source control methods
   sourceControlLookupRepository: "sourceControl.lookupRepository",
   sourceControlCloneRepository: "sourceControl.cloneRepository",
@@ -421,6 +436,32 @@ export const WsEmailSandboxGetAttachmentRpc = Rpc.make(WS_METHODS.emailSandboxGe
   payload: EmailAttachmentGetInput,
   success: Schema.NullOr(EmailAttachmentPayload),
   error: Schema.Union([EmailSandboxError, EnvironmentAuthorizationError]),
+});
+
+export const WsIssuesSubscribeRpc = Rpc.make(WS_METHODS.issuesSubscribe, {
+  payload: Schema.Struct({}),
+  success: IssuesStreamItem,
+  error: Schema.Union([IssuesDomainError, EnvironmentAuthorizationError]),
+  stream: true,
+});
+
+export const WsIssuesSubscribeDetailRpc = Rpc.make(WS_METHODS.issuesSubscribeDetail, {
+  payload: Schema.Struct({ issueId: IssueId }),
+  success: IssueDetailStreamItem,
+  error: Schema.Union([IssuesDomainError, EnvironmentAuthorizationError]),
+  stream: true,
+});
+
+export const WsIssuesExecuteRpc = Rpc.make(WS_METHODS.issuesExecute, {
+  payload: Schema.Struct({ command: IssueCommand }),
+  success: IssueCommandResult,
+  error: Schema.Union([IssuesDomainError, EnvironmentAuthorizationError]),
+});
+
+export const WsIssuesDelegationStateRpc = Rpc.make(WS_METHODS.issuesDelegationState, {
+  payload: Schema.Struct({}),
+  success: DelegationQueueState,
+  error: Schema.Union([IssuesDomainError, EnvironmentAuthorizationError]),
 });
 
 export const WsSourceControlLookupRepositoryRpc = Rpc.make(
@@ -804,6 +845,10 @@ export const WsRpcGroup = RpcGroup.make(
   WsEmailSandboxMarkReadRpc,
   WsEmailSandboxDeleteMessageRpc,
   WsEmailSandboxGetAttachmentRpc,
+  WsIssuesSubscribeRpc,
+  WsIssuesSubscribeDetailRpc,
+  WsIssuesExecuteRpc,
+  WsIssuesDelegationStateRpc,
   WsSourceControlLookupRepositoryRpc,
   WsSourceControlCloneRepositoryRpc,
   WsSourceControlPublishRepositoryRpc,

@@ -1,0 +1,26 @@
+# Task W-C — Teams settings, agent registry, delegation settings, triage inbox, trash
+
+Work in the current repo root (a pathwayOS worktree). React 19, Base UI wrappers.
+
+READ FIRST:
+
+1. docs/issues-build/interface-freeze.md §7 (W-C bullets), §2, §3 (settings additions), §9 — BINDING.
+2. /private/tmp/claude-501/-Users-coreybaines-GitHub-pathwayapp/21f4374e-b3a6-4301-813d-f1f7860f47f0/scratchpad/scout-web.md — §8 settings anatomy (SettingsPageContainer/SettingsSection/SettingsRow, nav wiring), §2 routing.
+3. Data plane: apps/web/src/state/issues.ts + issueEntities.ts, issuesEnvironment commands (createTeam/updateTeam/…/createAgent/updateAgent/deleteAgent/updateWorkspace), delegationState query, server settings read/update (find how GeneralSettingsPanel reads+patches ServerSettings and reuse: agentActors + issueDelegation live in ServerSettings, patched via the existing settings command; the agent.create/update/delete ISSUE commands handle the Convex actor row — the settings panel should use the issue commands for agent CRUD and only read settings for display of config).
+4. Exemplars: components/settings/SettingsPanels.tsx, EmailSandboxSettings.tsx, SettingsSidebarNav.tsx, settingsLayout.tsx, AccountTeamsSettings.tsx (note: that is the Convex-tenant surface — do NOT modify it; your Teams settings are the ISSUE teams, a different thing).
+
+DELIVERABLES (ownership — ONLY these):
+
+- components/settings/TeamsSettings.tsx + routes/settings.teams.tsx — issue-team management: team list (icon, name, key, member count) + create dialog (name, key with auto-suggest from name, icon emoji input, color); per-team expanded panel (select a team → sections): General (name/icon/color/key — key edit warns re-keying is not retroactive for existing identifiers... actually key applies to new numbers only; state plainly), Workflow states (list grouped by category, add/rename/recolor/reorder within category, delete w/ migrate-to picker of same category), Labels (CRUD, color chips), Cycles (enabled toggle, startDayOfWeek select, durationWeeks/cooldownWeeks numbers, autoRollover toggle), Estimates (scale select), Members (add actor via combobox of all actors incl. agents, remove), Repos (add repo link via combobox of local projects — read the projects atoms (useProjects) and use their logical/canonical repo identity the same way the email sandbox project binding displays projects; set default repo), Danger (delete team → issues move to workspace? state plainly: team delete soft-deletes the team and its issues keep teamId but render under "deleted team" — implement simply: block deletion while team has non-deleted issues, with a message).
+- components/settings/AgentActorsSettings.tsx + routes/settings.agents.tsx — agent registry: list agent actors (avatar color dot, name, provider/model chips, owner "you" vs others read-only); create dialog (displayName, avatarColor picker (8 presets), providerInstance select (read provider instances the way the model picker/settings do), model text/select, instructions textarea); edit + delete (soft). Below: Delegation section — issueDelegation settings (enabled switch, maxConcurrent number, cpuHeadroomPercent number, minFreeMemoryMb number) patched via server settings like other panels, plus a live queue snapshot from useDelegationState (running list w/ issue identifiers, queued list, capacity/headroom readout).
+- SettingsSidebarNav.tsx — add "Teams" (users icon) and "Agents" (bot icon) entries + SettingsSectionPath additions.
+- components/issues/triage/TriageInbox.tsx + routes/issues.triage.tsx — list of issues in triage-category states (grouped by team), each row: title/identifier/creator (robot badge for agents)/age + Accept (→ team default backlog state + triaged:true) / Decline (→ canceled-category state) / Snooze omitted v1; bulk accept/decline; empty state "Inbox zero".
+- components/issues/TrashView.tsx + routes/issues.trash.tsx — soft-deleted issues (and teams/labels collapsed sections optional; issues required): restore button, purge button (confirm dialog "Permanently delete ISSUE-123? This cannot be undone."), purge-all-older-than-30d button with confirm. Link to trash from the issues page overflow menu is W-A's; instead add trash + triage links as rows in SavedViewsRail? NO — that's W-A's file. Just build the routes/components; navigation entry: add both to the CommandPalette? Also W-A's. Leave discovery to route URLs + write docs/issues-build/WIRING-wc.md noting "add Triage + Trash links into SavedViewsRail bottom section" for integration.
+
+RULES:
+
+- Never use `any`. Compose SettingsPageContainer/SettingsSection/SettingsRow exactly like existing panels.
+- Do NOT touch AccountTeamsSettings.tsx, IssuesPage/list/board/detail files, CommandPalette.tsx, appNavRoutes.ts.
+- Do NOT run vp check / typecheck / lint / tests / dev servers / build. Validation deferred.
+- Commit when done: `[new feature] Add teams, agent registry, delegation settings, triage inbox, and trash`.
+- Print final summary: files, deviations + why, WIRING notes.
