@@ -103,7 +103,8 @@ export function IssuesListView({
         }
         if (options.additive) {
           const next = new Set(current);
-          next.has(ref.issueId) ? next.delete(ref.issueId) : next.add(ref.issueId);
+          if (next.has(ref.issueId)) next.delete(ref.issueId);
+          else next.add(ref.issueId);
           return next;
         }
         return new Set([ref.issueId]);

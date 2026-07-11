@@ -37,19 +37,27 @@ export function MarkdownView(props: {
   if (parts.length === 0) return null;
   return (
     <div className={cn("min-w-0", props.className)}>
-      {parts.map((part, index) => {
-        if (part.kind === "markdown") {
-          return <ChatMarkdown className="inline" cwd={undefined} key={index} text={part.value} />;
-        }
-        const actor = props.actors?.find((candidate) => candidate.id === part.actorId);
-        return (
-          <Fragment key={`${part.actorId}-${index}`}>
-            <span className="mx-0.5 inline-flex rounded bg-primary/10 px-1 py-0.5 text-sm font-medium text-primary">
-              @{actor?.displayName ?? part.displayName}
-            </span>
-          </Fragment>
-        );
-      })}
+      {(() => {
+        let offset = 0;
+        return parts.map((part) => {
+          const key = `${offset}:${part.kind}`;
+          offset += Math.max(
+            1,
+            part.kind === "markdown" ? part.value.length : part.displayName.length,
+          );
+          if (part.kind === "markdown") {
+            return <ChatMarkdown className="inline" cwd={undefined} key={key} text={part.value} />;
+          }
+          const actor = props.actors?.find((candidate) => candidate.id === part.actorId);
+          return (
+            <Fragment key={key}>
+              <span className="mx-0.5 inline-flex rounded bg-primary/10 px-1 py-0.5 text-sm font-medium text-primary">
+                @{actor?.displayName ?? part.displayName}
+              </span>
+            </Fragment>
+          );
+        });
+      })()}
     </div>
   );
 }

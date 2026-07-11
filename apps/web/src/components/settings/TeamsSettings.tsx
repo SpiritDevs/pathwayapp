@@ -495,7 +495,6 @@ function WorkflowSettings({
 
 function LabelsSettings({
   labels,
-  team,
   onCreate,
   onUpdate,
   onDelete,
