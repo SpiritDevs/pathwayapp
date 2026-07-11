@@ -1,10 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { IssueDetailPage, IssueNotFound } from "~/components/issues/detail/IssueDetailPage";
 import { useActiveEnvironmentId } from "~/state/entities";
 import { useIssues } from "~/state/issueEntities";
 
 export const Route = createFileRoute("/issues_/$identifier")({
+  beforeLoad: ({ context }) => {
+    if (
+      context.authGateState.status !== "authenticated" &&
+      context.authGateState.status !== "hosted-static"
+    ) {
+      throw redirect({ to: "/pair", replace: true });
+    }
+  },
   component: IssueIdentifierRoute,
 });
 

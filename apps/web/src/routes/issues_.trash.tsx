@@ -1,5 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { TrashView } from "../components/issues/TrashView";
 
-export const Route = createFileRoute("/issues_/trash")({ component: TrashView });
+export const Route = createFileRoute("/issues_/trash")({
+  beforeLoad: ({ context }) => {
+    if (
+      context.authGateState.status !== "authenticated" &&
+      context.authGateState.status !== "hosted-static"
+    ) {
+      throw redirect({ to: "/pair", replace: true });
+    }
+  },
+  component: TrashView,
+});
