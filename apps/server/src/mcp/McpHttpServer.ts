@@ -25,7 +25,7 @@ import {
 } from "./toolkits/preview/tools.ts";
 import { EmailToolkitHandlersLive } from "./toolkits/email/handlers.ts";
 import { EmailToolkit } from "./toolkits/email/tools.ts";
-import { AgentActorResolver } from "./toolkits/issues/AgentActorResolver.ts";
+import * as AgentActorResolver from "./toolkits/issues/AgentActorResolver.ts";
 import { IssuesToolkitHandlersLive } from "./toolkits/issues/handlers.ts";
 import { IssuesToolkit } from "./toolkits/issues/tools.ts";
 

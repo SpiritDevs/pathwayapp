@@ -63,24 +63,27 @@ export const make = Effect.gen(function* () {
     const snapshot = yield* gateway.getSnapshot;
     const linkedActor = snapshot.threadLinks
       .filter((link) => link.deletedAt === null && link.threadId === scope.threadId)
-      .map((link) => snapshot.issues.find((issue) => issue.id === link.issueId))
-      .filter((issue) => issue !== undefined && issue.deletedAt === null)
-      .map((issue) => issue.assigneeActorId)
-      .filter((actorId) => actorId !== null)
-      .map((actorId) => snapshot.actors.find((actor) => actor.id === actorId))
-      .find((actor) => actor?.kind === "agent" && actor.deletedAt === null);
+      .flatMap((link) => {
+        const issue = snapshot.issues.find((candidate) => candidate.id === link.issueId);
+        return issue?.deletedAt === null && issue.assigneeActorId !== null
+          ? snapshot.actors.filter((actor) => actor.id === issue.assigneeActorId)
+          : [];
+      })
+      .find((actor) => actor.kind === "agent" && actor.deletedAt === null);
     if (linkedActor !== undefined) return linkedActor.id;
 
-    const thread = yield* projectionSnapshot.getThreadShellById(scope.threadId).pipe(
-      Effect.mapError(() =>
-        makeAccessError(
-          scope,
-          operation,
-          "persistence-failed",
-          "The invoking thread could not be resolved from the local projection.",
+    const thread = yield* projectionSnapshot
+      .getThreadShellById(scope.threadId)
+      .pipe(
+        Effect.mapError(() =>
+          makeAccessError(
+            scope,
+            operation,
+            "persistence-failed",
+            "The invoking thread could not be resolved from the local projection.",
+          ),
         ),
-      ),
-    );
+      );
     if (Option.isNone(thread)) {
       return yield* makeAccessError(
         scope,

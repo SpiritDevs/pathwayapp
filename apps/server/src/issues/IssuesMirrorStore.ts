@@ -12,6 +12,7 @@ import {
   IssueThreadLink,
   IssueWorkflowState,
   type IssuesSnapshot,
+  type IssuesEntityRow,
   type IssuesStreamItem,
 } from "@pathwayos/contracts";
 import * as Cause from "effect/Cause";
@@ -74,18 +75,54 @@ const make = Effect.gen(function* () {
 
   const upsertEntity = SqlSchema.void({
     Request: Schema.Union([
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("teams"), row: IssueTeam }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("memberships"), row: IssueTeamMembership }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("states"), row: IssueWorkflowState }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("labels"), row: IssueLabel }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("actors"), row: IssueActor }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("cycles"), row: IssueCycle }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("epics"), row: IssueEpic }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("milestones"), row: IssueMilestone }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("issues"), row: Issue }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("relations"), row: IssueRelation }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("threadLinks"), row: IssueThreadLink }) }),
-      Schema.Struct({ kind: Schema.Literal("entity"), entity: Schema.Struct({ table: Schema.Literal("savedViews"), row: IssueSavedView }) }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("teams"), row: IssueTeam }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("memberships"), row: IssueTeamMembership }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("states"), row: IssueWorkflowState }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("labels"), row: IssueLabel }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("actors"), row: IssueActor }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("cycles"), row: IssueCycle }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("epics"), row: IssueEpic }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("milestones"), row: IssueMilestone }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("issues"), row: Issue }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("relations"), row: IssueRelation }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("threadLinks"), row: IssueThreadLink }),
+      }),
+      Schema.Struct({
+        kind: Schema.Literal("entity"),
+        entity: Schema.Struct({ table: Schema.Literal("savedViews"), row: IssueSavedView }),
+      }),
     ]),
     execute: ({ entity }) => {
       const { table, row } = entity;
@@ -137,101 +174,228 @@ const make = Effect.gen(function* () {
   });
   const setCursorStatement = SqlSchema.void({
     Request: Schema.Struct({ cursor: Schema.Number }),
-    execute: ({ cursor }) => sql`UPDATE issues_mirror_state SET cursor_seq = MAX(cursor_seq, ${cursor}) WHERE scope = 'issues'`,
+    execute: ({ cursor }) =>
+      sql`UPDATE issues_mirror_state SET cursor_seq = MAX(cursor_seq, ${cursor}) WHERE scope = 'issues'`,
   });
   const setMetadataStatement = SqlSchema.void({
-    Request: Schema.Struct({ workspaceKey: Schema.String, viewerUserId: Schema.NullOr(Schema.String) }),
-    execute: ({ workspaceKey, viewerUserId }) => sql`UPDATE issues_mirror_state SET workspace_key = ${workspaceKey}, viewer_user_id = ${viewerUserId} WHERE scope = 'issues'`,
+    Request: Schema.Struct({
+      workspaceKey: Schema.String,
+      viewerUserId: Schema.NullOr(Schema.String),
+    }),
+    execute: ({ workspaceKey, viewerUserId }) =>
+      sql`UPDATE issues_mirror_state SET workspace_key = ${workspaceKey}, viewer_user_id = ${viewerUserId} WHERE scope = 'issues'`,
   });
   const setStatusStatement = SqlSchema.void({
-    Request: Schema.Struct({ syncedAt: Schema.NullOr(Schema.String), lastError: Schema.NullOr(Schema.String) }),
-    execute: ({ syncedAt, lastError }) => sql`UPDATE issues_mirror_state SET synced_at = ${syncedAt}, last_error = ${lastError} WHERE scope = 'issues'`,
+    Request: Schema.Struct({
+      syncedAt: Schema.NullOr(Schema.String),
+      lastError: Schema.NullOr(Schema.String),
+    }),
+    execute: ({ syncedAt, lastError }) =>
+      sql`UPDATE issues_mirror_state SET synced_at = ${syncedAt}, last_error = ${lastError} WHERE scope = 'issues'`,
   });
   const setSyncedAtStatement = SqlSchema.void({
     Request: Schema.Struct({ syncedAt: Schema.String }),
-    execute: ({ syncedAt }) => sql`UPDATE issues_mirror_state SET synced_at = ${syncedAt}, last_error = NULL WHERE scope = 'issues'`,
+    execute: ({ syncedAt }) =>
+      sql`UPDATE issues_mirror_state SET synced_at = ${syncedAt}, last_error = NULL WHERE scope = 'issues'`,
   });
   const getState = SqlSchema.findOne({
     Request: EmptyRequest,
     Result: MirrorStateRow,
-    execute: () => sql`SELECT cursor_seq AS "cursorSeq", synced_at AS "syncedAt", last_error AS "lastError", workspace_key AS "workspaceKey", viewer_user_id AS "viewerUserId" FROM issues_mirror_state WHERE scope = 'issues'`,
+    execute: () =>
+      sql`SELECT cursor_seq AS "cursorSeq", synced_at AS "syncedAt", last_error AS "lastError", workspace_key AS "workspaceKey", viewer_user_id AS "viewerUserId" FROM issues_mirror_state WHERE scope = 'issues'`,
   });
-  const listTeams = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueTeam), execute: () => sql`SELECT row_json AS row FROM issues_mirror_teams ORDER BY key, id` });
-  const listMemberships = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueTeamMembership), execute: () => sql`SELECT row_json AS row FROM issues_mirror_memberships ORDER BY id` });
-  const listStates = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueWorkflowState), execute: () => sql`SELECT row_json AS row FROM issues_mirror_states ORDER BY position, id` });
-  const listLabels = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueLabel), execute: () => sql`SELECT row_json AS row FROM issues_mirror_labels ORDER BY name, id` });
-  const listActors = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueActor), execute: () => sql`SELECT row_json AS row FROM issues_mirror_actors ORDER BY display_name, id` });
-  const listCycles = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueCycle), execute: () => sql`SELECT row_json AS row FROM issues_mirror_cycles ORDER BY starts_at, id` });
-  const listEpics = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueEpic), execute: () => sql`SELECT row_json AS row FROM issues_mirror_epics ORDER BY name, id` });
-  const listMilestones = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueMilestone), execute: () => sql`SELECT row_json AS row FROM issues_mirror_milestones ORDER BY position, id` });
-  const listIssues = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(Issue), execute: () => sql`SELECT row_json AS row FROM issues_mirror_issues ORDER BY identifier, id` });
-  const listRelations = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueRelation), execute: () => sql`SELECT row_json AS row FROM issues_mirror_relations ORDER BY id` });
-  const listThreadLinks = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueThreadLink), execute: () => sql`SELECT row_json AS row FROM issues_mirror_thread_links ORDER BY id` });
-  const listSavedViews = SqlSchema.findAll({ Request: EmptyRequest, Result: rowJson(IssueSavedView), execute: () => sql`SELECT row_json AS row FROM issues_mirror_saved_views ORDER BY position, id` });
+  const listTeams = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueTeam),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_teams ORDER BY key, id`,
+  });
+  const listMemberships = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueTeamMembership),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_memberships ORDER BY id`,
+  });
+  const listStates = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueWorkflowState),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_states ORDER BY position, id`,
+  });
+  const listLabels = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueLabel),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_labels ORDER BY name, id`,
+  });
+  const listActors = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueActor),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_actors ORDER BY display_name, id`,
+  });
+  const listCycles = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueCycle),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_cycles ORDER BY starts_at, id`,
+  });
+  const listEpics = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueEpic),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_epics ORDER BY name, id`,
+  });
+  const listMilestones = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueMilestone),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_milestones ORDER BY position, id`,
+  });
+  const listIssues = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(Issue),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_issues ORDER BY identifier, id`,
+  });
+  const listRelations = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueRelation),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_relations ORDER BY id`,
+  });
+  const listThreadLinks = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueThreadLink),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_thread_links ORDER BY id`,
+  });
+  const listSavedViews = SqlSchema.findAll({
+    Request: EmptyRequest,
+    Result: rowJson(IssueSavedView),
+    execute: () => sql`SELECT row_json AS row FROM issues_mirror_saved_views ORDER BY position, id`,
+  });
 
   const mapSqlError = toPersistenceSqlError("IssuesMirrorStore:query");
+  const upsertMirrorEntity = (entity: IssuesEntityRow) => {
+    switch (entity.table) {
+      case "teams":
+        return upsertEntity({ kind: "entity", entity });
+      case "memberships":
+        return upsertEntity({ kind: "entity", entity });
+      case "states":
+        return upsertEntity({ kind: "entity", entity });
+      case "labels":
+        return upsertEntity({ kind: "entity", entity });
+      case "actors":
+        return upsertEntity({ kind: "entity", entity });
+      case "cycles":
+        return upsertEntity({ kind: "entity", entity });
+      case "epics":
+        return upsertEntity({ kind: "entity", entity });
+      case "milestones":
+        return upsertEntity({ kind: "entity", entity });
+      case "issues":
+        return upsertEntity({ kind: "entity", entity });
+      case "relations":
+        return upsertEntity({ kind: "entity", entity });
+      case "threadLinks":
+        return upsertEntity({ kind: "entity", entity });
+      case "savedViews":
+        return upsertEntity({ kind: "entity", entity });
+    }
+  };
   const applyDeltaBatch: IssuesMirrorStore["Service"]["applyDeltaBatch"] = (rows, nextSeq) =>
-    sql.withTransaction(
-      Effect.gen(function* () {
-        const appliedRows: IssuesMirrorDeltaRow[] = [];
-        for (const delta of rows) {
-          const applyRow =
-            "purge" in delta
-              ? deletePurgedEntity({ table: delta.purge.table, id: delta.purge.id })
-              : upsertEntity({ kind: "entity", entity: delta.entity });
-          const applied = yield* applyRow.pipe(
-            Effect.as(true),
-            Effect.catchCause((cause) =>
-              Effect.logError("Skipping invalid issues mirror delta row", {
-                seq: delta.seq,
-                cause: Cause.pretty(cause),
-              }).pipe(Effect.as(false)),
+    sql
+      .withTransaction(
+        Effect.gen(function* () {
+          const appliedRows: IssuesMirrorDeltaRow[] = [];
+          for (const delta of rows) {
+            const applyRow =
+              "purge" in delta
+                ? deletePurgedEntity({ table: delta.purge.table, id: delta.purge.id })
+                : upsertMirrorEntity(delta.entity);
+            const applied = yield* applyRow.pipe(
+              Effect.as(true),
+              Effect.catchCause((cause) =>
+                Effect.logError("Skipping invalid issues mirror delta row", {
+                  seq: delta.seq,
+                  cause: Cause.pretty(cause),
+                }).pipe(Effect.as(false)),
+              ),
+            );
+            if (applied) appliedRows.push(delta);
+          }
+          yield* setCursorStatement({ cursor: nextSeq });
+          return appliedRows;
+        }),
+      )
+      .pipe(
+        Effect.mapError(mapSqlError),
+        Effect.flatMap((appliedRows) =>
+          Effect.forEach(appliedRows, (delta) =>
+            PubSub.publish(
+              changesPubSub,
+              "purge" in delta
+                ? { kind: "remove", seq: delta.seq, table: delta.purge.table, id: delta.purge.id }
+                : { kind: "upsert", seq: delta.seq, entity: delta.entity },
             ),
-          );
-          if (applied) appliedRows.push(delta);
-        }
-        yield* setCursorStatement({ cursor: nextSeq });
-        return appliedRows;
-      }),
-    ).pipe(
-      Effect.mapError(mapSqlError),
-      Effect.flatMap((appliedRows) =>
-        Effect.forEach(appliedRows, (delta) =>
-          PubSub.publish(
-            changesPubSub,
-            "purge" in delta
-              ? { kind: "remove", seq: delta.seq, table: delta.purge.table, id: delta.purge.id }
-              : { kind: "upsert", seq: delta.seq, entity: delta.entity },
           ),
         ),
-      ),
-      Effect.asVoid,
-    );
+        Effect.asVoid,
+      );
 
   const getSnapshot: IssuesMirrorStore["Service"]["getSnapshot"] = Effect.all([
-    getState({}), listTeams({}), listMemberships({}), listStates({}), listLabels({}), listActors({}),
-    listCycles({}), listEpics({}), listMilestones({}), listIssues({}), listRelations({}),
-    listThreadLinks({}), listSavedViews({}),
+    getState({}),
+    listTeams({}),
+    listMemberships({}),
+    listStates({}),
+    listLabels({}),
+    listActors({}),
+    listCycles({}),
+    listEpics({}),
+    listMilestones({}),
+    listIssues({}),
+    listRelations({}),
+    listThreadLinks({}),
+    listSavedViews({}),
   ]).pipe(
     Effect.mapError(mapSqlError),
-    Effect.map(([state, teams, memberships, states, labels, actors, cycles, epics, milestones, issues, relations, threadLinks, savedViews]) => ({
-      mirrorSeq: state.cursorSeq,
-      syncedAt: state.syncedAt,
-      online: state.lastError === null && state.syncedAt !== null,
-      workspaceKey: state.workspaceKey,
-      viewerUserId: state.viewerUserId,
-      teams: teams.map(({ row }) => row), memberships: memberships.map(({ row }) => row),
-      states: states.map(({ row }) => row), labels: labels.map(({ row }) => row),
-      actors: actors.map(({ row }) => row), cycles: cycles.map(({ row }) => row),
-      epics: epics.map(({ row }) => row), milestones: milestones.map(({ row }) => row),
-      issues: issues.map(({ row }) => row), relations: relations.map(({ row }) => row),
-      threadLinks: threadLinks.map(({ row }) => row), savedViews: savedViews.map(({ row }) => row),
-    })),
+    Effect.map(
+      ([
+        state,
+        teams,
+        memberships,
+        states,
+        labels,
+        actors,
+        cycles,
+        epics,
+        milestones,
+        issues,
+        relations,
+        threadLinks,
+        savedViews,
+      ]) => ({
+        mirrorSeq: state.cursorSeq,
+        syncedAt: state.syncedAt,
+        online: state.lastError === null && state.syncedAt !== null,
+        workspaceKey: state.workspaceKey,
+        viewerUserId: state.viewerUserId,
+        teams: teams.map(({ row }) => row),
+        memberships: memberships.map(({ row }) => row),
+        states: states.map(({ row }) => row),
+        labels: labels.map(({ row }) => row),
+        actors: actors.map(({ row }) => row),
+        cycles: cycles.map(({ row }) => row),
+        epics: epics.map(({ row }) => row),
+        milestones: milestones.map(({ row }) => row),
+        issues: issues.map(({ row }) => row),
+        relations: relations.map(({ row }) => row),
+        threadLinks: threadLinks.map(({ row }) => row),
+        savedViews: savedViews.map(({ row }) => row),
+      }),
+    ),
   );
-  const getCursor = getState({}).pipe(Effect.map((state) => state.cursorSeq), Effect.mapError(mapSqlError));
-  const setCursor = (cursor: number) => setCursorStatement({ cursor }).pipe(Effect.mapError(mapSqlError));
-  const setMetadata = (workspaceKey: string, viewerUserId: string | null) => setMetadataStatement({ workspaceKey, viewerUserId }).pipe(Effect.mapError(mapSqlError));
-  const setSyncedAt = (syncedAt: string) => setSyncedAtStatement({ syncedAt }).pipe(Effect.mapError(mapSqlError));
+  const getCursor = getState({}).pipe(
+    Effect.map((state) => state.cursorSeq),
+    Effect.mapError(mapSqlError),
+  );
+  const setCursor = (cursor: number) =>
+    setCursorStatement({ cursor }).pipe(Effect.mapError(mapSqlError));
+  const setMetadata = (workspaceKey: string, viewerUserId: string | null) =>
+    setMetadataStatement({ workspaceKey, viewerUserId }).pipe(Effect.mapError(mapSqlError));
+  const setSyncedAt = (syncedAt: string) =>
+    setSyncedAtStatement({ syncedAt }).pipe(Effect.mapError(mapSqlError));
   const setSyncStatus = (online: boolean, syncedAt: string | null, lastError: string | null) =>
     setStatusStatement({ syncedAt, lastError }).pipe(
       Effect.mapError(mapSqlError),
@@ -240,7 +404,13 @@ const make = Effect.gen(function* () {
     );
 
   return IssuesMirrorStore.of({
-    applyDeltaBatch, getSnapshot, getCursor, setCursor, setMetadata, setSyncedAt, setSyncStatus,
+    applyDeltaBatch,
+    getSnapshot,
+    getCursor,
+    setCursor,
+    setMetadata,
+    setSyncedAt,
+    setSyncStatus,
     changes: Stream.fromPubSub(changesPubSub),
     subscribeChanges: PubSub.subscribe(changesPubSub),
   });

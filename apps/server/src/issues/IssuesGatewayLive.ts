@@ -1,4 +1,4 @@
-import { IssuesDomainError, type IssueId } from "@pathwayos/contracts";
+import { IssuesDomainError, type IssueDetailStreamItem, type IssueId } from "@pathwayos/contracts";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -53,6 +53,16 @@ const make = Effect.gen(function* () {
 
   const getIssueDetail = (issueId: IssueId) =>
     client.getIssueDetail(issueId).pipe(Effect.mapError(clientError));
+  const recoverDetailStream = (
+    stream: Stream.Stream<IssueDetailStreamItem, IssuesDomainError>,
+  ): Stream.Stream<IssueDetailStreamItem> =>
+    stream.pipe(
+      Stream.catchCause((cause) =>
+        Stream.fromEffect(Effect.logWarning("issues detail stream refresh failed", cause)).pipe(
+          Stream.flatMap(() => Stream.empty),
+        ),
+      ),
+    );
 
   return IssuesGateway.of({
     execute: (command, attribution) => {
@@ -98,13 +108,15 @@ const make = Effect.gen(function* () {
       );
       const refreshed = Stream.merge(issueUpserts, periodic).pipe(
         Stream.mapEffect(() => getIssueDetail(issueId)),
-        Stream.map((detail) => ({ kind: "detail" as const, detail })),
+        Stream.map((detail): IssueDetailStreamItem => ({ kind: "detail", detail })),
       );
-      return Stream.concat(
-        Stream.fromEffect(getIssueDetail(issueId)).pipe(
-          Stream.map((detail) => ({ kind: "detail" as const, detail })),
+      return recoverDetailStream(
+        Stream.concat(
+          Stream.fromEffect(getIssueDetail(issueId)).pipe(
+            Stream.map((detail): IssueDetailStreamItem => ({ kind: "detail", detail })),
+          ),
+          refreshed,
         ),
-        refreshed,
       );
     },
   });

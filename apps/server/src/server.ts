@@ -370,30 +370,24 @@ const EmailSandboxSyncWorkerLive = EmailSandboxSyncWorker.layer.pipe(
 );
 
 const IssuesMirrorStoreLive = IssuesMirrorStore.layer.pipe(Layer.provide(PersistenceLayerLive));
-const IssuesCommandClientLive = IssuesCommandClient.layer.pipe(Layer.provide(RuntimeCoreBaseLive));
+const IssuesCommandClientLive = IssuesCommandClient.layer;
 const IssuesCoreLive = Layer.mergeAll(IssuesMirrorStoreLive, IssuesCommandClientLive);
-const IssuesMirrorWorkerLive = IssuesMirrorWorker.layer.pipe(Layer.provide(IssuesCoreLive));
+const IssuesMirrorWorkerLive = IssuesMirrorWorker.layer.pipe(Layer.provideMerge(IssuesCoreLive));
 const IssuesGatewayLayerLive = IssuesGatewayLive.layer.pipe(
-  Layer.provide(Layer.mergeAll(IssuesCoreLive, IssuesMirrorWorkerLive)),
+  Layer.provideMerge(IssuesMirrorWorkerLive),
 );
 const IssueDelegationLayerLive = IssueDelegationServiceLive.pipe(
   Layer.provide(SystemHeadroomLive),
   Layer.provide(IssuesGatewayLayerLive),
-  Layer.provide(RuntimeCoreBaseLive),
 );
-const IssuesLive = Layer.mergeAll(
-  IssuesCoreLive,
-  IssuesMirrorWorkerLive,
-  IssuesGatewayLayerLive,
-  IssueDelegationLayerLive,
-);
+export const issuesLayerLive = Layer.mergeAll(IssuesGatewayLayerLive, IssueDelegationLayerLive);
+const RuntimeCoreWithIssuesLive = issuesLayerLive.pipe(Layer.provideMerge(RuntimeCoreBaseLive));
 
 const RuntimeCoreDependenciesLive = Layer.mergeAll(
-  RuntimeCoreBaseLive,
+  RuntimeCoreWithIssuesLive,
   CloudSyncWorkerLive,
   EmailSandboxLive.pipe(Layer.provide(RuntimeCoreBaseLive)),
   EmailSandboxSyncWorkerLive,
-  IssuesLive,
 );
 
 const RuntimeDependenciesLive = RuntimeCoreDependenciesLive.pipe(
@@ -425,12 +419,12 @@ export const makeRoutesLayer = Layer.mergeAll(
     staticAndDevRouteLayer,
     websocketRpcRouteLayer,
   ),
-  McpHttpServer.layer.pipe(
-    Layer.provide(McpSessionRegistry.layer),
-    Layer.provide(IssuesGatewayLayerLive),
-    Layer.provide(RuntimeCoreBaseLive),
-  ),
-).pipe(Layer.provide(PreviewAutomationBroker.layer), Layer.provide(browserApiCorsLayer));
+  McpHttpServer.layer.pipe(Layer.provide(McpSessionRegistry.layer)),
+).pipe(
+  Layer.provide(PreviewAutomationBroker.layer),
+  Layer.provide(browserApiCorsLayer),
+  Layer.provide(issuesLayerLive),
+);
 
 export const makeServerLayer = Layer.unwrap(
   Effect.gen(function* () {

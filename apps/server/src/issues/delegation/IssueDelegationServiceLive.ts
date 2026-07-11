@@ -1,5 +1,3 @@
-import * as path from "node:path";
-
 import {
   CommandId,
   type DelegationQueueState,
@@ -20,6 +18,7 @@ import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Path from "effect/Path";
 import * as Queue from "effect/Queue";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
@@ -195,6 +194,7 @@ export const IssueDelegationServiceLive = Layer.effect(
     const projectionSnapshotQuery = yield* ProjectionSnapshotQuery;
     const environment = yield* ServerEnvironment;
     const crypto = yield* Crypto.Crypto;
+    const path = yield* Path.Path;
     const environmentId = yield* environment.getEnvironmentId;
 
     const queueRef = yield* Ref.make<ReadonlyArray<QueueEntry>>([]);
@@ -531,30 +531,30 @@ export const IssueDelegationServiceLive = Layer.effect(
       );
     };
 
-    const completeRunningThread = Effect.fn(
-      "IssueDelegationService.completeRunningThread",
-    )(function* (threadId: string, status: "completed" | "failed") {
-      const match = [...(yield* Ref.get(runningRef)).entries()].find(
-        ([, running]) => running.threadId === threadId,
-      );
-      if (!match) return;
-      const [issueId, running] = match;
-      yield* executeStatus(issueId, running.actorId, status, threadId).pipe(
-        Effect.catchCause((cause) =>
-          Effect.logWarning("Failed to complete delegated issue", {
-            issueId,
-            threadId,
-            cause: Cause.pretty(cause),
-          }),
-        ),
-      );
-      yield* Ref.update(runningRef, (current) => {
-        const next = new Map(current);
-        next.delete(issueId);
-        return next;
-      });
-      yield* wake;
-    });
+    const completeRunningThread = Effect.fn("IssueDelegationService.completeRunningThread")(
+      function* (threadId: string, status: "completed" | "failed") {
+        const match = [...(yield* Ref.get(runningRef)).entries()].find(
+          ([, running]) => running.threadId === threadId,
+        );
+        if (!match) return;
+        const [issueId, running] = match;
+        yield* executeStatus(issueId, running.actorId, status, threadId).pipe(
+          Effect.catchCause((cause) =>
+            Effect.logWarning("Failed to complete delegated issue", {
+              issueId,
+              threadId,
+              cause: Cause.pretty(cause),
+            }),
+          ),
+        );
+        yield* Ref.update(runningRef, (current) => {
+          const next = new Map(current);
+          next.delete(issueId);
+          return next;
+        });
+        yield* wake;
+      },
+    );
 
     const processOrchestrationEvent = (
       event: import("@pathwayos/contracts").OrchestrationEvent,
@@ -594,7 +594,8 @@ export const IssueDelegationServiceLive = Layer.effect(
 
       for (const issue of snapshot.issues) {
         if (issue.deletedAt !== null) continue;
-        if (!isOwnedActor(issue.assigneeActorId, settings.agentActors)) continue;
+        const actorId = issue.assigneeActorId;
+        if (!isOwnedActor(actorId, settings.agentActors)) continue;
         const link = linksByIssue.get(issue.id);
         if (
           (issue.delegationStatus === "running" || issue.delegationStatus === "starting") &&
@@ -603,14 +604,14 @@ export const IssueDelegationServiceLive = Layer.effect(
           yield* Ref.update(runningRef, (current) => {
             const next = new Map(current);
             next.set(issue.id, {
-              actorId: issue.assigneeActorId,
+              actorId,
               threadId: link.threadId,
               startedAt: link.createdAt,
             });
             return next;
           });
           if (issue.delegationStatus === "starting") {
-            yield* executeStatus(issue.id, issue.assigneeActorId, "running", link.threadId);
+            yield* executeStatus(issue.id, actorId, "running", link.threadId);
           }
           continue;
         }
@@ -621,11 +622,11 @@ export const IssueDelegationServiceLive = Layer.effect(
           issue.delegationStatus === "running"
         ) {
           if (issue.delegationStatus !== "queued") {
-            yield* executeStatus(issue.id, issue.assigneeActorId, "queued");
+            yield* executeStatus(issue.id, actorId, "queued");
           }
           yield* enqueue({
             issueId: issue.id,
-            actorId: issue.assigneeActorId,
+            actorId,
             priority: issue.priority,
             enqueuedAt: issue.updatedAt,
           });
@@ -637,7 +638,7 @@ export const IssueDelegationServiceLive = Layer.effect(
       const shouldStart = yield* Ref.modify(startedRef, (started) => [!started, true]);
       if (!shouldStart) return;
       const issueChanges = yield* gateway.subscribeChanges;
-      yield* rebuild.pipe(
+      yield* rebuild().pipe(
         Effect.catchCause((cause) =>
           Effect.logWarning("Failed to rebuild the issue delegation queue", {
             cause: Cause.pretty(cause),
@@ -683,6 +684,15 @@ export const IssueDelegationServiceLive = Layer.effect(
       } satisfies DelegationQueueState;
     });
 
-    return IssueDelegationService.of({ start, state });
+    const safeStart: IssueDelegationService["Service"]["start"] = () =>
+      start().pipe(
+        Effect.catchCause((cause) =>
+          Effect.logWarning("Issue delegation service failed to start", {
+            cause: Cause.pretty(cause),
+          }),
+        ),
+      );
+
+    return IssueDelegationService.of({ start: safeStart, state });
   }),
 );

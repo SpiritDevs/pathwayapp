@@ -119,14 +119,14 @@ export class IssuesCommandClient extends Context.Service<
     readonly execute: (
       command: IssueCommand,
       attribution: IssueCommandAttribution,
-    ) => Effect.Effect<typeof IssueCommandResult.Type, IssuesCommandClientError>;
+    ) => Effect.Effect<IssueCommandResult, IssuesCommandClientError>;
     readonly mirrorDelta: (input: {
       readonly sinceSeq: number;
       readonly limit: number;
     }) => Effect.Effect<IssuesMirrorDelta, IssuesCommandClientError>;
     readonly getIssueDetail: (
       issueId: IssueId,
-    ) => Effect.Effect<typeof IssueDetail.Type, IssuesCommandClientError>;
+    ) => Effect.Effect<IssueDetail, IssuesCommandClientError>;
   }
 >()("pathwayos/issues/IssuesCommandClient") {}
 
@@ -188,9 +188,9 @@ const make = Effect.gen(function* () {
         ),
       );
       if (response.status < 200 || response.status >= 300) {
-        const responseMessage = yield* HttpClientResponse.schemaBodyJson(
-          IssuesHttpErrorEnvelope,
-        )(response).pipe(
+        const responseMessage = yield* HttpClientResponse.schemaBodyJson(IssuesHttpErrorEnvelope)(
+          response,
+        ).pipe(
           Effect.map(({ error }) => error),
           Effect.orElseSucceed(() => `The issues service returned HTTP ${response.status}.`),
         );
@@ -227,7 +227,12 @@ const make = Effect.gen(function* () {
           }),
       ),
       Effect.flatMap((environmentId) =>
-        post("command", "/v1/issues/command", { environmentId, command, attribution }, IssueCommandResult),
+        post(
+          "command",
+          "/v1/issues/command",
+          { environmentId, command, attribution },
+          IssueCommandResult,
+        ),
       ),
     );
 
